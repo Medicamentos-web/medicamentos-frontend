@@ -111,56 +111,66 @@ export default function LoginUI({ setUser }) {
   };
 
   return (
-    <div className="min-h-dvh bg-[#0a0c0e] flex items-center justify-center px-4 py-6">
+    <div className="min-h-dvh bg-gradient-to-b from-[#0f172a] via-[#1e293b] to-[#0f172a] flex flex-col items-center justify-center px-6 py-10">
+      {/* Logo / Branding */}
+      <div className="mb-8 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#007AFF] shadow-lg shadow-blue-500/30">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold text-white">Medicamentos</h1>
+        <p className="mt-1 text-sm text-slate-400">Gestión de tomas familiar</p>
+      </div>
+
+      {/* Login Form */}
       <form
         onSubmit={handleLogin}
-        className="w-full max-w-md rounded-[2rem] bg-white p-6 sm:p-8 shadow-2xl"
+        className="w-full max-w-sm space-y-4"
       >
-        <h1 className="text-xl font-black italic text-slate-900">
-          Acceso Pacientes
-        </h1>
-        <p className="text-xs text-slate-500 mt-2">
-          Ingresa con tu cuenta para ver tus tomas.
-        </p>
         {error ? (
-          <div className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-500">
+          <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
             {error}
           </div>
         ) : null}
-        <label className="mt-5 block text-xs font-bold uppercase tracking-widest text-slate-500">
-          Family ID
-        </label>
-        <input
-          className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-          value={familyId}
-          onChange={(event) => setFamilyId(event.target.value)}
-          placeholder="1"
-          required
-        />
-        <label className="mt-4 block text-xs font-bold uppercase tracking-widest text-slate-500">
-          Email
-        </label>
-        <input
-          className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="alertas.medicamentos@gmail.com"
-          type="email"
-          required
-        />
-        <label className="mt-4 block text-xs font-bold uppercase tracking-widest text-slate-500">
-          Password
-        </label>
-        <input
-          className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          type="password"
-          required
-        />
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Family ID</label>
+          <input
+            className="w-full rounded-xl border border-slate-600/50 bg-slate-800/50 px-4 py-3.5 text-sm text-white placeholder-slate-500 focus:border-[#007AFF] focus:outline-none focus:ring-1 focus:ring-[#007AFF]"
+            value={familyId}
+            onChange={(event) => setFamilyId(event.target.value)}
+            placeholder="1"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Email</label>
+          <input
+            className="w-full rounded-xl border border-slate-600/50 bg-slate-800/50 px-4 py-3.5 text-sm text-white placeholder-slate-500 focus:border-[#007AFF] focus:outline-none focus:ring-1 focus:ring-[#007AFF]"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="tu@email.com"
+            type="email"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Contraseña</label>
+          <input
+            className="w-full rounded-xl border border-slate-600/50 bg-slate-800/50 px-4 py-3.5 text-sm text-white placeholder-slate-500 focus:border-[#007AFF] focus:outline-none focus:ring-1 focus:ring-[#007AFF]"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            type="password"
+            required
+          />
+        </div>
+
         <button
           type="submit"
-          className="mt-6 w-full rounded-2xl bg-[#007AFF] py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg"
+          className="w-full rounded-xl bg-[#007AFF] py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-transform"
         >
           Entrar
         </button>
@@ -168,52 +178,45 @@ export default function LoginUI({ setUser }) {
         <button
           type="button"
           onClick={() => setShowReset((prev) => !prev)}
-          className="mt-4 w-full rounded-2xl border border-slate-200 py-2 text-xs font-bold uppercase tracking-widest text-slate-500"
+          className="w-full py-2 text-xs font-medium text-slate-500 hover:text-slate-300 transition-colors"
         >
-          Olvidé mi contraseña o e-mail
+          Olvidé mi contraseña
         </button>
 
         {showReset ? (
-          <div className="mt-4 space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-4">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-              Recuperación
-            </p>
+          <div className="space-y-3 rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+            <p className="text-xs font-semibold text-slate-400">Recuperación</p>
             {resetMessage ? (
-              <p className="text-xs text-slate-600">{resetMessage}</p>
+              <p className="text-xs text-emerald-400">{resetMessage}</p>
             ) : null}
             <button
               type="button"
               onClick={handleForgot}
-              className="w-full rounded-2xl bg-emerald-500 py-2 text-xs font-black uppercase tracking-widest text-white"
+              className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white"
             >
               Solicitar token
             </button>
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              Token
-            </label>
             <input
-              className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-xs"
+              className="w-full rounded-xl border border-slate-600/50 bg-slate-800/50 px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:border-[#007AFF] focus:outline-none"
               value={resetToken}
               onChange={(event) => setResetToken(event.target.value)}
               placeholder="Pega tu token aquí"
             />
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              Nueva contraseña
-            </label>
             <input
-              className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-xs"
+              className="w-full rounded-xl border border-slate-600/50 bg-slate-800/50 px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:border-[#007AFF] focus:outline-none"
               value={resetNewPassword}
               onChange={(event) => setResetNewPassword(event.target.value)}
               type="password"
+              placeholder="Nueva contraseña"
             />
             <button
               type="button"
               onClick={handleReset}
-              className="w-full rounded-2xl bg-[#0f172a] py-2 text-xs font-black uppercase tracking-widest text-white"
+              className="w-full rounded-xl bg-slate-700 py-2.5 text-xs font-bold text-white"
             >
               Cambiar contraseña
             </button>
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[10px] text-slate-500">
               Si no recuerdas tu email, contacta al administrador.
             </p>
           </div>
@@ -223,34 +226,30 @@ export default function LoginUI({ setUser }) {
       {mustChange ? (
         <form
           onSubmit={handleFirstChange}
-          className="w-full max-w-sm rounded-[2rem] bg-white p-8 shadow-2xl mt-6"
+          className="mt-6 w-full max-w-sm space-y-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-5"
         >
-          <h2 className="text-sm font-black uppercase text-slate-700">
+          <h2 className="text-sm font-bold text-amber-400">
             Cambia tu contraseña inicial
           </h2>
-          <label className="mt-4 block text-xs font-bold uppercase tracking-widest text-slate-500">
-            Contraseña actual
-          </label>
           <input
-            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+            className="w-full rounded-xl border border-slate-600/50 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
             value={currentPassword}
             onChange={(event) => setCurrentPassword(event.target.value)}
             type="password"
+            placeholder="Contraseña actual"
             required
           />
-          <label className="mt-4 block text-xs font-bold uppercase tracking-widest text-slate-500">
-            Nueva contraseña
-          </label>
           <input
-            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+            className="w-full rounded-xl border border-slate-600/50 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
             type="password"
+            placeholder="Nueva contraseña"
             required
           />
           <button
             type="submit"
-            className="mt-6 w-full rounded-2xl bg-emerald-500 py-3 text-sm font-black uppercase tracking-widest text-white shadow-lg"
+            className="w-full rounded-xl bg-amber-500 py-3 text-sm font-bold text-white shadow-lg"
           >
             Actualizar contraseña
           </button>
