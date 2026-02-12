@@ -1,0 +1,17 @@
+{
+  "name": "Gestión de Medicamentos",
+  "short_name": "Medicamentos",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0c0e",
+  "theme_color": "#0a0c0e",
+  "icons": [
+    {
+      "src": "/pill-placeholder.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

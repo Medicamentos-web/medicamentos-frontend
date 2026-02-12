@@ -1,0 +1,14 @@
+node_modules/
+.next/
+.env
+.env.local
+.env.supabase
+*.log
+backups/
+scripts/
+mobile/
+backend/
+docker-compose*.yml
+.env.*.example
+database/
+docs/

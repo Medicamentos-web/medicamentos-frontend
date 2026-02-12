@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+/* Pantalla completa: ocupa todo el viewport dinámico */
+html, body {
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+/* Safe-area para dispositivos con notch (iPhone, etc.) */
+.pt-safe-t {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+.pb-safe-b {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
