@@ -14,6 +14,7 @@ export default function LoginUI({ setUser }) {
   const [showReset, setShowReset] = useState(false);
   const [resetToken, setResetToken] = useState("");
   const [resetNewPassword, setResetNewPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [resetMessage, setResetMessage] = useState("");
 
   const handleLogin = async (event) => {
@@ -40,6 +41,7 @@ export default function LoginUI({ setUser }) {
       email: data.user.email,
       family_id: data.user.family_id,
       role: data.user.role,
+      token: data.token || "",
       must_change_password: data.user.must_change_password,
     };
     localStorage.setItem("userSession", JSON.stringify(session));
