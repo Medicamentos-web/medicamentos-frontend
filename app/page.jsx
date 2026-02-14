@@ -25,10 +25,20 @@ const STRINGS = {
     call: "Llamar", send_email: "Enviar email", doctor_title: "Médico de cabecera",
     no_doctor: "Sin datos de médico.", pending_doses: "tomas pendientes",
     confirm_now: "Confirmar ahora", completed_day: "Día completado",
-    no_records: "No hay registros hoy", emergency: "Emergencia 112",
+    no_records: "No hay registros hoy",     emergency: "Emergencia 112",
     disclaimer_title: "Aviso legal importante",
     disclaimer_accept: "He leído y acepto",
     disclaimer_text: "Esta aplicación es una herramienta de apoyo para la gestión y el recordatorio de la medicación prescrita por su médico de cabecera. En ningún caso sustituye, modifica ni reemplaza el diagnóstico, la prescripción ni las indicaciones de su profesional sanitario. El usuario se compromete a seguir siempre las instrucciones de su médico tratante. El uso de esta aplicación no establece una relación médico-paciente. Ante cualquier duda sobre su medicación, consulte a su médico o farmacéutico.",
+    disclaimer_email_note: "Al aceptar, se enviará una confirmación por correo electrónico al usuario y al administrador del sistema como registro legal.",
+    feedback_title: "Tu opinión nos importa",
+    feedback_subtitle: "¿Cómo calificarías tu experiencia con la app?",
+    feedback_placeholder: "Comentarios, sugerencias o problemas...",
+    feedback_send: "Enviar valoración",
+    feedback_thanks: "¡Gracias por tu opinión!",
+    feedback_later: "Más tarde",
+    beta_tag: "BETA",
+    notif_enable: "Activar notificaciones",
+    notif_enabled: "Notificaciones activas",
   },
   "de-CH": {
     residents: "Bewohner", alerts: "Warnungen", view_alerts: "Anzeigen",
@@ -55,6 +65,16 @@ const STRINGS = {
     disclaimer_title: "Wichtiger rechtlicher Hinweis",
     disclaimer_accept: "Gelesen und akzeptiert",
     disclaimer_text: "Diese Anwendung ist ein Hilfsmittel zur Verwaltung und Erinnerung an die von Ihrem Arzt verschriebene Medikation. Sie ersetzt in keinem Fall die Diagnose, Verschreibung oder Anweisungen Ihres Arztes. Der Benutzer verpflichtet sich, stets den Anweisungen seines behandelnden Arztes zu folgen. Die Nutzung dieser Anwendung begründet kein Arzt-Patienten-Verhältnis. Bei Fragen zu Ihrer Medikation wenden Sie sich an Ihren Arzt oder Apotheker.",
+    disclaimer_email_note: "Durch die Annahme wird eine Bestätigung per E-Mail an den Benutzer und den Systemadministrator als rechtlicher Nachweis gesendet.",
+    feedback_title: "Ihre Meinung ist uns wichtig",
+    feedback_subtitle: "Wie bewerten Sie Ihre Erfahrung mit der App?",
+    feedback_placeholder: "Kommentare, Vorschläge oder Probleme...",
+    feedback_send: "Bewertung senden",
+    feedback_thanks: "Vielen Dank für Ihre Bewertung!",
+    feedback_later: "Später",
+    beta_tag: "BETA",
+    notif_enable: "Benachrichtigungen aktivieren",
+    notif_enabled: "Benachrichtigungen aktiv",
   },
   en: {
     residents: "Residents", alerts: "Alerts", view_alerts: "View",
@@ -80,6 +100,16 @@ const STRINGS = {
     disclaimer_title: "Important legal notice",
     disclaimer_accept: "I have read and accept",
     disclaimer_text: "This application is a support tool for the management and reminder of medication prescribed by your physician. It does not in any case replace, modify, or substitute the diagnosis, prescription, or instructions of your healthcare professional. The user agrees to always follow the instructions of their treating physician. Use of this application does not establish a doctor-patient relationship. If you have any questions about your medication, consult your doctor or pharmacist.",
+    disclaimer_email_note: "By accepting, a confirmation email will be sent to the user and the system administrator as a legal record.",
+    feedback_title: "Your opinion matters",
+    feedback_subtitle: "How would you rate your experience with the app?",
+    feedback_placeholder: "Comments, suggestions or issues...",
+    feedback_send: "Send rating",
+    feedback_thanks: "Thank you for your feedback!",
+    feedback_later: "Later",
+    beta_tag: "BETA",
+    notif_enable: "Enable notifications",
+    notif_enabled: "Notifications active",
   },
 };
 
@@ -120,8 +150,17 @@ export default function HomePage() {
   const [doseSubmitting, setDoseSubmitting] = useState(false);
   const [doseMessage, setDoseMessage] = useState("");
   const [billing, setBilling] = useState(null);
+  // Feedback
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [fbRating, setFbRating] = useState(0);
+  const [fbText, setFbText] = useState("");
+  const [fbSending, setFbSending] = useState(false);
+  const [fbSent, setFbSent] = useState(false);
+  // Notifications
+  const [notifPermission, setNotifPermission] = useState("default");
   const carouselRef = useRef(null);
   const fileInputRef = useRef(null);
+  const audioRef = useRef(null);
 
   const t = (key) => STRINGS[lang]?.[key] || STRINGS.es[key] || key;
   const blockNames = BLOCK_NAMES[lang] || BLOCK_NAMES.es;
@@ -135,13 +174,27 @@ export default function HomePage() {
         const s = JSON.parse(saved);
         setUser(s);
         setToken(s.token || "");
-        // Check disclaimer acceptance
         const accepted = localStorage.getItem(`disclaimer_accepted_${s.id}`);
         if (!accepted) setShowDisclaimer(true);
+        // Check if feedback should show (every 7 days, after disclaimer accepted)
+        if (accepted) {
+          const lastFb = localStorage.getItem(`feedback_asked_${s.id}`);
+          const fbSent = localStorage.getItem(`feedback_sent_${s.id}`);
+          if (!fbSent) {
+            const daysSinceAsk = lastFb ? (Date.now() - new Date(lastFb).getTime()) / 86400000 : 999;
+            if (daysSinceAsk >= 7) {
+              setTimeout(() => setShowFeedback(true), 5000); // show after 5s
+            }
+          }
+        }
       }
       const savedLang = localStorage.getItem("lang");
       if (savedLang && STRINGS[savedLang]) setLang(savedLang);
     } catch {}
+    // Notification permission
+    if (typeof Notification !== "undefined") {
+      setNotifPermission(Notification.permission);
+    }
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -149,23 +202,74 @@ export default function HomePage() {
   const handleSetUser = (session) => {
     setUser(session);
     setToken(session?.token || "");
-    // Show disclaimer on first login
     const accepted = localStorage.getItem(`disclaimer_accepted_${session?.id}`);
     if (!accepted) setShowDisclaimer(true);
   };
 
-  const acceptDisclaimer = async () => {
+  // Fix: cierre inmediato, API en background
+  const acceptDisclaimer = () => {
     if (!user) return;
-    localStorage.setItem(`disclaimer_accepted_${user.id}`, new Date().toISOString());
-    // Notify backend to send confirmation email
+    const ts = new Date().toISOString();
+    localStorage.setItem(`disclaimer_accepted_${user.id}`, ts);
+    setShowDisclaimer(false);
+    // API call in background - no await
+    fetch(`/api/disclaimer-accepted`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      credentials: "include",
+      body: JSON.stringify({ user_id: user.id, family_id: user.family_id, accepted_at: ts }),
+    }).catch(() => {});
+  };
+
+  // ── Feedback ──
+  const submitFeedback = async () => {
+    if (fbRating === 0) return;
+    setFbSending(true);
     try {
-      await fetch(`/api/disclaimer-accepted`, {
-        method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      await fetch(`/api/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         credentials: "include",
-        body: JSON.stringify({ user_id: user.id, family_id: user.family_id, accepted_at: new Date().toISOString() }),
+        body: JSON.stringify({ user_id: user.id, family_id: user.family_id, rating: fbRating, comment: fbText.trim(), lang }),
       });
     } catch {}
-    setShowDisclaimer(false);
+    localStorage.setItem(`feedback_sent_${user.id}`, new Date().toISOString());
+    setFbSent(true);
+    setFbSending(false);
+    setTimeout(() => { setShowFeedback(false); setFbSent(false); setFbRating(0); setFbText(""); }, 2000);
+  };
+  const dismissFeedback = () => {
+    localStorage.setItem(`feedback_asked_${user?.id}`, new Date().toISOString());
+    setShowFeedback(false);
+  };
+
+  // ── Notifications + Sound ──
+  const requestNotifications = async () => {
+    if (typeof Notification === "undefined") return;
+    const perm = await Notification.requestPermission();
+    setNotifPermission(perm);
+    if (perm === "granted") {
+      playNotifSound();
+      new Notification("Medicamentos", { body: t("notif_enabled"), icon: "/icon-192.png" });
+    }
+  };
+  const playNotifSound = () => {
+    try {
+      if (!audioRef.current) {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+      }
+    } catch {}
   };
 
   const handleLogout = () => {
@@ -351,24 +455,39 @@ export default function HomePage() {
       {/* ── Top Bar con safe area para iPhone ── */}
       <div className="bg-[#0f172a] text-white px-5 pt-[env(safe-area-inset-top,12px)] pb-4">
         <div className="flex justify-between items-center pt-3">
-          <div className="flex-1">
-            <h1 className="text-sm font-bold text-emerald-400">MEDICAMENTOS</h1>
-            <p className="text-[10px] text-slate-400 mt-0.5">{user.nombre} · {t("live_caption")}</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-bold text-emerald-400">MEDICAMENTOS</h1>
+              <span className="text-[8px] font-black bg-amber-400 text-slate-900 px-1.5 py-0.5 rounded">{t("beta_tag")}</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5 truncate">{user.nombre} · {t("live_caption")}</p>
           </div>
-          {/* Botón SALIR siempre visible */}
-          <button onClick={handleLogout}
-            className="bg-red-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg active:scale-95 transition-transform">
-            {t("logout")} ✕
-          </button>
+          <div className="flex items-center gap-2 flex-none">
+            {notifPermission !== "granted" && (
+              <button onClick={requestNotifications}
+                className="bg-blue-500 text-white text-[10px] font-bold px-2.5 py-2 rounded-xl active:scale-95 transition-transform">
+                🔔
+              </button>
+            )}
+            <button onClick={handleLogout}
+              className="bg-red-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg active:scale-95 transition-transform">
+              {t("logout")} ✕
+            </button>
+          </div>
         </div>
-        {/* Language selector */}
-        <div className="flex gap-2 mt-3">
+        {/* Language selector + feedback */}
+        <div className="flex items-center gap-2 mt-3">
           {["de-CH","es","en"].map((l) => (
             <button key={l} onClick={() => changeLang(l)}
               className={`text-[10px] font-bold px-3 py-1 rounded-lg transition-colors ${lang === l ? "bg-white text-slate-900" : "bg-slate-800 text-slate-400"}`}>
               {l === "de-CH" ? "DE" : l.toUpperCase()}
             </button>
           ))}
+          <div className="flex-1" />
+          <button onClick={() => setShowFeedback(true)}
+            className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-lg">
+            ⭐ Feedback
+          </button>
         </div>
       </div>
 
@@ -379,17 +498,72 @@ export default function HomePage() {
             <div className="text-center mb-4">
               <div className="mx-auto mb-3 w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center text-2xl">⚕️</div>
               <h2 className="text-lg font-bold text-slate-800">{t("disclaimer_title")}</h2>
+              {/* Language selector within popup */}
+              <div className="flex justify-center gap-2 mt-3">
+                {["de-CH","es","en"].map((l) => (
+                  <button key={l} onClick={() => changeLang(l)}
+                    className={`text-[10px] font-bold px-3 py-1 rounded-full transition-colors ${lang === l ? "bg-[#0f172a] text-white" : "bg-slate-100 text-slate-500"}`}>
+                    {l === "de-CH" ? "Deutsch" : l === "es" ? "Español" : "English"}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4">
               <p className="text-sm text-slate-700 leading-relaxed">{t("disclaimer_text")}</p>
             </div>
             <p className="text-[10px] text-slate-400 text-center mb-4">
-              Al aceptar, se enviará una confirmación por correo electrónico al usuario y al administrador del sistema como registro legal.
+              {t("disclaimer_email_note")}
             </p>
             <button onClick={acceptDisclaimer}
               className="w-full bg-[#007AFF] text-white text-sm font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] transition-transform">
               {t("disclaimer_accept")}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Feedback Popup ── */}
+      {showFeedback && !showDisclaimer && (
+        <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4" onClick={dismissFeedback}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            {fbSent ? (
+              <div className="text-center py-6">
+                <div className="text-4xl mb-3">🎉</div>
+                <p className="text-base font-bold text-slate-800">{t("feedback_thanks")}</p>
+              </div>
+            ) : (
+              <>
+                <div className="text-center mb-4">
+                  <div className="mx-auto mb-2 w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-xl">⭐</div>
+                  <h2 className="text-base font-bold text-slate-800">{t("feedback_title")}</h2>
+                  <p className="text-xs text-slate-500 mt-1">{t("feedback_subtitle")}</p>
+                </div>
+                {/* Star rating */}
+                <div className="flex justify-center gap-2 mb-4">
+                  {[1,2,3,4,5].map((star) => (
+                    <button key={star} onClick={() => setFbRating(star)}
+                      className={`text-3xl transition-transform active:scale-110 ${star <= fbRating ? "" : "opacity-30 grayscale"}`}>
+                      ⭐
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm min-h-[80px] mb-3 resize-none"
+                  placeholder={t("feedback_placeholder")}
+                  value={fbText} onChange={(e) => setFbText(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <button onClick={submitFeedback} disabled={fbSending || fbRating === 0}
+                    className="flex-1 bg-[#007AFF] text-white text-sm font-bold py-3 rounded-xl disabled:opacity-50 active:scale-[0.98] transition-transform">
+                    {fbSending ? "..." : t("feedback_send")}
+                  </button>
+                  <button onClick={dismissFeedback}
+                    className="flex-1 bg-slate-100 text-slate-600 text-sm font-bold py-3 rounded-xl active:scale-[0.98] transition-transform">
+                    {t("feedback_later")}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
