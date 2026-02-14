@@ -119,6 +119,7 @@ export default function HomePage() {
   const [doseDate, setDoseDate] = useState("");
   const [doseSubmitting, setDoseSubmitting] = useState(false);
   const [doseMessage, setDoseMessage] = useState("");
+  const [billing, setBilling] = useState(null);
   const carouselRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -239,7 +240,14 @@ export default function HomePage() {
     } catch { setDoctor(null); }
   };
 
-  useEffect(() => { if (user && token) { loadMeds(); loadAlerts(); } }, [user, token, loadMeds, loadAlerts]);
+  useEffect(() => {
+    if (user && token) {
+      loadMeds(); loadAlerts();
+      // Load billing status
+      fetch(`/api/billing/status?family_id=${user.family_id}`, { headers, credentials: "include" })
+        .then(r => r.json()).then(d => setBilling(d)).catch(() => {});
+    }
+  }, [user, token, loadMeds, loadAlerts]);
 
   const toggleMed = async (med) => {
     if (med.completado) return;
@@ -391,6 +399,26 @@ export default function HomePage() {
         <div className="mx-4 mt-3 bg-red-50 border border-red-300 rounded-xl p-3">
           <p className="text-sm text-red-700">{error}</p>
           <button onClick={loadMeds} className="text-xs text-red-500 font-bold mt-1 underline">Reintentar</button>
+        </div>
+      )}
+
+      {/* ── Billing Banner ── */}
+      {billing && billing.trial && billing.days_left !== null && billing.days_left <= 10 && (
+        <div className="mx-4 mt-3 bg-blue-50 border border-blue-300 rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold text-blue-800">Prueba gratuita: {billing.days_left} días restantes</p>
+            <p className="text-[10px] text-blue-600">Activa tu plan para no perder acceso.</p>
+          </div>
+          <a href="/billing" className="bg-[#007AFF] text-white text-xs font-bold px-3 py-2 rounded-xl">Ver planes</a>
+        </div>
+      )}
+      {billing && !billing.active && !billing.trial && (
+        <div className="mx-4 mt-3 bg-red-50 border border-red-300 rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold text-red-800">Suscripción inactiva</p>
+            <p className="text-[10px] text-red-600">Activa tu plan para continuar usando la app.</p>
+          </div>
+          <a href="/billing" className="bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-xl">Activar</a>
         </div>
       )}
 
