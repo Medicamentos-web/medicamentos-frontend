@@ -19,19 +19,21 @@ const STRINGS = {
     sending: "Enviando...", dose_request_sent: "Solicitud enviada.",
     dose_request_error: "No se pudo enviar.", offline_mode: "Sin conexión.",
     show_day: "Ver todas las tomas", hide_day: "Ocultar tomas",
-    patient: "Paciente", logout: "Salir", live_caption: "En directo, con tu paciente",
-    forgot_password: "Olvidé mi contraseña", morning: "Mañana", midday: "Mediodía",
-    afternoon: "Tarde", night: "Noche", upload: "Importar", importing: "Importando...",
-    import_success: "Importación exitosa", call: "Llamar", send_email: "Enviar email",
-    doctor_title: "Médico de cabecera", no_doctor: "Sin datos de médico.",
-    pending_doses: "tomas pendientes", confirm_now: "Confirmar ahora",
-    completed_day: "Día completado", no_records: "No hay registros hoy",
-    emergency: "Emergencia 112",
+    patient: "Paciente", logout: "Cerrar sesión", live_caption: "Gestión de medicación",
+    morning: "Mañana", midday: "Mediodía", afternoon: "Tarde", night: "Noche",
+    upload: "Importar", importing: "Importando...", import_success: "Importación exitosa",
+    call: "Llamar", send_email: "Enviar email", doctor_title: "Médico de cabecera",
+    no_doctor: "Sin datos de médico.", pending_doses: "tomas pendientes",
+    confirm_now: "Confirmar ahora", completed_day: "Día completado",
+    no_records: "No hay registros hoy", emergency: "Emergencia 112",
+    disclaimer_title: "Aviso legal importante",
+    disclaimer_accept: "He leído y acepto",
+    disclaimer_text: "Esta aplicación es una herramienta de apoyo para la gestión y el recordatorio de la medicación prescrita por su médico de cabecera. En ningún caso sustituye, modifica ni reemplaza el diagnóstico, la prescripción ni las indicaciones de su profesional sanitario. El usuario se compromete a seguir siempre las instrucciones de su médico tratante. El uso de esta aplicación no establece una relación médico-paciente. Ante cualquier duda sobre su medicación, consulte a su médico o farmacéutico.",
   },
   "de-CH": {
-    residents: "Bewohner", alerts: "Warnungen", view_alerts: "Warnungen anzeigen",
+    residents: "Bewohner", alerts: "Warnungen", view_alerts: "Anzeigen",
     view_less: "Weniger", refresh_alerts: "Aktualisieren", sos: "SOS",
-    doctor_contact: "Arztkontakt", no_stock_alerts: "Keine Lagerwarnungen",
+    doctor_contact: "Arztkontakt", no_stock_alerts: "Keine Warnungen",
     scan_med: "Medikament scannen", scan_subtitle: "Foto der Etikette hochladen.",
     gallery: "Bild hochladen", blocks_title: "Zeitblöcke",
     blocks_subtitle: "Zusammenfassung", pending: "offen", total: "gesamt",
@@ -43,19 +45,21 @@ const STRINGS = {
     sending: "Senden...", dose_request_sent: "Anfrage gesendet.",
     dose_request_error: "Fehler.", offline_mode: "Offline-Modus.",
     show_day: "Tagesplan anzeigen", hide_day: "Ausblenden",
-    patient: "Patient", logout: "Abmelden", live_caption: "Live mit Ihrem Patienten",
-    forgot_password: "Passwort vergessen", morning: "Morgen", midday: "Mittag",
-    afternoon: "Nachmittag", night: "Nacht", upload: "Importieren",
-    importing: "Importieren...", import_success: "Erfolgreich importiert",
+    patient: "Patient", logout: "Abmelden", live_caption: "Medikamentenverwaltung",
+    morning: "Morgen", midday: "Mittag", afternoon: "Nachmittag", night: "Nacht",
+    upload: "Importieren", importing: "Importieren...", import_success: "Erfolgreich",
     call: "Anrufen", send_email: "E-Mail senden", doctor_title: "Hausarzt",
     no_doctor: "Keine Arztdaten.", pending_doses: "offene Einnahmen",
     confirm_now: "Jetzt bestätigen", completed_day: "Tag abgeschlossen",
     no_records: "Heute keine Einträge", emergency: "Notfall 112",
+    disclaimer_title: "Wichtiger rechtlicher Hinweis",
+    disclaimer_accept: "Gelesen und akzeptiert",
+    disclaimer_text: "Diese Anwendung ist ein Hilfsmittel zur Verwaltung und Erinnerung an die von Ihrem Arzt verschriebene Medikation. Sie ersetzt in keinem Fall die Diagnose, Verschreibung oder Anweisungen Ihres Arztes. Der Benutzer verpflichtet sich, stets den Anweisungen seines behandelnden Arztes zu folgen. Die Nutzung dieser Anwendung begründet kein Arzt-Patienten-Verhältnis. Bei Fragen zu Ihrer Medikation wenden Sie sich an Ihren Arzt oder Apotheker.",
   },
   en: {
-    residents: "Residents", alerts: "Alerts", view_alerts: "View alerts",
-    view_less: "View less", refresh_alerts: "Refresh", sos: "SOS",
-    doctor_contact: "Doctor contact", no_stock_alerts: "No stock alerts",
+    residents: "Residents", alerts: "Alerts", view_alerts: "View",
+    view_less: "Less", refresh_alerts: "Refresh", sos: "SOS",
+    doctor_contact: "Doctor", no_stock_alerts: "No alerts",
     scan_med: "Scan medication", scan_subtitle: "Upload a photo of the label.",
     gallery: "Upload image", blocks_title: "Time blocks",
     blocks_subtitle: "Summary by time", pending: "pending", total: "total",
@@ -66,14 +70,16 @@ const STRINGS = {
     sending: "Sending...", dose_request_sent: "Request sent.",
     dose_request_error: "Could not send.", offline_mode: "Offline mode.",
     show_day: "Show all doses", hide_day: "Hide doses",
-    patient: "Patient", logout: "Logout", live_caption: "Live with your patient",
-    forgot_password: "Forgot password", morning: "Morning", midday: "Midday",
-    afternoon: "Afternoon", night: "Night", upload: "Import",
-    importing: "Importing...", import_success: "Import successful",
+    patient: "Patient", logout: "Logout", live_caption: "Medication management",
+    morning: "Morning", midday: "Midday", afternoon: "Afternoon", night: "Night",
+    upload: "Import", importing: "Importing...", import_success: "Success",
     call: "Call", send_email: "Send email", doctor_title: "Primary doctor",
     no_doctor: "No doctor data.", pending_doses: "pending doses",
     confirm_now: "Confirm now", completed_day: "Day completed",
     no_records: "No records today", emergency: "Emergency 112",
+    disclaimer_title: "Important legal notice",
+    disclaimer_accept: "I have read and accept",
+    disclaimer_text: "This application is a support tool for the management and reminder of medication prescribed by your physician. It does not in any case replace, modify, or substitute the diagnosis, prescription, or instructions of your healthcare professional. The user agrees to always follow the instructions of their treating physician. Use of this application does not establish a doctor-patient relationship. If you have any questions about your medication, consult your doctor or pharmacist.",
   },
 };
 
@@ -85,10 +91,12 @@ export default function HomePage() {
   const [lang, setLang] = useState("es");
   const [user, setUser] = useState(null);
   const [token, setToken] = useState("");
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [meds, setMeds] = useState({});
+  const [meds, setMeds] = useState([[], [], [], []]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [alerts, setAlerts] = useState([]);
   const [showAlerts, setShowAlerts] = useState(false);
   const [alertsLoading, setAlertsLoading] = useState(false);
@@ -96,25 +104,21 @@ export default function HomePage() {
   const [showAllMeds, setShowAllMeds] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [lastSync, setLastSync] = useState("");
-  // SOS / Doctor
   const [showSos, setShowSos] = useState(false);
   const [doctor, setDoctor] = useState(null);
   const [sosMessage, setSosMessage] = useState("");
-  // Scan
   const [showScan, setShowScan] = useState(false);
   const [scanFile, setScanFile] = useState(null);
   const [scanPreview, setScanPreview] = useState(null);
   const [scanUploading, setScanUploading] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [scanError, setScanError] = useState("");
-  // Dose change
   const [showDoseModal, setShowDoseModal] = useState(false);
   const [doseMed, setDoseMed] = useState(null);
   const [doseValue, setDoseValue] = useState("");
   const [doseDate, setDoseDate] = useState("");
   const [doseSubmitting, setDoseSubmitting] = useState(false);
   const [doseMessage, setDoseMessage] = useState("");
-  // Refs
   const carouselRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -130,6 +134,9 @@ export default function HomePage() {
         const s = JSON.parse(saved);
         setUser(s);
         setToken(s.token || "");
+        // Check disclaimer acceptance
+        const accepted = localStorage.getItem(`disclaimer_accepted_${s.id}`);
+        if (!accepted) setShowDisclaimer(true);
       }
       const savedLang = localStorage.getItem("lang");
       if (savedLang && STRINGS[savedLang]) setLang(savedLang);
@@ -141,6 +148,29 @@ export default function HomePage() {
   const handleSetUser = (session) => {
     setUser(session);
     setToken(session?.token || "");
+    // Show disclaimer on first login
+    const accepted = localStorage.getItem(`disclaimer_accepted_${session?.id}`);
+    if (!accepted) setShowDisclaimer(true);
+  };
+
+  const acceptDisclaimer = async () => {
+    if (!user) return;
+    localStorage.setItem(`disclaimer_accepted_${user.id}`, new Date().toISOString());
+    // Notify backend to send confirmation email
+    try {
+      await fetch(`/api/disclaimer-accepted`, {
+        method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: "include",
+        body: JSON.stringify({ user_id: user.id, family_id: user.family_id, accepted_at: new Date().toISOString() }),
+      });
+    } catch {}
+    setShowDisclaimer(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("userSession");
+    setUser(null);
+    setToken("");
   };
 
   const changeLang = (l) => { setLang(l); localStorage.setItem("lang", l); };
@@ -156,19 +186,20 @@ export default function HomePage() {
   const loadMeds = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
+    setError("");
     const date = dateKey(selectedDate);
     const cacheK = `meds:${user.family_id}:${user.id}:${date}`;
     try {
       const res = await fetch(`/api/meds-by-date?user_id=${user.id}&family_id=${user.family_id}&date=${date}`, { headers, credentials: "include" });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || `HTTP ${res.status}`); }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
       setIsOffline(false);
       const stamp = new Date().toISOString();
       setLastSync(stamp);
-      localStorage.setItem(cacheK, JSON.stringify({ data, stamp }));
+      try { localStorage.setItem(cacheK, JSON.stringify({ data, stamp })); } catch {}
       groupMeds(data);
-    } catch {
-      // Offline fallback
+    } catch (err) {
+      setError(err.message || "Error de conexión");
       try {
         const cached = JSON.parse(localStorage.getItem(cacheK));
         if (cached?.data) { groupMeds(cached.data); setLastSync(cached.stamp || ""); setIsOffline(true); }
@@ -178,7 +209,7 @@ export default function HomePage() {
 
   const groupMeds = (data) => {
     const groups = [[], [], [], []];
-    (data || []).forEach((med) => {
+    (Array.isArray(data) ? data : []).forEach((med) => {
       const h = parseInt(med.hora?.split(":")[0] || "0", 10);
       const item = { ...med, completado: med.estado === "tomado" };
       if (h >= 5 && h < 12) groups[0].push(item);
@@ -189,7 +220,6 @@ export default function HomePage() {
     setMeds(groups);
   };
 
-  // ── Load alerts ──
   const loadAlerts = useCallback(async () => {
     if (!user?.id || !token) return;
     setAlertsLoading(true);
@@ -200,7 +230,6 @@ export default function HomePage() {
     } catch {} finally { setAlertsLoading(false); }
   }, [user, token, headers]);
 
-  // ── Load doctor ──
   const loadDoctor = async () => {
     if (!user?.id || !token) return;
     try {
@@ -210,9 +239,8 @@ export default function HomePage() {
     } catch { setDoctor(null); }
   };
 
-  useEffect(() => { loadMeds(); loadAlerts(); }, [loadMeds, loadAlerts]);
+  useEffect(() => { if (user && token) { loadMeds(); loadAlerts(); } }, [user, token, loadMeds, loadAlerts]);
 
-  // ── Toggle med ──
   const toggleMed = async (med) => {
     if (med.completado) return;
     const date = dateKey(selectedDate);
@@ -227,7 +255,6 @@ export default function HomePage() {
     } catch {}
   };
 
-  // ── Dose change ──
   const openDoseModal = (med) => {
     setDoseMed(med); setDoseValue(med.dosis || ""); setDoseDate(dateKey(new Date()));
     setDoseMessage(""); setShowDoseModal(true);
@@ -245,7 +272,6 @@ export default function HomePage() {
     } catch { setDoseMessage(t("dose_request_error")); } finally { setDoseSubmitting(false); }
   };
 
-  // ── Scan / Import ──
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -261,9 +287,7 @@ export default function HomePage() {
       form.append("user_id", String(user.id));
       form.append("fast_ocr", "1");
       form.append("file", scanFile);
-      const res = await fetch(`/api/import-scan`, {
-        method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form,
-      });
+      const res = await fetch(`/api/import-scan`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setScanError(data.error || "Error"); }
       else { setScanResult(data); loadMeds(); }
@@ -271,17 +295,16 @@ export default function HomePage() {
   };
 
   // ── Computed ──
-  const allItems = useMemo(() => (meds[0] || []).concat(meds[1] || [], meds[2] || [], meds[3] || []), [meds]);
+  const allItems = useMemo(() => [].concat(meds[0] || [], meds[1] || [], meds[2] || [], meds[3] || []), [meds]);
   const pendingCount = useMemo(() => allItems.filter((m) => !m.completado).length, [allItems]);
   const dayCompleted = pendingCount === 0 && allItems.length > 0;
 
   const blockSummary = useMemo(() =>
-    (meds || []).map ? [0,1,2,3].map((i) => {
+    [0, 1, 2, 3].map((i) => {
       const items = meds[i] || [];
       return { name: blockNames[i], total: items.length, pending: items.filter((m) => !m.completado).length, color: BLOCK_COLORS[i], items };
-    }) : [], [meds, blockNames]);
+    }), [meds, blockNames]);
 
-  // ── Date carousel ──
   const daysArray = useMemo(() => {
     const days = []; const today = new Date(); today.setHours(0,0,0,0);
     for (let i = -14; i <= 14; i++) {
@@ -298,11 +321,10 @@ export default function HomePage() {
     carouselRef.current.scrollTo({ left: idx * 68 - carouselRef.current.clientWidth / 2 + 34, behavior: "smooth" });
   }, [selectedDate, daysArray]);
 
-  // ── SOS message ──
   useEffect(() => {
     const name = user?.nombre || "Paciente";
     const date = new Date().toLocaleDateString("es-ES");
-    setSosMessage(`Estimado/a Dr./Dra.,\n\nLe escribo por una consulta relacionada con mi medicación actual. ¿Podemos coordinar una revisión?\n\nPaciente: ${name}\nFecha: ${date}`);
+    setSosMessage(`Estimado/a Dr./Dra.,\n\nLe escribo por una consulta relacionada con mi medicación actual.\n\nPaciente: ${name}\nFecha: ${date}`);
   }, [user]);
 
   // ── Render ──
@@ -318,48 +340,78 @@ export default function HomePage() {
 
   return (
     <div className="min-h-dvh bg-[#F2F4F8] pb-28">
-      {/* ── Top Bar ── */}
-      <div className="bg-[#0f172a] text-white px-5 pt-6 pb-4">
-        <div className="flex justify-between items-center">
-          <div>
+      {/* ── Top Bar con safe area para iPhone ── */}
+      <div className="bg-[#0f172a] text-white px-5 pt-[env(safe-area-inset-top,12px)] pb-4">
+        <div className="flex justify-between items-center pt-3">
+          <div className="flex-1">
             <h1 className="text-sm font-bold text-emerald-400">MEDICAMENTOS</h1>
-            <p className="text-[10px] text-slate-400 mt-0.5">{t("live_caption")}</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">{user.nombre} · {t("live_caption")}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-300 font-medium">{user.nombre}</span>
-            <button onClick={() => { localStorage.removeItem("userSession"); setUser(null); setToken(""); }}
-              className="text-[10px] font-bold text-red-400 bg-red-400/10 px-3 py-1.5 rounded-lg">{t("logout")}</button>
-          </div>
+          {/* Botón SALIR siempre visible */}
+          <button onClick={handleLogout}
+            className="bg-red-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg active:scale-95 transition-transform">
+            {t("logout")} ✕
+          </button>
         </div>
         {/* Language selector */}
         <div className="flex gap-2 mt-3">
           {["de-CH","es","en"].map((l) => (
             <button key={l} onClick={() => changeLang(l)}
-              className={`text-[10px] font-bold px-3 py-1 rounded-lg ${lang === l ? "bg-white text-slate-900" : "bg-slate-800 text-slate-400"}`}>
+              className={`text-[10px] font-bold px-3 py-1 rounded-lg transition-colors ${lang === l ? "bg-white text-slate-900" : "bg-slate-800 text-slate-400"}`}>
               {l === "de-CH" ? "DE" : l.toUpperCase()}
             </button>
           ))}
         </div>
       </div>
 
+      {/* ── Legal Disclaimer Popup ── */}
+      {showDisclaimer && (
+        <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="text-center mb-4">
+              <div className="mx-auto mb-3 w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center text-2xl">⚕️</div>
+              <h2 className="text-lg font-bold text-slate-800">{t("disclaimer_title")}</h2>
+            </div>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4">
+              <p className="text-sm text-slate-700 leading-relaxed">{t("disclaimer_text")}</p>
+            </div>
+            <p className="text-[10px] text-slate-400 text-center mb-4">
+              Al aceptar, se enviará una confirmación por correo electrónico al usuario y al administrador del sistema como registro legal.
+            </p>
+            <button onClick={acceptDisclaimer}
+              className="w-full bg-[#007AFF] text-white text-sm font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] transition-transform">
+              {t("disclaimer_accept")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Error Banner ── */}
+      {error && (
+        <div className="mx-4 mt-3 bg-red-50 border border-red-300 rounded-xl p-3">
+          <p className="text-sm text-red-700">{error}</p>
+          <button onClick={loadMeds} className="text-xs text-red-500 font-bold mt-1 underline">Reintentar</button>
+        </div>
+      )}
+
       {/* ── Status Cards ── */}
-      <div className="px-4 -mt-1 flex gap-2 overflow-x-auto pb-2 pt-3">
-        <div className="flex-none bg-white rounded-xl px-4 py-3 shadow-sm min-w-[80px] text-center">
+      <div className="px-4 flex gap-2 overflow-x-auto pb-2 pt-3">
+        <div className="flex-none bg-white rounded-xl px-4 py-3 shadow-sm min-w-[70px] text-center">
           <p className="text-[9px] font-bold text-slate-400 uppercase">{t("residents")}</p>
           <p className="text-xl font-bold text-slate-800 mt-1">1</p>
         </div>
         <button onClick={() => { setShowAlerts((p) => !p); if (!showAlerts) loadAlerts(); }}
-          className="flex-none bg-[#111827] rounded-xl px-4 py-3 shadow-sm min-w-[90px] text-center">
+          className="flex-none bg-[#111827] rounded-xl px-4 py-3 shadow-sm min-w-[80px] text-center">
           <p className="text-[9px] font-bold text-blue-300 uppercase">{t("alerts")}</p>
           <p className="text-xs font-bold text-white mt-1">{showAlerts ? t("view_less") : t("view_alerts")}</p>
         </button>
         <button onClick={loadAlerts}
-          className="flex-none bg-[#111827] rounded-xl px-4 py-3 shadow-sm min-w-[80px] text-center">
+          className="flex-none bg-[#111827] rounded-xl px-4 py-3 shadow-sm min-w-[70px] text-center">
           <p className="text-[9px] font-bold text-blue-300 uppercase">{t("refresh_alerts")}</p>
-          <p className="text-xs font-bold text-white mt-1">{alertsLoading ? "..." : t("alerts")}</p>
+          <p className="text-xs font-bold text-white mt-1">{alertsLoading ? "..." : "🔄"}</p>
         </button>
         <button onClick={async () => { await loadDoctor(); setShowSos(true); }}
-          className="flex-none bg-yellow-400 rounded-xl px-4 py-3 shadow-sm min-w-[90px] text-center">
+          className="flex-none bg-yellow-400 rounded-xl px-4 py-3 shadow-sm min-w-[80px] text-center">
           <p className="text-[9px] font-bold text-slate-800 uppercase">{t("sos")}</p>
           <p className="text-xs font-bold text-slate-800 mt-1">{t("doctor_contact")}</p>
         </button>
@@ -383,10 +435,10 @@ export default function HomePage() {
         <p className="text-xs text-slate-500 mt-1">{t("scan_subtitle")}</p>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
         <button onClick={() => fileInputRef.current?.click()}
-          className="mt-3 bg-sky-500 text-white text-xs font-bold py-2.5 px-5 rounded-xl">{t("gallery")}</button>
+          className="mt-3 bg-sky-500 text-white text-xs font-bold py-2.5 px-5 rounded-xl active:scale-95 transition-transform">{t("gallery")}</button>
       </div>
 
-      {/* ── Offline Banner ── */}
+      {/* ── Offline / Loading ── */}
       {isOffline && (
         <div className="mx-4 mt-3 bg-amber-50 border border-amber-300 rounded-xl p-3">
           <p className="text-sm font-bold text-amber-800">{t("offline_mode")}</p>
@@ -403,7 +455,7 @@ export default function HomePage() {
         </div>
       )}
       {dayCompleted && (
-        <div className="mx-4 mt-3 bg-emerald-50 border border-emerald-300 rounded-xl p-3">
+        <div className="mx-4 mt-3 bg-emerald-50 border border-emerald-300 rounded-xl p-3 text-center">
           <p className="text-sm font-bold text-emerald-700">✅ {t("completed_day")}</p>
         </div>
       )}
@@ -458,14 +510,14 @@ export default function HomePage() {
       {/* ── Show All Toggle ── */}
       <div className="mx-4 mt-5">
         <button onClick={() => setShowAllMeds((p) => !p)}
-          className="w-full bg-[#111827] text-white text-xs font-bold py-3 rounded-xl uppercase tracking-wider">
+          className="w-full bg-[#111827] text-white text-xs font-bold py-3 rounded-xl uppercase tracking-wider active:scale-[0.98] transition-transform">
           {showAllMeds ? t("hide_day") : t("show_day")}
         </button>
       </div>
 
       {showAllMeds && (
         <div className="mx-4 mt-4 space-y-4">
-          {blockSummary.map((block, i) => block.items.length > 0 && (
+          {blockSummary.map((block, i) => block.items.length > 0 ? (
             <div key={i}>
               <p className="text-xs font-bold text-slate-500 uppercase mb-2">{block.name} · {block.items.length} {t("day_doses")}</p>
               <div className="space-y-3">
@@ -474,7 +526,7 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
-          ))}
+          ) : null)}
           {allItems.length === 0 && (
             <div className="text-center py-12 bg-white rounded-2xl"><p className="text-slate-400 text-sm">{t("no_records")}</p></div>
           )}
@@ -485,17 +537,17 @@ export default function HomePage() {
       <nav className="fixed bottom-4 left-0 right-0 px-4 z-50">
         <div className="max-w-md mx-auto flex justify-around items-center bg-[#0f172a]/95 backdrop-blur-xl py-4 rounded-2xl shadow-2xl border border-white/10">
           <button onClick={() => window.location.href = "tel:112"}
-            className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center text-white text-lg">📞</button>
+            className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center text-white text-lg active:scale-90 transition-transform">📞</button>
           <button onClick={() => { setShowAlerts((p) => !p); if (!showAlerts) loadAlerts(); }}
-            className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-white text-lg">🔔</button>
+            className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-white text-lg active:scale-90 transition-transform">🔔</button>
           <button onClick={async () => { await loadDoctor(); setShowSos(true); }}
-            className="w-12 h-12 bg-yellow-400 rounded-xl flex items-center justify-center text-lg">🏥</button>
+            className="w-12 h-12 bg-yellow-400 rounded-xl flex items-center justify-center text-lg active:scale-90 transition-transform">🏥</button>
           <button onClick={() => fileInputRef.current?.click()}
-            className="w-12 h-12 bg-sky-500 rounded-xl flex items-center justify-center text-white text-lg">📷</button>
+            className="w-12 h-12 bg-sky-500 rounded-xl flex items-center justify-center text-white text-lg active:scale-90 transition-transform">📷</button>
         </div>
       </nav>
 
-      {/* ── Modal: SOS / Doctor ── */}
+      {/* ── Modals ── */}
       {showSos && (
         <Modal onClose={() => setShowSos(false)} title={t("doctor_title")}>
           {doctor ? (<>
@@ -516,7 +568,6 @@ export default function HomePage() {
         </Modal>
       )}
 
-      {/* ── Modal: Scan ── */}
       {showScan && (
         <Modal onClose={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); }} title={t("scan_med")}>
           {scanPreview && <img src={scanPreview} alt="scan" className="w-full h-48 object-cover rounded-xl" />}
@@ -536,14 +587,13 @@ export default function HomePage() {
         </Modal>
       )}
 
-      {/* ── Modal: Dose Change ── */}
       {showDoseModal && (
         <Modal onClose={() => setShowDoseModal(false)} title={t("dose_update")}>
           <p className="text-sm text-slate-600">{doseMed?.nombre} {doseMed?.dosis ? `· ${doseMed.dosis}` : ""}</p>
           <label className="block text-xs font-bold text-slate-500 uppercase mt-3">{t("new_dose")}</label>
           <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1" value={doseValue} onChange={(e) => setDoseValue(e.target.value)} placeholder="Ej: 60 mg" />
           <label className="block text-xs font-bold text-slate-500 uppercase mt-3">{t("effective_date")}</label>
-          <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1" value={doseDate} onChange={(e) => setDoseDate(e.target.value)} placeholder="2026-02-12" />
+          <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1" value={doseDate} onChange={(e) => setDoseDate(e.target.value)} placeholder="2026-02-14" />
           {doseMessage && <p className="text-xs text-slate-600 mt-2">{doseMessage}</p>}
           <div className="flex gap-2 mt-3">
             <button onClick={submitDoseChange} disabled={doseSubmitting}
@@ -557,14 +607,13 @@ export default function HomePage() {
   );
 }
 
-// ── Modal Component ──
 function Modal({ onClose, title, children }) {
   return (
     <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-base font-bold text-slate-800">{title}</h3>
-          <button onClick={onClose} className="text-slate-400 text-lg">✕</button>
+          <button onClick={onClose} className="text-slate-400 text-lg leading-none">✕</button>
         </div>
         {children}
       </div>
@@ -572,7 +621,6 @@ function Modal({ onClose, title, children }) {
   );
 }
 
-// ── MedCard Component ──
 function MedCard({ med, t, onToggle, onDose, dayCompleted }) {
   return (
     <div className={`bg-white rounded-2xl p-4 shadow-sm transition-all ${med.completado ? "border-2 border-emerald-400 bg-emerald-50/50" : "border border-slate-100"}`}>
@@ -590,12 +638,12 @@ function MedCard({ med, t, onToggle, onDose, dayCompleted }) {
       </div>
       <div className="flex gap-2 mt-3">
         <button onClick={() => onToggle(med)} disabled={dayCompleted || med.completado}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold ${med.completado ? "bg-emerald-500 text-white" : "bg-[#007AFF] text-white"} ${dayCompleted ? "opacity-50" : ""}`}>
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold active:scale-95 transition-transform ${med.completado ? "bg-emerald-500 text-white" : "bg-[#007AFF] text-white"} ${dayCompleted ? "opacity-50" : ""}`}>
           {med.completado ? t("taken") : t("confirm")}
         </button>
         {!med.completado && (
           <button onClick={() => onDose(med)}
-            className="bg-slate-100 text-slate-600 text-xs font-medium py-2.5 px-3 rounded-xl">{t("update_dose")}</button>
+            className="bg-slate-100 text-slate-600 text-xs font-medium py-2.5 px-3 rounded-xl active:scale-95 transition-transform">{t("update_dose")}</button>
         )}
       </div>
     </div>
