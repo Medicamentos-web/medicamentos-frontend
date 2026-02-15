@@ -210,23 +210,30 @@ export default function HomePage() {
   const [disclaimerLang, setDisclaimerLang] = useState(lang);
   const td = (key) => STRINGS[disclaimerLang]?.[key] || STRINGS.es[key] || key;
 
-  const acceptDisclaimer = (e) => {
-    if (e) { e.preventDefault(); e.stopPropagation(); }
-    if (!user) return;
-    try {
-      const ts = new Date().toISOString();
-      localStorage.setItem(`disclaimer_accepted_${user.id}`, ts);
-      // API call in background
-      const tkn = token || user.token || "";
-      fetch(`/api/disclaimer-accepted`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) },
-        credentials: "include",
-        body: JSON.stringify({ user_id: user.id, family_id: user.family_id, accepted_at: ts, lang: disclaimerLang }),
-      }).catch(() => {});
-    } catch {}
-    // Cerrar SIEMPRE, pase lo que pase
+  const acceptDisclaimerRef = useRef(false);
+  const acceptDisclaimer = () => {
+    // Guard contra doble ejecución (iOS puede disparar onClick + onTouchEnd)
+    if (acceptDisclaimerRef.current) return;
+    acceptDisclaimerRef.current = true;
+    // Cerrar INMEDIATAMENTE - antes de todo lo demás
     setShowDisclaimer(false);
+    // Guardar en localStorage y enviar al backend en background
+    try {
+      const uid = user?.id;
+      if (uid) {
+        const ts = new Date().toISOString();
+        localStorage.setItem(`disclaimer_accepted_${uid}`, ts);
+        const tkn = token || user?.token || "";
+        fetch(`/api/disclaimer-accepted`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) },
+          credentials: "include",
+          body: JSON.stringify({ user_id: uid, family_id: user?.family_id, accepted_at: ts, lang: disclaimerLang }),
+        }).catch(() => {});
+      }
+    } catch {}
+    // Reset guard después de 1s
+    setTimeout(() => { acceptDisclaimerRef.current = false; }, 1000);
   };
 
   // ── Feedback ──
@@ -517,15 +524,15 @@ export default function HomePage() {
 
       {/* ── Legal Disclaimer Popup ── */}
       {showDisclaimer && (
-        <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4"
-          style={{ touchAction: "none" }}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
             {/* Language selector AT TOP */}
             <div className="flex justify-center gap-2 mb-4">
               {[{k:"de-CH",l:"Deutsch"},{k:"es",l:"Español"},{k:"en",l:"English"}].map(({k,l:label}) => (
-                <button key={k} onClick={(e) => { e.preventDefault(); setDisclaimerLang(k); }}
-                  className={`text-xs font-bold px-4 py-1.5 rounded-full transition-colors ${disclaimerLang === k ? "bg-[#0f172a] text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+                <button key={k} type="button"
+                  onClick={() => setDisclaimerLang(k)}
+                  onTouchEnd={(e) => { e.preventDefault(); setDisclaimerLang(k); }}
+                  className={`text-xs font-bold px-4 py-1.5 rounded-full transition-colors cursor-pointer ${disclaimerLang === k ? "bg-[#0f172a] text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
                   {label}
                 </button>
               ))}
@@ -540,8 +547,11 @@ export default function HomePage() {
             <p className="text-[10px] text-slate-400 text-center mb-4">
               {td("disclaimer_email_note")}
             </p>
-            <button type="button" onClick={acceptDisclaimer}
-              className="w-full bg-[#007AFF] text-white text-sm font-bold py-4 rounded-xl shadow-lg active:bg-blue-700 transition-colors select-none">
+            <button type="button"
+              onClick={acceptDisclaimer}
+              onTouchEnd={(e) => { e.preventDefault(); acceptDisclaimer(); }}
+              className="w-full bg-[#007AFF] text-white text-sm font-bold py-4 rounded-xl shadow-lg active:bg-blue-700 transition-colors select-none cursor-pointer"
+              style={{ WebkitTapHighlightColor: "transparent", WebkitUserSelect: "none" }}>
               {td("disclaimer_accept")} ✓
             </button>
           </div>
