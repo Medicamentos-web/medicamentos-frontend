@@ -206,19 +206,27 @@ export default function HomePage() {
     if (!accepted) setShowDisclaimer(true);
   };
 
-  // Fix: cierre inmediato, API en background
-  const acceptDisclaimer = () => {
+  // Disclaimer lang (independiente del lang principal para que el usuario pueda leer antes de aceptar)
+  const [disclaimerLang, setDisclaimerLang] = useState(lang);
+  const td = (key) => STRINGS[disclaimerLang]?.[key] || STRINGS.es[key] || key;
+
+  const acceptDisclaimer = (e) => {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
     if (!user) return;
-    const ts = new Date().toISOString();
-    localStorage.setItem(`disclaimer_accepted_${user.id}`, ts);
+    try {
+      const ts = new Date().toISOString();
+      localStorage.setItem(`disclaimer_accepted_${user.id}`, ts);
+      // API call in background
+      const tkn = token || user.token || "";
+      fetch(`/api/disclaimer-accepted`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) },
+        credentials: "include",
+        body: JSON.stringify({ user_id: user.id, family_id: user.family_id, accepted_at: ts, lang: disclaimerLang }),
+      }).catch(() => {});
+    } catch {}
+    // Cerrar SIEMPRE, pase lo que pase
     setShowDisclaimer(false);
-    // API call in background - no await
-    fetch(`/api/disclaimer-accepted`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      credentials: "include",
-      body: JSON.stringify({ user_id: user.id, family_id: user.family_id, accepted_at: ts }),
-    }).catch(() => {});
   };
 
   // ── Feedback ──
@@ -244,30 +252,45 @@ export default function HomePage() {
   };
 
   // ── Notifications + Sound ──
-  const requestNotifications = async () => {
-    if (typeof Notification === "undefined") return;
-    const perm = await Notification.requestPermission();
-    setNotifPermission(perm);
-    if (perm === "granted") {
-      playNotifSound();
-      new Notification("Medicamentos", { body: t("notif_enabled"), icon: "/icon-192.png" });
-    }
-  };
-  const playNotifSound = () => {
+  const playNotifSound = useCallback(() => {
     try {
-      if (!audioRef.current) {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      // Tri-tone notification sound (like iPhone SMS)
+      const playTone = (freq, start, duration) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.4);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime + start);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + duration);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + duration);
+      };
+      playTone(1046.5, 0, 0.12);    // C6
+      playTone(1318.5, 0.15, 0.12); // E6
+      playTone(1568, 0.30, 0.2);    // G6
+    } catch {}
+  }, []);
+
+  const requestNotifications = async () => {
+    if (typeof Notification === "undefined") {
+      alert("Tu navegador no soporta notificaciones. Añade la app a la pantalla de inicio desde Safari.");
+      return;
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      setNotifPermission(perm);
+      if (perm === "granted") {
+        playNotifSound();
+        new Notification("Medicamentos", { body: t("notif_enabled") });
+        // Register service worker if available
+        if ("serviceWorker" in navigator) {
+          try { await navigator.serviceWorker.register("/sw.js"); } catch {}
+        }
+      } else if (perm === "denied") {
+        alert("Notificaciones bloqueadas. Ve a Ajustes del navegador para habilitarlas.");
       }
     } catch {}
   };
@@ -494,30 +517,32 @@ export default function HomePage() {
 
       {/* ── Legal Disclaimer Popup ── */}
       {showDisclaimer && (
-        <div className="fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4"
+          style={{ touchAction: "none" }}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}>
+            {/* Language selector AT TOP */}
+            <div className="flex justify-center gap-2 mb-4">
+              {[{k:"de-CH",l:"Deutsch"},{k:"es",l:"Español"},{k:"en",l:"English"}].map(({k,l:label}) => (
+                <button key={k} onClick={(e) => { e.preventDefault(); setDisclaimerLang(k); }}
+                  className={`text-xs font-bold px-4 py-1.5 rounded-full transition-colors ${disclaimerLang === k ? "bg-[#0f172a] text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
             <div className="text-center mb-4">
               <div className="mx-auto mb-3 w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center text-2xl">⚕️</div>
-              <h2 className="text-lg font-bold text-slate-800">{t("disclaimer_title")}</h2>
-              {/* Language selector within popup */}
-              <div className="flex justify-center gap-2 mt-3">
-                {["de-CH","es","en"].map((l) => (
-                  <button key={l} onClick={() => changeLang(l)}
-                    className={`text-[10px] font-bold px-3 py-1 rounded-full transition-colors ${lang === l ? "bg-[#0f172a] text-white" : "bg-slate-100 text-slate-500"}`}>
-                    {l === "de-CH" ? "Deutsch" : l === "es" ? "Español" : "English"}
-                  </button>
-                ))}
-              </div>
+              <h2 className="text-lg font-bold text-slate-800">{td("disclaimer_title")}</h2>
             </div>
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4">
-              <p className="text-sm text-slate-700 leading-relaxed">{t("disclaimer_text")}</p>
+              <p className="text-sm text-slate-700 leading-relaxed">{td("disclaimer_text")}</p>
             </div>
             <p className="text-[10px] text-slate-400 text-center mb-4">
-              {t("disclaimer_email_note")}
+              {td("disclaimer_email_note")}
             </p>
-            <button onClick={acceptDisclaimer}
-              className="w-full bg-[#007AFF] text-white text-sm font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] transition-transform">
-              {t("disclaimer_accept")}
+            <button type="button" onClick={acceptDisclaimer}
+              className="w-full bg-[#007AFF] text-white text-sm font-bold py-4 rounded-xl shadow-lg active:bg-blue-700 transition-colors select-none">
+              {td("disclaimer_accept")} ✓
             </button>
           </div>
         </div>

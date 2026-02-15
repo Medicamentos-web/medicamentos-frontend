@@ -1,10 +1,24 @@
+// Service Worker para Medicamentos - Push Notifications
 self.addEventListener("push", (event) => {
   const data = event.data ? event.data.json() : {};
-  const title = data.title || "Recordatorio";
+  const title = data.title || "Medicamentos";
   const options = {
-    body: data.body || "Tienes una toma pendiente.",
-    icon: "/pill-placeholder.svg",
-    badge: "/pill-placeholder.svg",
+    body: data.body || "Tienes una notificación pendiente",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    vibrate: [200, 100, 200],
+    tag: data.tag || "med-notification",
+    renotify: true,
+    data: { url: data.url || "/" },
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(clients.openWindow(url));
+});
+
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
