@@ -398,12 +398,13 @@ export default function HomePage() {
       form.append("family_id", String(user.family_id));
       form.append("user_id", String(user.id));
       form.append("fast_ocr", "1");
+      form.append("skip_name_check", "1"); // Scan de caja - no hay nombre de paciente
       form.append("file", scanFile);
       const res = await fetch(`/api/import-scan`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setScanError(data.error || "Error"); }
+      if (!res.ok) { setScanError(data.error || data.detected_text || "Error al procesar imagen"); }
       else { setScanResult(data); loadMeds(); }
-    } catch { setScanError("Error de red."); } finally { setScanUploading(false); }
+    } catch (err) { setScanError("Error de red: " + (err.message || "")); } finally { setScanUploading(false); }
   };
 
   // ── Computed ──
