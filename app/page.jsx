@@ -210,12 +210,9 @@ export default function HomePage() {
   const [disclaimerLang, setDisclaimerLang] = useState(lang);
   const td = (key) => STRINGS[disclaimerLang]?.[key] || STRINGS.es[key] || key;
 
-  const acceptDisclaimer = () => {
-    // 1) Ocultar via DOM inmediatamente (respaldo para iOS Safari)
-    try { document.getElementById("disclaimer-overlay")?.remove(); } catch {}
-    // 2) Cerrar via React state
+  const acceptDisclaimer = (e) => {
+    if (e) e.preventDefault();
     setShowDisclaimer(false);
-    // 3) Guardar en localStorage y enviar al backend en background
     try {
       const uid = user?.id;
       if (uid) {
@@ -520,18 +517,16 @@ export default function HomePage() {
 
       {/* ── Legal Disclaimer Popup ── */}
       {showDisclaimer && (
-        <div id="disclaimer-overlay" className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col">
-            {/* Scrollable content */}
-            <div className="p-6 pb-3 overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: "touch" }}>
-              {/* Language selector AT TOP */}
+        <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4">
+          <form onSubmit={acceptDisclaimer} className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col">
+            <div className="p-6 pb-3 overflow-y-auto flex-1">
               <div className="flex justify-center gap-2 mb-4">
                 {[{k:"de-CH",l:"Deutsch"},{k:"es",l:"Español"},{k:"en",l:"English"}].map(({k,l:label}) => (
-                  <button key={k} type="button"
+                  <span key={k}
                     onClick={() => setDisclaimerLang(k)}
-                    className={`text-xs font-bold px-4 py-1.5 rounded-full transition-colors cursor-pointer ${disclaimerLang === k ? "bg-[#0f172a] text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+                    className={`text-xs font-bold px-4 py-1.5 rounded-full transition-colors ${disclaimerLang === k ? "bg-[#0f172a] text-white" : "bg-slate-100 text-slate-500"}`}>
                     {label}
-                  </button>
+                  </span>
                 ))}
               </div>
               <div className="text-center mb-4">
@@ -545,15 +540,12 @@ export default function HomePage() {
                 {td("disclaimer_email_note")}
               </p>
             </div>
-            {/* Button OUTSIDE scroll area - always visible and tappable */}
             <div className="p-6 pt-3 border-t border-slate-100">
-              <button type="button"
-                onClick={() => { acceptDisclaimer(); }}
-                className="w-full bg-[#007AFF] text-white text-sm font-bold py-4 rounded-xl shadow-lg active:bg-blue-700 transition-colors select-none cursor-pointer">
-                {td("disclaimer_accept")} ✓
-              </button>
+              <input type="submit"
+                value={`${td("disclaimer_accept")} ✓`}
+                className="w-full bg-[#007AFF] text-white text-sm font-bold py-4 rounded-xl shadow-lg active:bg-blue-700 transition-colors" />
             </div>
-          </div>
+          </form>
         </div>
       )}
 
