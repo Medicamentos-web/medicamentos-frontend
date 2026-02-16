@@ -231,21 +231,21 @@ export default function HomePage() {
   }, [user, token, disclaimerLang]);
 
   // ── Feedback ──
-  const submitFeedback = async () => {
+  const submitFeedback = () => {
     if (fbRating === 0) return;
-    setFbSending(true);
+    // Guardar localmente y cerrar INMEDIATAMENTE
+    localStorage.setItem(`feedback_sent_${user?.id}`, new Date().toISOString());
+    setFbSent(true);
+    setTimeout(() => { setShowFeedback(false); setFbSent(false); setFbRating(0); setFbText(""); }, 1500);
+    // Enviar al backend en background (no bloquear UI)
     try {
-      await fetch(`/api/feedback`, {
+      fetch(`/api/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         credentials: "include",
-        body: JSON.stringify({ user_id: user.id, family_id: user.family_id, rating: fbRating, comment: fbText.trim(), lang }),
-      });
+        body: JSON.stringify({ user_id: user?.id, family_id: user?.family_id, rating: fbRating, comment: fbText.trim(), lang }),
+      }).catch(() => {});
     } catch {}
-    localStorage.setItem(`feedback_sent_${user.id}`, new Date().toISOString());
-    setFbSent(true);
-    setFbSending(false);
-    setTimeout(() => { setShowFeedback(false); setFbSent(false); setFbRating(0); setFbText(""); }, 2000);
   };
   const dismissFeedback = () => {
     localStorage.setItem(`feedback_asked_${user?.id}`, new Date().toISOString());
@@ -608,9 +608,9 @@ export default function HomePage() {
                   value={fbText} onChange={(e) => setFbText(e.target.value)}
                 />
                 <div className="flex gap-2">
-                  <button onClick={submitFeedback} disabled={fbSending || fbRating === 0}
+                  <button onClick={submitFeedback} disabled={fbRating === 0}
                     className="flex-1 bg-[#007AFF] text-white text-sm font-bold py-3 rounded-xl disabled:opacity-50 active:scale-[0.98] transition-transform">
-                    {fbSending ? "..." : t("feedback_send")}
+                    {t("feedback_send")}
                   </button>
                   <button onClick={dismissFeedback}
                     className="flex-1 bg-slate-100 text-slate-600 text-sm font-bold py-3 rounded-xl active:scale-[0.98] transition-transform">
