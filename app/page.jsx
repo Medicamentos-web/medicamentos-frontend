@@ -143,6 +143,7 @@ export default function HomePage() {
   const [scanUploading, setScanUploading] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [scanError, setScanError] = useState("");
+  const [scanBirthDate, setScanBirthDate] = useState("");
   const [showDoseModal, setShowDoseModal] = useState(false);
   const [doseMed, setDoseMed] = useState(null);
   const [doseValue, setDoseValue] = useState("");
@@ -210,24 +211,24 @@ export default function HomePage() {
   const [disclaimerLang, setDisclaimerLang] = useState(lang);
   const td = (key) => STRINGS[disclaimerLang]?.[key] || STRINGS.es[key] || key;
 
-  const acceptDisclaimer = (e) => {
-    if (e) e.preventDefault();
+  const acceptDisclaimer = useCallback((e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (e && e.stopPropagation) e.stopPropagation();
     setShowDisclaimer(false);
+    const uid = user?.id;
+    if (!uid) return;
     try {
-      const uid = user?.id;
-      if (uid) {
-        const ts = new Date().toISOString();
-        localStorage.setItem(`disclaimer_accepted_${uid}`, ts);
-        const tkn = token || user?.token || "";
-        fetch(`/api/disclaimer-accepted`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) },
-          credentials: "include",
-          body: JSON.stringify({ user_id: uid, family_id: user?.family_id, accepted_at: ts, lang: disclaimerLang }),
-        }).catch(() => {});
-      }
+      const ts = new Date().toISOString();
+      localStorage.setItem(`disclaimer_accepted_${uid}`, ts);
+      const tkn = token || user?.token || "";
+      fetch(`/api/disclaimer-accepted`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) },
+        credentials: "include",
+        body: JSON.stringify({ user_id: uid, family_id: user?.family_id, accepted_at: ts, lang: disclaimerLang }),
+      }).catch(() => {});
     } catch {}
-  };
+  }, [user, token, disclaimerLang]);
 
   // ── Feedback ──
   const submitFeedback = async () => {
@@ -410,8 +411,13 @@ export default function HomePage() {
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      setScanError("Imagen demasiado grande (máx. 4 MB). Intenta con una foto más pequeña.");
+      setShowScan(true);
+      return;
+    }
     setScanFile(file); setScanPreview(URL.createObjectURL(file));
-    setScanResult(null); setScanError(""); setShowScan(true);
+    setScanResult(null); setScanError(""); setScanBirthDate(""); setShowScan(true);
   };
   const uploadScan = async () => {
     if (!scanFile || !user?.id) return;
@@ -421,13 +427,27 @@ export default function HomePage() {
       form.append("family_id", String(user.family_id));
       form.append("user_id", String(user.id));
       form.append("fast_ocr", "1");
-      form.append("skip_name_check", "1"); // Scan de caja - no hay nombre de paciente
+      if (scanBirthDate.trim()) {
+        form.append("birth_date", scanBirthDate.trim());
+      } else {
+        form.append("skip_name_check", "1");
+      }
       form.append("file", scanFile);
-      const res = await fetch(`/api/import-scan`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form });
+      const res = await fetch(`/api/import-scan`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setScanError(data.error || data.detected_text || "Error al procesar imagen"); }
-      else { setScanResult(data); loadMeds(); }
-    } catch (err) { setScanError("Error de red: " + (err.message || "")); } finally { setScanUploading(false); }
+      if (!res.ok) {
+        setScanError(data.error || data.detected_text || "Error al procesar imagen. Intenta con otra foto.");
+      } else {
+        setScanResult(data);
+        loadMeds();
+      }
+    } catch (err) {
+      setScanError("Error de conexión: " + (err.message || "verifica tu internet"));
+    } finally { setScanUploading(false); }
   };
 
   // ── Computed ──
@@ -517,16 +537,19 @@ export default function HomePage() {
 
       {/* ── Legal Disclaimer Popup ── */}
       {showDisclaimer && (
-        <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4">
-          <form onSubmit={acceptDisclaimer} className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col">
-            <div className="p-6 pb-3 overflow-y-auto flex-1">
+        <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4"
+          style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0 }}>
+          <form action="#" method="GET" onSubmit={acceptDisclaimer}
+            className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col"
+            style={{ maxHeight: "85vh" }}>
+            <div className="p-6 pb-3 overflow-y-auto flex-1 overscroll-contain">
               <div className="flex justify-center gap-2 mb-4">
-                {[{k:"de-CH",l:"Deutsch"},{k:"es",l:"Español"},{k:"en",l:"English"}].map(({k,l:label}) => (
-                  <span key={k}
-                    onClick={() => setDisclaimerLang(k)}
-                    className={`text-xs font-bold px-4 py-1.5 rounded-full transition-colors ${disclaimerLang === k ? "bg-[#0f172a] text-white" : "bg-slate-100 text-slate-500"}`}>
-                    {label}
-                  </span>
+                {["de-CH", "es", "en"].map((k) => (
+                  <a key={k} href="#" role="button"
+                    onClick={(e) => { e.preventDefault(); setDisclaimerLang(k); }}
+                    className={`text-xs font-bold px-4 py-1.5 rounded-full no-underline ${disclaimerLang === k ? "bg-[#0f172a] text-white" : "bg-slate-100 text-slate-500"}`}>
+                    {k === "de-CH" ? "Deutsch" : k === "es" ? "Español" : "English"}
+                  </a>
                 ))}
               </div>
               <div className="text-center mb-4">
@@ -540,10 +563,15 @@ export default function HomePage() {
                 {td("disclaimer_email_note")}
               </p>
             </div>
-            <div className="p-6 pt-3 border-t border-slate-100">
+            <div className="p-5 pt-3 border-t border-slate-100 flex flex-col gap-2">
               <input type="submit"
                 value={`${td("disclaimer_accept")} ✓`}
-                className="w-full bg-[#007AFF] text-white text-sm font-bold py-4 rounded-xl shadow-lg active:bg-blue-700 transition-colors" />
+                className="w-full bg-[#007AFF] text-white text-sm font-bold py-4 rounded-xl shadow-lg active:bg-blue-700 transition-colors cursor-pointer" />
+              <a href="#" role="button"
+                onClick={acceptDisclaimer}
+                className="block text-center text-xs text-slate-400 underline py-1 no-underline">
+                {td("disclaimer_accept")}
+              </a>
             </div>
           </form>
         </div>
@@ -662,7 +690,7 @@ export default function HomePage() {
       <div className="mx-4 mt-3 bg-white rounded-xl p-4 shadow-sm">
         <p className="text-sm font-bold text-slate-800">{t("scan_med")}</p>
         <p className="text-xs text-slate-500 mt-1">{t("scan_subtitle")}</p>
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+        <input ref={fileInputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={handleFileSelect} />
         <button onClick={() => fileInputRef.current?.click()}
           className="mt-3 bg-sky-500 text-white text-xs font-bold py-2.5 px-5 rounded-xl active:scale-95 transition-transform">{t("gallery")}</button>
       </div>
@@ -798,21 +826,45 @@ export default function HomePage() {
       )}
 
       {showScan && (
-        <Modal onClose={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); }} title={t("scan_med")}>
+        <Modal onClose={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); setScanBirthDate(""); }} title={t("scan_med")}>
           {scanPreview && <img src={scanPreview} alt="scan" className="w-full h-48 object-cover rounded-xl" />}
-          {scanError && <p className="text-sm text-red-500 mt-2">{scanError}</p>}
+          {!scanPreview && !scanResult && (
+            <div className="mt-2 text-center">
+              <button type="button" onClick={() => fileInputRef.current?.click()}
+                className="bg-sky-500 text-white text-xs font-bold py-3 px-6 rounded-xl">{t("gallery")}</button>
+            </div>
+          )}
+          {scanError && (
+            <div className="mt-2">
+              <p className="text-sm text-red-500 font-medium">{scanError}</p>
+              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <p className="text-xs font-bold text-amber-800 mb-1">Validar por fecha de nacimiento</p>
+                <p className="text-[10px] text-amber-600 mb-2">Si el nombre no coincide, ingresa la fecha de nacimiento del paciente.</p>
+                <input type="date"
+                  value={scanBirthDate}
+                  onChange={(e) => setScanBirthDate(e.target.value)}
+                  className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm bg-white"
+                  placeholder="YYYY-MM-DD" />
+              </div>
+            </div>
+          )}
           {scanResult && (
             <div className="mt-2 bg-emerald-50 rounded-xl p-3">
               <p className="text-sm font-bold text-emerald-700">{t("import_success")}</p>
               <p className="text-xs text-slate-600 mt-1">{scanResult.extracted?.name} · {scanResult.extracted?.dosage}</p>
+              {scanResult.extracted?.qty > 0 && <p className="text-xs text-slate-500">Cantidad: {scanResult.extracted.qty}</p>}
             </div>
           )}
-          <div className="flex gap-2 mt-3">
-            <button onClick={uploadScan} disabled={scanUploading}
-              className="flex-1 bg-amber-400 text-slate-900 text-xs font-bold py-3 rounded-xl">{scanUploading ? t("importing") : t("upload")}</button>
-            <button onClick={() => setShowScan(false)}
-              className="flex-1 bg-[#111827] text-white text-xs font-bold py-3 rounded-xl">{t("close")}</button>
-          </div>
+          {scanPreview && (
+            <div className="flex gap-2 mt-3">
+              <button type="button" onClick={uploadScan} disabled={scanUploading || !scanFile}
+                className="flex-1 bg-amber-400 text-slate-900 text-xs font-bold py-3 rounded-xl disabled:opacity-50">
+                {scanUploading ? t("importing") : scanError && scanBirthDate ? "Reintentar con fecha" : t("upload")}
+              </button>
+              <button type="button" onClick={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); setScanBirthDate(""); }}
+                className="flex-1 bg-[#111827] text-white text-xs font-bold py-3 rounded-xl">{t("close")}</button>
+            </div>
+          )}
         </Modal>
       )}
 
