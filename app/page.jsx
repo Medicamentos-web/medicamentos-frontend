@@ -673,23 +673,45 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ── Billing Banner ── */}
-      {billing && billing.trial && billing.days_left !== null && billing.days_left <= 10 && (
-        <div className="mx-4 mt-3 bg-blue-50 border border-blue-300 rounded-xl p-3 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-bold text-blue-800">Prueba gratuita: {billing.days_left} días restantes</p>
-            <p className="text-[10px] text-blue-600">Activa tu plan para no perder acceso.</p>
+      {/* ── Billing / Trial Banner ── */}
+      {billing && billing.trial && (
+        <div className="mx-4 mt-3 bg-blue-50 border border-blue-300 rounded-xl p-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-blue-800">
+                Prueba gratuita: {billing.days_left > 0 ? `${billing.days_left} días restantes` : "Último día"}
+              </p>
+              <p className="text-[10px] text-blue-600">
+                {billing.max_medicines ? `Límite: ${billing.current_medicines || 0}/${billing.max_medicines} medicamentos` : ""}
+                {billing.days_left <= 3 ? " · Activa tu plan para no perder acceso." : ""}
+              </p>
+            </div>
+            <a href="/billing" className="bg-[#007AFF] text-white text-xs font-bold px-3 py-2 rounded-xl shrink-0">Ver planes</a>
           </div>
-          <a href="/billing" className="bg-[#007AFF] text-white text-xs font-bold px-3 py-2 rounded-xl">Ver planes</a>
+          {billing.max_medicines && billing.current_medicines >= billing.max_medicines && (
+            <div className="mt-2 bg-amber-100 border border-amber-300 rounded-lg p-2">
+              <p className="text-[11px] font-bold text-amber-800">Has alcanzado el límite de {billing.max_medicines} medicamentos.</p>
+              <p className="text-[10px] text-amber-700">Activa tu suscripción para añadir más.</p>
+            </div>
+          )}
         </div>
       )}
-      {billing && !billing.active && !billing.trial && (
+      {billing && billing.trial_expired && (
+        <div className="mx-4 mt-3 bg-red-50 border border-red-300 rounded-xl p-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold text-red-800">Tu prueba gratuita ha expirado</p>
+            <p className="text-[10px] text-red-600">Activa tu suscripción para continuar. Recibirás un email con la oferta.</p>
+          </div>
+          <a href="/billing" className="bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-xl shrink-0">Activar</a>
+        </div>
+      )}
+      {billing && !billing.active && !billing.trial && !billing.trial_expired && (
         <div className="mx-4 mt-3 bg-red-50 border border-red-300 rounded-xl p-3 flex items-center justify-between">
           <div>
             <p className="text-sm font-bold text-red-800">Suscripción inactiva</p>
             <p className="text-[10px] text-red-600">Activa tu plan para continuar usando la app.</p>
           </div>
-          <a href="/billing" className="bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-xl">Activar</a>
+          <a href="/billing" className="bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-xl shrink-0">Activar</a>
         </div>
       )}
 
