@@ -157,6 +157,7 @@ export default function HomePage() {
   const [fbText, setFbText] = useState("");
   const [fbSending, setFbSending] = useState(false);
   const [fbSent, setFbSent] = useState(false);
+  const [fbAlreadySent, setFbAlreadySent] = useState(false);
   // Notifications
   const [notifPermission, setNotifPermission] = useState("default");
   const carouselRef = useRef(null);
@@ -177,14 +178,16 @@ export default function HomePage() {
         setToken(s.token || "");
         const accepted = localStorage.getItem(`disclaimer_accepted_${s.id}`);
         if (!accepted) setShowDisclaimer(true);
-        // Check if feedback should show (every 7 days, after disclaimer accepted)
+        // Feedback: solo una vez por usuario
         if (accepted) {
-          const lastFb = localStorage.getItem(`feedback_asked_${s.id}`);
-          const fbSent = localStorage.getItem(`feedback_sent_${s.id}`);
-          if (!fbSent) {
+          const alreadySent = localStorage.getItem(`feedback_sent_${s.id}`);
+          if (alreadySent) {
+            setFbAlreadySent(true);
+          } else {
+            const lastFb = localStorage.getItem(`feedback_asked_${s.id}`);
             const daysSinceAsk = lastFb ? (Date.now() - new Date(lastFb).getTime()) / 86400000 : 999;
             if (daysSinceAsk >= 7) {
-              setTimeout(() => setShowFeedback(true), 5000); // show after 5s
+              setTimeout(() => setShowFeedback(true), 5000);
             }
           }
         }
@@ -233,9 +236,9 @@ export default function HomePage() {
   // ── Feedback ──
   const submitFeedback = () => {
     if (fbRating === 0) return;
-    // Guardar localmente y cerrar INMEDIATAMENTE
     localStorage.setItem(`feedback_sent_${user?.id}`, new Date().toISOString());
     setFbSent(true);
+    setFbAlreadySent(true);
     setTimeout(() => { setShowFeedback(false); setFbSent(false); setFbRating(0); setFbText(""); }, 1500);
     // Enviar al backend en background (no bloquear UI)
     try {
@@ -408,45 +411,82 @@ export default function HomePage() {
     } catch { setDoseMessage(t("dose_request_error")); } finally { setDoseSubmitting(false); }
   };
 
+  const [scanDetectedText, setScanDetectedText] = useState("");
+
+  // Comprimir imagen con canvas (como Expo Go: resize 1000px, quality 0.6)
+  const compressImage = useCallback((file) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 1000;
+        const scale = img.width > maxW ? maxW / img.width : 1;
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => resolve(blob || file), "image/jpeg", 0.6);
+      };
+      img.onerror = () => resolve(file);
+      img.src = URL.createObjectURL(file);
+    });
+  }, []);
+
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 4 * 1024 * 1024) {
-      setScanError("Imagen demasiado grande (máx. 4 MB). Intenta con una foto más pequeña.");
-      setShowScan(true);
-      return;
-    }
     setScanFile(file); setScanPreview(URL.createObjectURL(file));
-    setScanResult(null); setScanError(""); setScanBirthDate(""); setShowScan(true);
+    setScanResult(null); setScanError(""); setScanBirthDate("");
+    setScanDetectedText(""); setShowScan(true);
   };
+
   const uploadScan = async () => {
     if (!scanFile || !user?.id) return;
-    setScanUploading(true); setScanError("");
+    setScanUploading(true); setScanError(""); setScanDetectedText("");
     try {
+      // Comprimir imagen como Expo Go
+      const compressed = await compressImage(scanFile);
       const form = new FormData();
       form.append("family_id", String(user.family_id));
       form.append("user_id", String(user.id));
       form.append("fast_ocr", "1");
       if (scanBirthDate.trim()) {
         form.append("birth_date", scanBirthDate.trim());
-      } else {
-        form.append("skip_name_check", "1");
       }
-      form.append("file", scanFile);
-      const res = await fetch(`/api/import-scan`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setScanError(data.error || data.detected_text || "Error al procesar imagen. Intenta con otra foto.");
+      form.append("file", compressed, "scan.jpg");
+
+      const tryUpload = async () => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 120000);
+        try {
+          const res = await fetch(`/api/import-scan`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: form,
+            signal: controller.signal,
+          });
+          const data = await res.json().catch(() => ({}));
+          return { res, data };
+        } finally { clearTimeout(timeout); }
+      };
+
+      let result = await tryUpload();
+      // Reintento una vez si falla (como Expo Go)
+      if (!result.res.ok) {
+        await new Promise((r) => setTimeout(r, 1000));
+        result = await tryUpload();
+      }
+
+      if (!result.res.ok) {
+        setScanError(result.data.error || "No se pudo importar el medicamento.");
+        if (result.data.detected_text) setScanDetectedText(result.data.detected_text);
       } else {
-        setScanResult(data);
+        setScanResult(result.data);
+        if (result.data.detected_text_full) setScanDetectedText(result.data.detected_text_full);
         loadMeds();
       }
     } catch (err) {
-      setScanError("Error de conexión: " + (err.message || "verifica tu internet"));
+      setScanError(err.name === "AbortError" ? "Tiempo de espera agotado. Intenta de nuevo." : "Error de conexión: " + (err.message || ""));
     } finally { setScanUploading(false); }
   };
 
@@ -528,10 +568,12 @@ export default function HomePage() {
             </button>
           ))}
           <div className="flex-1" />
-          <button onClick={() => setShowFeedback(true)}
-            className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-lg">
-            ⭐ Feedback
-          </button>
+          {!fbAlreadySent && (
+            <button onClick={() => setShowFeedback(true)}
+              className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-lg">
+              ⭐ Feedback
+            </button>
+          )}
         </div>
       </div>
 
@@ -826,10 +868,11 @@ export default function HomePage() {
       )}
 
       {showScan && (
-        <Modal onClose={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); setScanBirthDate(""); }} title={t("scan_med")}>
+        <Modal onClose={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); setScanBirthDate(""); setScanDetectedText(""); }} title={t("scan_med")}>
           {scanPreview && <img src={scanPreview} alt="scan" className="w-full h-48 object-cover rounded-xl" />}
           {!scanPreview && !scanResult && (
             <div className="mt-2 text-center">
+              <p className="text-xs text-slate-500 mb-2">Sube una foto de la caja del medicamento.</p>
               <button type="button" onClick={() => fileInputRef.current?.click()}
                 className="bg-sky-500 text-white text-xs font-bold py-3 px-6 rounded-xl">{t("gallery")}</button>
             </div>
@@ -838,31 +881,41 @@ export default function HomePage() {
             <div className="mt-2">
               <p className="text-sm text-red-500 font-medium">{scanError}</p>
               <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <p className="text-xs font-bold text-amber-800 mb-1">Validar por fecha de nacimiento</p>
+                <p className="text-xs font-bold text-amber-800 mb-1">Validar por fecha de nacimiento (YYYY-MM-DD)</p>
                 <p className="text-[10px] text-amber-600 mb-2">Si el nombre no coincide, ingresa la fecha de nacimiento del paciente.</p>
                 <input type="date"
                   value={scanBirthDate}
                   onChange={(e) => setScanBirthDate(e.target.value)}
-                  className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm bg-white"
-                  placeholder="YYYY-MM-DD" />
+                  className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm bg-white" />
               </div>
             </div>
           )}
+          {scanDetectedText && (
+            <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
+              <p className="text-xs font-bold text-slate-600 mb-1">Texto detectado</p>
+              <p className="text-[11px] text-slate-500 whitespace-pre-wrap leading-relaxed">{scanDetectedText}</p>
+            </div>
+          )}
           {scanResult && (
-            <div className="mt-2 bg-emerald-50 rounded-xl p-3">
-              <p className="text-sm font-bold text-emerald-700">{t("import_success")}</p>
+            <div className="mt-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+              <p className="text-sm font-bold text-emerald-700">
+                {scanResult.action === "merged" ? "Stock actualizado" : "Medicamento creado"}
+              </p>
               <p className="text-xs text-slate-600 mt-1">{scanResult.extracted?.name} · {scanResult.extracted?.dosage}</p>
-              {scanResult.extracted?.qty > 0 && <p className="text-xs text-slate-500">Cantidad: {scanResult.extracted.qty}</p>}
+              {scanResult.extracted?.qty > 0 && <p className="text-xs text-slate-500">Cantidad: {scanResult.extracted.qty} unidades</p>}
+              {scanResult.validated_by_birth_date && <p className="text-[10px] text-blue-500 mt-1">Validado por fecha de nacimiento</p>}
             </div>
           )}
           {scanPreview && (
             <div className="flex gap-2 mt-3">
-              <button type="button" onClick={uploadScan} disabled={scanUploading || !scanFile}
-                className="flex-1 bg-amber-400 text-slate-900 text-xs font-bold py-3 rounded-xl disabled:opacity-50">
-                {scanUploading ? t("importing") : scanError && scanBirthDate ? "Reintentar con fecha" : t("upload")}
-              </button>
-              <button type="button" onClick={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); setScanBirthDate(""); }}
-                className="flex-1 bg-[#111827] text-white text-xs font-bold py-3 rounded-xl">{t("close")}</button>
+              {!scanResult && (
+                <button type="button" onClick={uploadScan} disabled={scanUploading || !scanFile}
+                  className="flex-1 bg-amber-400 text-slate-900 text-xs font-bold py-3 rounded-xl disabled:opacity-50">
+                  {scanUploading ? t("importing") : scanError ? "Reintentar" : t("upload")}
+                </button>
+              )}
+              <button type="button" onClick={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); setScanBirthDate(""); setScanDetectedText(""); }}
+                className={`${scanResult ? "w-full" : "flex-1"} bg-[#111827] text-white text-xs font-bold py-3 rounded-xl`}>{t("close")}</button>
             </div>
           )}
         </Modal>
