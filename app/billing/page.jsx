@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 const PLANS = [
@@ -31,7 +31,7 @@ const PLANS = [
   },
 ];
 
-export default function BillingPage() {
+function BillingPageContent() {
   const [user, setUser] = useState(null);
   const [billing, setBilling] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -302,5 +302,13 @@ export default function BillingPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-dvh bg-[#0f172a] flex items-center justify-center"><p className="text-slate-400">Cargando...</p></div>}>
+      <BillingPageContent />
+    </Suspense>
   );
 }
