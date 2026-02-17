@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  // Force unique build ID to bust Vercel build cache
+  generateBuildId: () => `build-${Date.now()}`,
+
   // Desactivar source maps en producción (protección anti-copia)
   productionBrowserSourceMaps: false,
 
