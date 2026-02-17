@@ -39,6 +39,17 @@ const STRINGS = {
     beta_tag: "BETA",
     notif_enable: "Activar notificaciones",
     notif_enabled: "Notificaciones activas",
+    view_plans: "Ver planes",
+    trial_days: "Prueba gratuita",
+    days_remaining: "días restantes",
+    meds_limit: "medicamentos",
+    activate_plan: "Activar",
+    trial_expired_title: "Tu prueba gratuita ha expirado",
+    trial_expired_text: "Activa tu suscripción para continuar. Recibirás un email con la oferta.",
+    sub_inactive: "Suscripción inactiva",
+    sub_inactive_text: "Activa tu plan para continuar usando la app.",
+    limit_reached: "Has alcanzado el límite de",
+    limit_text: "Activa tu suscripción para añadir más.",
   },
   "de-CH": {
     residents: "Bewohner", alerts: "Warnungen", view_alerts: "Anzeigen",
@@ -75,6 +86,17 @@ const STRINGS = {
     beta_tag: "BETA",
     notif_enable: "Benachrichtigungen aktivieren",
     notif_enabled: "Benachrichtigungen aktiv",
+    view_plans: "Pläne ansehen",
+    trial_days: "Kostenlose Testversion",
+    days_remaining: "Tage verbleibend",
+    meds_limit: "Medikamente",
+    activate_plan: "Aktivieren",
+    trial_expired_title: "Ihre Testversion ist abgelaufen",
+    trial_expired_text: "Aktivieren Sie Ihr Abonnement. Sie erhalten eine E-Mail mit dem Angebot.",
+    sub_inactive: "Abonnement inaktiv",
+    sub_inactive_text: "Aktivieren Sie Ihren Plan, um die App weiter zu nutzen.",
+    limit_reached: "Sie haben das Limit erreicht von",
+    limit_text: "Aktivieren Sie Ihr Abonnement für mehr.",
   },
   en: {
     residents: "Residents", alerts: "Alerts", view_alerts: "View",
@@ -110,6 +132,17 @@ const STRINGS = {
     beta_tag: "BETA",
     notif_enable: "Enable notifications",
     notif_enabled: "Notifications active",
+    view_plans: "View plans",
+    trial_days: "Free trial",
+    days_remaining: "days remaining",
+    meds_limit: "medicines",
+    activate_plan: "Activate",
+    trial_expired_title: "Your free trial has expired",
+    trial_expired_text: "Activate your subscription to continue. You'll receive an email with the offer.",
+    sub_inactive: "Subscription inactive",
+    sub_inactive_text: "Activate your plan to continue using the app.",
+    limit_reached: "You have reached the limit of",
+    limit_text: "Activate your subscription for more.",
   },
 };
 
@@ -679,19 +712,18 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-bold text-blue-800">
-                Prueba gratuita: {billing.days_left > 0 ? `${billing.days_left} días restantes` : "Último día"}
+                {t("trial_days")}: {billing.days_left > 0 ? `${billing.days_left} ${t("days_remaining")}` : "⏰"}
               </p>
               <p className="text-[10px] text-blue-600">
-                {billing.max_medicines ? `Límite: ${billing.current_medicines || 0}/${billing.max_medicines} medicamentos` : ""}
-                {billing.days_left <= 3 ? " · Activa tu plan para no perder acceso." : ""}
+                {billing.max_medicines ? `${billing.current_medicines || 0}/${billing.max_medicines} ${t("meds_limit")}` : ""}
               </p>
             </div>
-            <a href="/billing" className="bg-[#007AFF] text-white text-xs font-bold px-3 py-2 rounded-xl shrink-0">Ver planes</a>
+            <a href="/billing" className="bg-[#007AFF] text-white text-xs font-bold px-3 py-2 rounded-xl shrink-0">{t("view_plans")}</a>
           </div>
           {billing.max_medicines && billing.current_medicines >= billing.max_medicines && (
             <div className="mt-2 bg-amber-100 border border-amber-300 rounded-lg p-2">
-              <p className="text-[11px] font-bold text-amber-800">Has alcanzado el límite de {billing.max_medicines} medicamentos.</p>
-              <p className="text-[10px] text-amber-700">Activa tu suscripción para añadir más.</p>
+              <p className="text-[11px] font-bold text-amber-800">{t("limit_reached")} {billing.max_medicines} {t("meds_limit")}.</p>
+              <p className="text-[10px] text-amber-700">{t("limit_text")}</p>
             </div>
           )}
         </div>
@@ -699,19 +731,19 @@ export default function HomePage() {
       {billing && billing.trial_expired && (
         <div className="mx-4 mt-3 bg-red-50 border border-red-300 rounded-xl p-3 flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-red-800">Tu prueba gratuita ha expirado</p>
-            <p className="text-[10px] text-red-600">Activa tu suscripción para continuar. Recibirás un email con la oferta.</p>
+            <p className="text-sm font-bold text-red-800">{t("trial_expired_title")}</p>
+            <p className="text-[10px] text-red-600">{t("trial_expired_text")}</p>
           </div>
-          <a href="/billing" className="bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-xl shrink-0">Activar</a>
+          <a href="/billing" className="bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-xl shrink-0">{t("activate_plan")}</a>
         </div>
       )}
       {billing && !billing.active && !billing.trial && !billing.trial_expired && (
         <div className="mx-4 mt-3 bg-red-50 border border-red-300 rounded-xl p-3 flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-red-800">Suscripción inactiva</p>
-            <p className="text-[10px] text-red-600">Activa tu plan para continuar usando la app.</p>
+            <p className="text-sm font-bold text-red-800">{t("sub_inactive")}</p>
+            <p className="text-[10px] text-red-600">{t("sub_inactive_text")}</p>
           </div>
-          <a href="/billing" className="bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-xl shrink-0">Activar</a>
+          <a href="/billing" className="bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-xl shrink-0">{t("activate_plan")}</a>
         </div>
       )}
 
