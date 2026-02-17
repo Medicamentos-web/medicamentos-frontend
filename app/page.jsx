@@ -321,7 +321,7 @@ export default function HomePage() {
       setNotifPermission(perm);
       if (perm === "granted") {
         playNotifSound();
-        new Notification("Medicamentos", { body: t("notif_enabled") });
+        new Notification("MediControl", { body: t("notif_enabled") });
         // Register service worker if available
         if ("serviceWorker" in navigator) {
           try { await navigator.serviceWorker.register("/sw.js"); } catch {}
@@ -574,7 +574,8 @@ export default function HomePage() {
         <div className="flex justify-between items-center pt-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold text-emerald-400">MEDICAMENTOS</h1>
+              <div className="w-6 h-6 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-lg flex items-center justify-center text-white font-bold text-[10px]">M</div>
+              <h1 className="text-sm font-bold text-emerald-400">MediControl</h1>
               <span className="text-[8px] font-black bg-amber-400 text-slate-900 px-1.5 py-0.5 rounded">{t("beta_tag")}</span>
             </div>
             <p className="text-[10px] text-slate-400 mt-0.5 truncate">{user.nombre} · {t("live_caption")}</p>

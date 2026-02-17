@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Gestión de Medicamentos Multifamiliar",
-  description: "Dashboard familiar de tomas, inventario y estado diario.",
+  title: "MediControl — Ihre Medikamente. Unter Kontrolle.",
+  description: "Intelligentes Medikamentenmanagement für Patienten und Familien. Erinnerungen, Bestandskontrolle, Rezeptscanning.",
 };
 
 export const viewport = {

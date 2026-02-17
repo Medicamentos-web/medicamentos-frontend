@@ -288,9 +288,12 @@ function BillingPageContent() {
     <div className="min-h-dvh bg-[#F2F4F8]">
       <div className="bg-[#0f172a] text-white px-5 pt-[env(safe-area-inset-top,12px)] pb-4">
         <div className="flex justify-between items-center pt-3">
-          <div>
-            <h1 className="text-sm font-bold text-emerald-400">MEDICAMENTOS</h1>
-            <p className="text-[10px] text-slate-400 mt-0.5">{t("subtitle")}</p>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-lg flex items-center justify-center text-white font-bold text-[10px]">M</div>
+            <div>
+              <h1 className="text-sm font-bold text-emerald-400">MediControl</h1>
+              <p className="text-[10px] text-slate-400 mt-0.5">{t("subtitle")}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {["de-CH", "es", "en"].map((l) => (
