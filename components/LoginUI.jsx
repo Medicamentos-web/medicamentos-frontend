@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-// URLs relativas: Next.js reescribe /api/*, /auth/* al backend (ver next.config.mjs)
+// MediControl Login – v2.0 (cache-bust 2026-02-17)
 
 export default function LoginUI({ setUser }) {
   const [familyId, setFamilyId] = useState("1");
