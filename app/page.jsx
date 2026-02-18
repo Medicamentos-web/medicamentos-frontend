@@ -50,6 +50,19 @@ const STRINGS = {
     sub_inactive_text: "Activa tu plan para continuar usando la app.",
     limit_reached: "Has alcanzado el límite de",
     limit_text: "Activa tu suscripción para añadir más.",
+    manual_entry: "Entrada manual",
+    manual_title: "Añadir medicamento manualmente",
+    med_name: "Nombre del medicamento",
+    med_dosage: "Dosis (ej: 60 mg)",
+    med_qty: "Cantidad (unidades)",
+    med_expiry: "Fecha de caducidad",
+    manual_save: "Guardar medicamento",
+    manual_saving: "Guardando...",
+    manual_saved: "Medicamento guardado correctamente.",
+    manual_error: "No se pudo guardar el medicamento.",
+    scan_or_manual: "Escanea una etiqueta o añade manualmente.",
+    choose_photo: "Elegir foto",
+    take_photo: "Tomar foto",
   },
   "de-CH": {
     residents: "Bewohner", alerts: "Warnungen", view_alerts: "Anzeigen",
@@ -97,6 +110,19 @@ const STRINGS = {
     sub_inactive_text: "Aktivieren Sie Ihren Plan, um die App weiter zu nutzen.",
     limit_reached: "Sie haben das Limit erreicht von",
     limit_text: "Aktivieren Sie Ihr Abonnement für mehr.",
+    manual_entry: "Manuell eingeben",
+    manual_title: "Medikament manuell hinzufügen",
+    med_name: "Medikamentenname",
+    med_dosage: "Dosis (z.B. 60 mg)",
+    med_qty: "Menge (Stück)",
+    med_expiry: "Verfallsdatum",
+    manual_save: "Medikament speichern",
+    manual_saving: "Speichern...",
+    manual_saved: "Medikament erfolgreich gespeichert.",
+    manual_error: "Medikament konnte nicht gespeichert werden.",
+    scan_or_manual: "Etikett scannen oder manuell eingeben.",
+    choose_photo: "Foto wählen",
+    take_photo: "Foto aufnehmen",
   },
   en: {
     residents: "Residents", alerts: "Alerts", view_alerts: "View",
@@ -143,6 +169,19 @@ const STRINGS = {
     sub_inactive_text: "Activate your plan to continue using the app.",
     limit_reached: "You have reached the limit of",
     limit_text: "Activate your subscription for more.",
+    manual_entry: "Manual entry",
+    manual_title: "Add medication manually",
+    med_name: "Medication name",
+    med_dosage: "Dosage (e.g. 60 mg)",
+    med_qty: "Quantity (units)",
+    med_expiry: "Expiry date",
+    manual_save: "Save medication",
+    manual_saving: "Saving...",
+    manual_saved: "Medication saved successfully.",
+    manual_error: "Could not save the medication.",
+    scan_or_manual: "Scan a label or add manually.",
+    choose_photo: "Choose photo",
+    take_photo: "Take photo",
   },
 };
 
@@ -177,6 +216,14 @@ export default function HomePage() {
   const [scanResult, setScanResult] = useState(null);
   const [scanError, setScanError] = useState("");
   const [scanBirthDate, setScanBirthDate] = useState("");
+  // Manual entry
+  const [showManual, setShowManual] = useState(false);
+  const [manualName, setManualName] = useState("");
+  const [manualDosage, setManualDosage] = useState("");
+  const [manualQty, setManualQty] = useState("");
+  const [manualExpiry, setManualExpiry] = useState("");
+  const [manualSaving, setManualSaving] = useState(false);
+  const [manualMessage, setManualMessage] = useState("");
   const [showDoseModal, setShowDoseModal] = useState(false);
   const [doseMed, setDoseMed] = useState(null);
   const [doseValue, setDoseValue] = useState("");
@@ -195,6 +242,7 @@ export default function HomePage() {
   const [notifPermission, setNotifPermission] = useState("default");
   const carouselRef = useRef(null);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const audioRef = useRef(null);
 
   const t = (key) => STRINGS[lang]?.[key] || STRINGS.es[key] || key;
@@ -445,6 +493,42 @@ export default function HomePage() {
   };
 
   const [scanDetectedText, setScanDetectedText] = useState("");
+
+  const openManualEntry = () => {
+    setManualName(""); setManualDosage(""); setManualQty(""); setManualExpiry("");
+    setManualMessage(""); setManualSaving(false); setShowManual(true);
+  };
+  const submitManualMed = async () => {
+    if (!manualName.trim() || !user?.id) return;
+    setManualSaving(true); setManualMessage("");
+    try {
+      const res = await fetch(`/api/import-scan`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+        body: (() => {
+          const fd = new FormData();
+          fd.append("family_id", String(user.family_id));
+          fd.append("user_id", String(user.id));
+          fd.append("fast_import", "1");
+          fd.append("manual_name", manualName.trim());
+          fd.append("manual_dosage", manualDosage.trim() || "N/A");
+          fd.append("manual_qty", manualQty.trim() || "0");
+          fd.append("manual_expiry", manualExpiry.trim() || "");
+          fd.append("file", new Blob(["manual"]), "manual.txt");
+          return fd;
+        })(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setManualMessage(t("manual_saved"));
+        loadMeds();
+        setTimeout(() => setShowManual(false), 1500);
+      } else {
+        setManualMessage(data.error || t("manual_error"));
+      }
+    } catch { setManualMessage(t("manual_error")); } finally { setManualSaving(false); }
+  };
 
   // Comprimir imagen con canvas (como Expo Go: resize 1000px, quality 0.6)
   const compressImage = useCallback((file) => {
@@ -786,10 +870,17 @@ export default function HomePage() {
       {/* ── Scan Card ── */}
       <div className="mx-4 mt-3 bg-white rounded-xl p-4 shadow-sm">
         <p className="text-sm font-bold text-slate-800">{t("scan_med")}</p>
-        <p className="text-xs text-slate-500 mt-1">{t("scan_subtitle")}</p>
-        <input ref={fileInputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={handleFileSelect} />
-        <button onClick={() => fileInputRef.current?.click()}
-          className="mt-3 bg-sky-500 text-white text-xs font-bold py-2.5 px-5 rounded-xl active:scale-95 transition-transform">{t("gallery")}</button>
+        <p className="text-xs text-slate-500 mt-1">{t("scan_or_manual")}</p>
+        <input ref={fileInputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFileSelect} />
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
+        <div className="flex gap-2 mt-3 flex-wrap">
+          <button onClick={() => fileInputRef.current?.click()}
+            className="bg-sky-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl active:scale-95 transition-transform">🖼️ {t("choose_photo")}</button>
+          <button onClick={() => cameraInputRef.current?.click()}
+            className="bg-indigo-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl active:scale-95 transition-transform">📷 {t("take_photo")}</button>
+          <button onClick={openManualEntry}
+            className="bg-emerald-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl active:scale-95 transition-transform">✏️ {t("manual_entry")}</button>
+        </div>
       </div>
 
       {/* ── Offline / Loading ── */}
@@ -973,6 +1064,52 @@ export default function HomePage() {
                 className={`${scanResult ? "w-full" : "flex-1"} bg-[#111827] text-white text-xs font-bold py-3 rounded-xl`}>{t("close")}</button>
             </div>
           )}
+        </Modal>
+      )}
+
+      {/* ── Manual Entry Modal ── */}
+      {showManual && (
+        <Modal onClose={() => setShowManual(false)} title={t("manual_title")}>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase">{t("med_name")} *</label>
+              <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1"
+                value={manualName} onChange={(e) => setManualName(e.target.value)}
+                placeholder="Ej: Spiricort, Metamizol..." autoFocus />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase">{t("med_dosage")}</label>
+              <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1"
+                value={manualDosage} onChange={(e) => setManualDosage(e.target.value)}
+                placeholder="Ej: 60 mg, 500 mcg..." />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase">{t("med_qty")}</label>
+                <input type="number" min="0" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1"
+                  value={manualQty} onChange={(e) => setManualQty(e.target.value)}
+                  placeholder="30" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase">{t("med_expiry")}</label>
+                <input type="date" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1"
+                  value={manualExpiry} onChange={(e) => setManualExpiry(e.target.value)} />
+              </div>
+            </div>
+            {manualMessage && (
+              <p className={`text-xs font-medium ${manualMessage === t("manual_saved") ? "text-emerald-600" : "text-red-500"}`}>
+                {manualMessage}
+              </p>
+            )}
+            <div className="flex gap-2 pt-1">
+              <button onClick={submitManualMed} disabled={manualSaving || !manualName.trim()}
+                className="flex-1 bg-emerald-500 text-white text-xs font-bold py-3 rounded-xl disabled:opacity-50 active:scale-[0.98] transition-transform">
+                {manualSaving ? t("manual_saving") : t("manual_save")}
+              </button>
+              <button onClick={() => setShowManual(false)}
+                className="flex-1 bg-[#111827] text-white text-xs font-bold py-3 rounded-xl active:scale-[0.98] transition-transform">{t("close")}</button>
+            </div>
+          </div>
         </Modal>
       )}
 
