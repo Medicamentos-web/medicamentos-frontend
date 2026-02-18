@@ -409,28 +409,59 @@ export default function HomePage() {
       const msg = isIos && !isPwa
         ? "📱 Para activar notificaciones en iOS:\n\n1. Abre esta página en Safari\n2. Toca el botón Compartir (↑)\n3. Selecciona \"Añadir a pantalla de inicio\"\n4. Abre MediControl desde el icono nuevo\n5. Activa las notificaciones desde ahí"
         : isIos && isPwa
-        ? "📱 Ve a Ajustes del iPhone → Notificaciones → MediControl → Activa las notificaciones."
+        ? "📱 Ve a Ajustes del iPhone → Mitteilungen → MediControl → Activa las notificaciones."
         : "Tu navegador no soporta notificaciones. Intenta instalar la app desde el menú del navegador.";
       alert(msg);
       return;
     }
     try {
-      if ("serviceWorker" in navigator) {
-        await navigator.serviceWorker.ready;
-      }
+      const registration = "serviceWorker" in navigator
+        ? await navigator.serviceWorker.ready
+        : null;
       const perm = await Notification.requestPermission();
       setNotifPermission(perm);
       if (perm === "granted") {
         playNotifSound();
-        new Notification("MediControl", { body: t("notif_enabled") });
+        try { new Notification("MediControl", { body: t("notif_enabled") }); } catch {}
+        if (registration?.pushManager && token) {
+          try {
+            const vapidRes = await fetch("/api/push/vapid");
+            const { publicKey } = await vapidRes.json();
+            if (publicKey) {
+              const sub = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(publicKey),
+              });
+              await fetch("/api/push/subscribe", {
+                method: "POST",
+                headers: { ...headers, "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(sub.toJSON()),
+              });
+            }
+          } catch (pushErr) {
+            console.warn("Push subscribe failed:", pushErr);
+          }
+        }
       } else if (perm === "denied") {
         const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
         alert(isIos
-          ? "Notificaciones bloqueadas. Ve a Ajustes → Notificaciones → MediControl para habilitarlas."
+          ? "Notificaciones bloqueadas. Ve a Ajustes → Mitteilungen → MediControl para habilitarlas."
           : "Notificaciones bloqueadas. Ve a Ajustes del navegador para habilitarlas.");
       }
-    } catch {}
+    } catch (err) {
+      console.error("Notification request error:", err);
+    }
   };
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("userSession");
