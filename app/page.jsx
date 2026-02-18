@@ -400,7 +400,11 @@ export default function HomePage() {
 
   const requestNotifications = async () => {
     if (typeof Notification === "undefined") {
-      alert("Tu navegador no soporta notificaciones. Añade la app a la pantalla de inicio desde Safari.");
+      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const msg = isIos
+        ? "📱 Para activar notificaciones en iOS:\n\n1. Abre esta página en Safari\n2. Toca el botón Compartir (↑)\n3. Selecciona \"Añadir a pantalla de inicio\"\n4. Abre MediControl desde el icono nuevo\n5. Activa las notificaciones desde ahí\n\n(Requiere iOS 16.4 o superior)"
+        : "Tu navegador no soporta notificaciones. Intenta instalar la app desde el menú del navegador.";
+      alert(msg);
       return;
     }
     try {
