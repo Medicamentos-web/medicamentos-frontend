@@ -315,6 +315,10 @@ export default function HomePage() {
       const savedLang = localStorage.getItem("lang");
       if (savedLang && STRINGS[savedLang]) setLang(savedLang);
     } catch {}
+    // Register Service Worker early (required for iOS PWA notifications)
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
     // Notification permission
     if (typeof Notification !== "undefined") {
       setNotifPermission(Notification.permission);
@@ -401,24 +405,29 @@ export default function HomePage() {
   const requestNotifications = async () => {
     if (typeof Notification === "undefined") {
       const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const msg = isIos
-        ? "📱 Para activar notificaciones en iOS:\n\n1. Abre esta página en Safari\n2. Toca el botón Compartir (↑)\n3. Selecciona \"Añadir a pantalla de inicio\"\n4. Abre MediControl desde el icono nuevo\n5. Activa las notificaciones desde ahí\n\n(Requiere iOS 16.4 o superior)"
+      const isPwa = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+      const msg = isIos && !isPwa
+        ? "📱 Para activar notificaciones en iOS:\n\n1. Abre esta página en Safari\n2. Toca el botón Compartir (↑)\n3. Selecciona \"Añadir a pantalla de inicio\"\n4. Abre MediControl desde el icono nuevo\n5. Activa las notificaciones desde ahí"
+        : isIos && isPwa
+        ? "📱 Ve a Ajustes del iPhone → Notificaciones → MediControl → Activa las notificaciones."
         : "Tu navegador no soporta notificaciones. Intenta instalar la app desde el menú del navegador.";
       alert(msg);
       return;
     }
     try {
+      if ("serviceWorker" in navigator) {
+        await navigator.serviceWorker.ready;
+      }
       const perm = await Notification.requestPermission();
       setNotifPermission(perm);
       if (perm === "granted") {
         playNotifSound();
         new Notification("MediControl", { body: t("notif_enabled") });
-        // Register service worker if available
-        if ("serviceWorker" in navigator) {
-          try { await navigator.serviceWorker.register("/sw.js"); } catch {}
-        }
       } else if (perm === "denied") {
-        alert("Notificaciones bloqueadas. Ve a Ajustes del navegador para habilitarlas.");
+        const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        alert(isIos
+          ? "Notificaciones bloqueadas. Ve a Ajustes → Notificaciones → MediControl para habilitarlas."
+          : "Notificaciones bloqueadas. Ve a Ajustes del navegador para habilitarlas.");
       }
     } catch {}
   };
