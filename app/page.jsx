@@ -63,6 +63,14 @@ const STRINGS = {
     scan_or_manual: "Escanea una etiqueta o añade manualmente.",
     choose_photo: "Elegir foto",
     take_photo: "Tomar foto",
+    edit_med: "Editar",
+    edit_title: "Editar medicamento",
+    edit_save: "Guardar cambios",
+    edit_saving: "Guardando...",
+    edit_saved: "Cambios guardados.",
+    edit_error: "No se pudieron guardar los cambios.",
+    detected_text_title: "Texto detectado por OCR",
+    expiry_label: "Caducidad",
   },
   "de-CH": {
     residents: "Bewohner", alerts: "Warnungen", view_alerts: "Anzeigen",
@@ -123,6 +131,14 @@ const STRINGS = {
     scan_or_manual: "Etikett scannen oder manuell eingeben.",
     choose_photo: "Foto wählen",
     take_photo: "Foto aufnehmen",
+    edit_med: "Bearbeiten",
+    edit_title: "Medikament bearbeiten",
+    edit_save: "Änderungen speichern",
+    edit_saving: "Speichern...",
+    edit_saved: "Änderungen gespeichert.",
+    edit_error: "Änderungen konnten nicht gespeichert werden.",
+    detected_text_title: "Erkannter OCR-Text",
+    expiry_label: "Verfallsdatum",
   },
   en: {
     residents: "Residents", alerts: "Alerts", view_alerts: "View",
@@ -181,6 +197,14 @@ const STRINGS = {
     manual_error: "Could not save the medication.",
     scan_or_manual: "Scan a label or add manually.",
     choose_photo: "Choose photo",
+    edit_med: "Edit",
+    edit_title: "Edit medication",
+    edit_save: "Save changes",
+    edit_saving: "Saving...",
+    edit_saved: "Changes saved.",
+    edit_error: "Could not save changes.",
+    detected_text_title: "OCR detected text",
+    expiry_label: "Expiry",
     take_photo: "Take photo",
   },
 };
@@ -224,6 +248,14 @@ export default function HomePage() {
   const [manualExpiry, setManualExpiry] = useState("");
   const [manualSaving, setManualSaving] = useState(false);
   const [manualMessage, setManualMessage] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editMed, setEditMed] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editDosage, setEditDosage] = useState("");
+  const [editStock, setEditStock] = useState("");
+  const [editExpiry, setEditExpiry] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [editMessage, setEditMessage] = useState("");
   const [showDoseModal, setShowDoseModal] = useState(false);
   const [doseMed, setDoseMed] = useState(null);
   const [doseValue, setDoseValue] = useState("");
@@ -530,6 +562,43 @@ export default function HomePage() {
     } catch { setManualMessage(t("manual_error")); } finally { setManualSaving(false); }
   };
 
+  const openEditModal = (med) => {
+    setEditMed(med);
+    setEditName(med.nombre || "");
+    setEditDosage(med.dosis || "");
+    setEditStock(String(med.stock ?? ""));
+    setEditExpiry(med.caducidad ? med.caducidad.slice(0, 10) : "");
+    setEditMessage("");
+    setEditSaving(false);
+    setShowEditModal(true);
+  };
+
+  const submitEditMed = async () => {
+    if (!editMed?.medicine_id || !user?.id || !editName.trim()) return;
+    setEditSaving(true); setEditMessage("");
+    try {
+      const res = await fetch(`/api/medicines/${editMed.medicine_id}`, {
+        method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, credentials: "include",
+        body: JSON.stringify({
+          family_id: user.family_id,
+          user_id: user.id,
+          name: editName.trim(),
+          dosage: editDosage.trim() || "N/A",
+          current_stock: Number(editStock) || 0,
+          expiration_date: editExpiry || null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setEditMessage(t("edit_saved"));
+        loadMeds();
+        setTimeout(() => setShowEditModal(false), 1200);
+      } else {
+        setEditMessage(data.error || t("edit_error"));
+      }
+    } catch { setEditMessage(t("edit_error")); } finally { setEditSaving(false); }
+  };
+
   // Comprimir imagen con canvas (como Expo Go: resize 1000px, quality 0.6)
   const compressImage = useCallback((file) => {
     return new Promise((resolve) => {
@@ -594,12 +663,12 @@ export default function HomePage() {
         result = await tryUpload();
       }
 
+      const detText = result.data.detected_text_full || result.data.detected_text || "";
+      if (detText) setScanDetectedText(detText);
       if (!result.res.ok) {
         setScanError(result.data.error || "No se pudo importar el medicamento.");
-        if (result.data.detected_text) setScanDetectedText(result.data.detected_text);
       } else {
         setScanResult(result.data);
-        if (result.data.detected_text_full) setScanDetectedText(result.data.detected_text_full);
         loadMeds();
       }
     } catch (err) {
@@ -947,7 +1016,7 @@ export default function HomePage() {
         <div className="mx-4 mt-4 space-y-3">
           <p className="text-sm font-bold text-slate-800">{blockSummary[activeBlock].name} · {blockSummary[activeBlock].items.length} {t("day_doses")}</p>
           {blockSummary[activeBlock].items.map((med) => (
-            <MedCard key={med.id} med={med} t={t} onToggle={toggleMed} onDose={openDoseModal} dayCompleted={dayCompleted} />
+            <MedCard key={med.id} med={med} t={t} onToggle={toggleMed} onDose={openDoseModal} onEdit={openEditModal} dayCompleted={dayCompleted} />
           ))}
         </div>
       )}
@@ -967,7 +1036,7 @@ export default function HomePage() {
               <p className="text-xs font-bold text-slate-500 uppercase mb-2">{block.name} · {block.items.length} {t("day_doses")}</p>
               <div className="space-y-3">
                 {block.items.map((med) => (
-                  <MedCard key={med.id} med={med} t={t} onToggle={toggleMed} onDose={openDoseModal} dayCompleted={dayCompleted} />
+                  <MedCard key={med.id} med={med} t={t} onToggle={toggleMed} onDose={openDoseModal} onEdit={openEditModal} dayCompleted={dayCompleted} />
                 ))}
               </div>
             </div>
@@ -1038,8 +1107,8 @@ export default function HomePage() {
           )}
           {scanDetectedText && (
             <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
-              <p className="text-xs font-bold text-slate-600 mb-1">Texto detectado</p>
-              <p className="text-[11px] text-slate-500 whitespace-pre-wrap leading-relaxed">{scanDetectedText}</p>
+              <p className="text-xs font-bold text-slate-600 mb-1">{t("detected_text_title")}</p>
+              <pre className="text-[10px] text-slate-500 whitespace-pre-wrap leading-relaxed font-mono max-h-48 overflow-y-auto">{scanDetectedText}</pre>
             </div>
           )}
           {scanResult && (
@@ -1113,6 +1182,48 @@ export default function HomePage() {
         </Modal>
       )}
 
+      {showEditModal && editMed && (
+        <Modal onClose={() => setShowEditModal(false)} title={t("edit_title")}>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase">{t("med_name")} *</label>
+              <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1"
+                value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase">{t("med_dosage")}</label>
+              <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1"
+                value={editDosage} onChange={(e) => setEditDosage(e.target.value)} placeholder="60 mg" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase">{t("med_qty")}</label>
+                <input type="number" min="0" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1"
+                  value={editStock} onChange={(e) => setEditStock(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase">{t("expiry_label")}</label>
+                <input type="date" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1"
+                  value={editExpiry} onChange={(e) => setEditExpiry(e.target.value)} />
+              </div>
+            </div>
+            {editMessage && (
+              <p className={`text-xs font-medium ${editMessage === t("edit_saved") ? "text-emerald-600" : "text-red-500"}`}>
+                {editMessage}
+              </p>
+            )}
+            <div className="flex gap-2 pt-1">
+              <button onClick={submitEditMed} disabled={editSaving || !editName.trim()}
+                className="flex-1 bg-amber-400 text-slate-900 text-xs font-bold py-3 rounded-xl disabled:opacity-50 active:scale-[0.98] transition-transform">
+                {editSaving ? t("edit_saving") : t("edit_save")}
+              </button>
+              <button onClick={() => setShowEditModal(false)}
+                className="flex-1 bg-[#111827] text-white text-xs font-bold py-3 rounded-xl active:scale-[0.98] transition-transform">{t("close")}</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {showDoseModal && (
         <Modal onClose={() => setShowDoseModal(false)} title={t("dose_update")}>
           <p className="text-sm text-slate-600">{doseMed?.nombre} {doseMed?.dosis ? `· ${doseMed.dosis}` : ""}</p>
@@ -1147,7 +1258,7 @@ function Modal({ onClose, title, children }) {
   );
 }
 
-function MedCard({ med, t, onToggle, onDose, dayCompleted }) {
+function MedCard({ med, t, onToggle, onDose, onEdit, dayCompleted }) {
   return (
     <div className={`bg-white rounded-2xl p-4 shadow-sm transition-all ${med.completado ? "border-2 border-emerald-400 bg-emerald-50/50" : "border border-slate-100"}`}>
       <div className="flex items-start gap-3">
@@ -1157,6 +1268,7 @@ function MedCard({ med, t, onToggle, onDose, dayCompleted }) {
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-bold ${med.completado ? "text-emerald-700" : "text-slate-800"}`}>{med.nombre}</p>
           <p className="text-xs text-slate-500 mt-1">{med.hora?.substring(0,5)} · {med.dosis || ""} · {t("stock")} {med.stock}</p>
+          {med.caducidad && <p className="text-[10px] text-slate-400 mt-0.5">{t("expiry_label")}: {new Date(med.caducidad).toLocaleDateString()}</p>}
           {med.pending_dose && (
             <p className="text-xs text-amber-600 mt-1 font-medium">{t("pending_change")}: {med.requested_dosage}{med.effective_date ? ` · ${med.effective_date}` : ""}</p>
           )}
@@ -1167,6 +1279,8 @@ function MedCard({ med, t, onToggle, onDose, dayCompleted }) {
           className={`flex-1 py-2.5 rounded-xl text-xs font-bold active:scale-95 transition-transform ${med.completado ? "bg-emerald-500 text-white" : "bg-[#007AFF] text-white"} ${dayCompleted ? "opacity-50" : ""}`}>
           {med.completado ? t("taken") : t("confirm")}
         </button>
+        <button onClick={() => onEdit(med)}
+          className="bg-amber-50 text-amber-700 border border-amber-200 text-xs font-medium py-2.5 px-3 rounded-xl active:scale-95 transition-transform">✏️ {t("edit_med")}</button>
         {!med.completado && (
           <button onClick={() => onDose(med)}
             className="bg-slate-100 text-slate-600 text-xs font-medium py-2.5 px-3 rounded-xl active:scale-95 transition-transform">{t("update_dose")}</button>
