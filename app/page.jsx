@@ -804,31 +804,6 @@ export default function HomePage() {
                 🔔
               </button>
             )}
-            <button onClick={async () => {
-              const isPwa = window.matchMedia("(display-mode: standalone)").matches || !!window.navigator.standalone;
-              const hasNotifApi = typeof Notification !== "undefined";
-              const notifPerm = hasNotifApi ? Notification.permission : "N/A";
-              const hasSW = "serviceWorker" in navigator;
-              let swStatus = "no";
-              let pushStatus = "no";
-              try {
-                const reg = await navigator.serviceWorker.getRegistration();
-                swStatus = reg ? "activo ✅" : "no registrado ❌";
-                if (reg?.pushManager) {
-                  const sub = await reg.pushManager.getSubscription();
-                  pushStatus = sub ? "suscrito ✅" : "no suscrito ❌";
-                } else { pushStatus = "pushManager no disponible ❌"; }
-              } catch (e) { swStatus = "error: " + e.message; }
-              alert(
-                "🔍 Diagnóstico de notificaciones:\n\n" +
-                "PWA (standalone): " + (isPwa ? "Sí ✅" : "No ❌ (abre desde icono)") + "\n" +
-                "Notification API: " + (hasNotifApi ? "Sí ✅" : "No ❌") + "\n" +
-                "Permiso actual: " + notifPerm + "\n" +
-                "Service Worker: " + swStatus + "\n" +
-                "Push Manager: " + pushStatus + "\n" +
-                "User Agent: " + navigator.userAgent.slice(0, 80)
-              );
-            }} className="text-white text-[10px] font-bold px-1.5 py-2 rounded-xl opacity-50">🔍</button>
             <button onClick={handleLogout}
               className="bg-red-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg active:scale-95 transition-transform">
               {t("logout")} ✕
