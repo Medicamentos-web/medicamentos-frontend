@@ -71,6 +71,8 @@ const STRINGS = {
     edit_error: "No se pudieron guardar los cambios.",
     detected_text_title: "Texto detectado por OCR",
     expiry_label: "Caducidad",
+    dose_unit: "comp.",
+    dose_qty: "Cantidad por toma",
   },
   "de-CH": {
     residents: "Bewohner", alerts: "Warnungen", view_alerts: "Anzeigen",
@@ -139,6 +141,8 @@ const STRINGS = {
     edit_error: "Änderungen konnten nicht gespeichert werden.",
     detected_text_title: "Erkannter OCR-Text",
     expiry_label: "Verfallsdatum",
+    dose_unit: "Tbl.",
+    dose_qty: "Menge pro Einnahme",
   },
   en: {
     residents: "Residents", alerts: "Alerts", view_alerts: "View",
@@ -205,6 +209,8 @@ const STRINGS = {
     edit_error: "Could not save changes.",
     detected_text_title: "OCR detected text",
     expiry_label: "Expiry",
+    dose_unit: "tab.",
+    dose_qty: "Quantity per dose",
     take_photo: "Take photo",
   },
 };
@@ -254,6 +260,7 @@ export default function HomePage() {
   const [editDosage, setEditDosage] = useState("");
   const [editStock, setEditStock] = useState("");
   const [editExpiry, setEditExpiry] = useState("");
+  const [editFreq, setEditFreq] = useState("1");
   const [editSaving, setEditSaving] = useState(false);
   const [editMessage, setEditMessage] = useState("");
   const [showDoseModal, setShowDoseModal] = useState(false);
@@ -568,6 +575,7 @@ export default function HomePage() {
     setEditDosage(med.dosis || "");
     setEditStock(String(med.stock ?? ""));
     setEditExpiry(med.caducidad ? med.caducidad.slice(0, 10) : "");
+    setEditFreq(med.frecuencia || "1");
     setEditMessage("");
     setEditSaving(false);
     setShowEditModal(true);
@@ -577,7 +585,7 @@ export default function HomePage() {
     if (!editMed?.medicine_id || !user?.id || !editName.trim()) return;
     setEditSaving(true); setEditMessage("");
     try {
-      const res = await fetch(`/api/medicines/${editMed.medicine_id}`, {
+      const medRes = await fetch(`/api/medicines/${editMed.medicine_id}`, {
         method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, credentials: "include",
         body: JSON.stringify({
           family_id: user.family_id,
@@ -588,8 +596,20 @@ export default function HomePage() {
           expiration_date: editExpiry || null,
         }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
+      if (editMed.id && editFreq.trim()) {
+        await fetch(`/api/schedules/${editMed.id}`, {
+          method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, credentials: "include",
+          body: JSON.stringify({
+            family_id: user.family_id,
+            medicine_id: editMed.medicine_id,
+            user_id: user.id,
+            dose_time: editMed.hora || "08:00",
+            frequency: editFreq.trim(),
+          }),
+        });
+      }
+      const data = await medRes.json().catch(() => ({}));
+      if (medRes.ok) {
         setEditMessage(t("edit_saved"));
         loadMeds();
         setTimeout(() => setShowEditModal(false), 1200);
@@ -1195,6 +1215,20 @@ export default function HomePage() {
               <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1"
                 value={editDosage} onChange={(e) => setEditDosage(e.target.value)} placeholder="60 mg" />
             </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase">{t("dose_qty")}</label>
+              <div className="flex gap-2 mt-1">
+                {["1/2", "1", "2", "3", "4"].map((v) => (
+                  <button key={v} type="button" onClick={() => setEditFreq(v)}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${editFreq === v ? "bg-blue-500 text-white shadow-md scale-105" : "bg-slate-100 text-slate-600"}`}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <input className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm mt-2"
+                value={editFreq} onChange={(e) => setEditFreq(e.target.value)}
+                placeholder="Ej: 1, 1/2, 2..." />
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase">{t("med_qty")}</label>
@@ -1259,6 +1293,7 @@ function Modal({ onClose, title, children }) {
 }
 
 function MedCard({ med, t, onToggle, onDose, onEdit, dayCompleted }) {
+  const freq = med.frecuencia && med.frecuencia !== "1" ? med.frecuencia : "1";
   return (
     <div className={`bg-white rounded-2xl p-4 shadow-sm transition-all ${med.completado ? "border-2 border-emerald-400 bg-emerald-50/50" : "border border-slate-100"}`}>
       <div className="flex items-start gap-3">
@@ -1267,7 +1302,15 @@ function MedCard({ med, t, onToggle, onDose, onEdit, dayCompleted }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-bold ${med.completado ? "text-emerald-700" : "text-slate-800"}`}>{med.nombre}</p>
-          <p className="text-xs text-slate-500 mt-1">{med.hora?.substring(0,5)} · {med.dosis || ""} · {t("stock")} {med.stock}</p>
+          <div className="flex items-center gap-1 mt-1 flex-wrap">
+            <span className="inline-flex items-center bg-blue-50 text-blue-700 text-[11px] font-bold px-2 py-0.5 rounded-lg">{freq} {t("dose_unit")}</span>
+            <span className="text-xs text-slate-400">·</span>
+            <span className="text-xs text-slate-500">{med.hora?.substring(0,5)}</span>
+            <span className="text-xs text-slate-400">·</span>
+            <span className="text-xs text-slate-500">{med.dosis || ""}</span>
+            <span className="text-xs text-slate-400">·</span>
+            <span className="text-xs text-slate-500">{t("stock")} {med.stock}</span>
+          </div>
           {med.caducidad && <p className="text-[10px] text-slate-400 mt-0.5">{t("expiry_label")}: {new Date(med.caducidad).toLocaleDateString()}</p>}
           {med.pending_dose && (
             <p className="text-xs text-amber-600 mt-1 font-medium">{t("pending_change")}: {med.requested_dosage}{med.effective_date ? ` · ${med.effective_date}` : ""}</p>
