@@ -71,6 +71,33 @@ const T = {
     how2_text: "Manuell eingeben oder Rezept scannen.",
     how3_title: "3. Erinnerungen erhalten",
     how3_text: "Die App erinnert Sie an jede Dosis.",
+    survey_title: "Kurze Umfrage",
+    survey_sub: "Helfen Sie uns, die App zu verbessern. 4 kurze Fragen, weniger als 30 Sekunden.",
+    survey_q1: "Wie viele Medikamente nehmen Sie täglich ein?",
+    survey_q1_a: "1–2",
+    survey_q1_b: "3–5",
+    survey_q1_c: "6–10",
+    survey_q1_d: "Mehr als 10",
+    survey_q2: "Wer verwaltet Ihre Medikamente?",
+    survey_q2_a: "Ich selbst",
+    survey_q2_b: "Ein Familienmitglied",
+    survey_q2_c: "Pflegepersonal",
+    survey_q2_d: "Arzt / Apotheke",
+    survey_q3: "Was ist Ihr grösstes Problem bei der Medikamentenverwaltung?",
+    survey_q3_a: "Dosen vergessen",
+    survey_q3_b: "Bestand kontrollieren",
+    survey_q3_c: "Arzt informieren",
+    survey_q3_d: "Organisation für die Familie",
+    survey_q4: "Würden Sie für eine solche App bezahlen?",
+    survey_q4_a: "Ja, sofort",
+    survey_q4_b: "Vielleicht, wenn es gut ist",
+    survey_q4_c: "Nur wenn kostenlos",
+    survey_q4_d: "Nein",
+    survey_email: "E-Mail (optional, für Updates)",
+    survey_submit: "Absenden",
+    survey_sending: "Wird gesendet...",
+    survey_done: "Vielen Dank für Ihr Feedback!",
+    survey_error: "Fehler. Bitte versuchen Sie es erneut.",
   },
   es: {
     hero_title: "Tus medicamentos.",
@@ -140,6 +167,33 @@ const T = {
     how2_text: "Ingresa manualmente o escanea tu receta.",
     how3_title: "3. Recibe recordatorios",
     how3_text: "La app te recuerda cada toma.",
+    survey_title: "Encuesta rápida",
+    survey_sub: "Ayúdanos a mejorar la app. 4 preguntas, menos de 30 segundos.",
+    survey_q1: "¿Cuántos medicamentos tomas al día?",
+    survey_q1_a: "1–2",
+    survey_q1_b: "3–5",
+    survey_q1_c: "6–10",
+    survey_q1_d: "Más de 10",
+    survey_q2: "¿Quién gestiona tus medicamentos?",
+    survey_q2_a: "Yo mismo/a",
+    survey_q2_b: "Un familiar",
+    survey_q2_c: "Cuidador profesional",
+    survey_q2_d: "Médico / Farmacia",
+    survey_q3: "¿Cuál es tu mayor problema con los medicamentos?",
+    survey_q3_a: "Olvidar tomas",
+    survey_q3_b: "Controlar el stock",
+    survey_q3_c: "Informar al médico",
+    survey_q3_d: "Organizar para la familia",
+    survey_q4: "¿Pagarías por una app así?",
+    survey_q4_a: "Sí, ahora mismo",
+    survey_q4_b: "Quizás, si es buena",
+    survey_q4_c: "Solo si es gratis",
+    survey_q4_d: "No",
+    survey_email: "Email (opcional, para actualizaciones)",
+    survey_submit: "Enviar",
+    survey_sending: "Enviando...",
+    survey_done: "¡Gracias por tu feedback!",
+    survey_error: "Error. Inténtalo de nuevo.",
   },
   en: {
     hero_title: "Your medicines.",
@@ -209,6 +263,33 @@ const T = {
     how2_text: "Enter manually or scan your prescription.",
     how3_title: "3. Get reminders",
     how3_text: "The app reminds you of every dose.",
+    survey_title: "Quick Survey",
+    survey_sub: "Help us improve the app. 4 questions, under 30 seconds.",
+    survey_q1: "How many medications do you take daily?",
+    survey_q1_a: "1–2",
+    survey_q1_b: "3–5",
+    survey_q1_c: "6–10",
+    survey_q1_d: "More than 10",
+    survey_q2: "Who manages your medications?",
+    survey_q2_a: "Myself",
+    survey_q2_b: "A family member",
+    survey_q2_c: "Professional caregiver",
+    survey_q2_d: "Doctor / Pharmacy",
+    survey_q3: "What's your biggest challenge with medications?",
+    survey_q3_a: "Forgetting doses",
+    survey_q3_b: "Stock management",
+    survey_q3_c: "Informing the doctor",
+    survey_q3_d: "Organizing for the family",
+    survey_q4: "Would you pay for an app like this?",
+    survey_q4_a: "Yes, right away",
+    survey_q4_b: "Maybe, if it's good",
+    survey_q4_c: "Only if free",
+    survey_q4_d: "No",
+    survey_email: "Email (optional, for updates)",
+    survey_submit: "Submit",
+    survey_sending: "Submitting...",
+    survey_done: "Thank you for your feedback!",
+    survey_error: "Error. Please try again.",
   },
 };
 
@@ -220,6 +301,10 @@ export default function LandingPage() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [survey, setSurvey] = useState({ q1: "", q2: "", q3: "", q4: "", email: "", comment: "" });
+  const [surveySending, setSurveySending] = useState(false);
+  const [surveyDone, setSurveyDone] = useState(false);
+  const [surveyError, setSurveyError] = useState("");
 
   useEffect(() => {
     const browserLang = navigator.language?.toLowerCase() || "";
@@ -269,6 +354,7 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-slate-900 transition-colors">{t("nav_features")}</a>
             <a href="#pricing" className="hover:text-slate-900 transition-colors">{t("nav_pricing")}</a>
             <a href="#contact" className="hover:text-slate-900 transition-colors">{t("nav_contact")}</a>
+            <a href="#survey" className="hover:text-slate-900 transition-colors text-violet-600 font-semibold">{t("survey_title")}</a>
           </div>
           <div className="flex items-center gap-2">
             {["de-CH", "es", "en"].map((l) => (
@@ -488,6 +574,81 @@ export default function LandingPage() {
               <button type="submit" disabled={sending}
                 className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold py-4 rounded-xl text-base hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50">
                 {sending ? t("form_sending") : t("form_submit")}
+              </button>
+            </form>
+          )}
+        </div>
+      </section>
+
+      {/* Survey */}
+      <section id="survey" className="py-20 sm:py-28 px-4 bg-gradient-to-b from-slate-50 to-white">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-violet-50 text-violet-700 text-xs font-bold px-4 py-1.5 rounded-full mb-4 border border-violet-200">
+              {lang === "de-CH" ? "30 Sekunden" : lang === "es" ? "30 segundos" : "30 seconds"}
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">{t("survey_title")}</h2>
+            <p className="mt-4 text-lg text-slate-500">{t("survey_sub")}</p>
+          </div>
+
+          {surveyDone ? (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center">
+              <div className="text-5xl mb-4">🎉</div>
+              <p className="text-xl font-bold text-emerald-700">{t("survey_done")}</p>
+            </div>
+          ) : (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!survey.q1 || !survey.q2 || !survey.q3 || !survey.q4) return;
+              setSurveySending(true);
+              setSurveyError("");
+              try {
+                const res = await fetch("/api/survey", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ ...survey, lang, source: "landing" }),
+                });
+                if (res.ok) setSurveyDone(true);
+                else setSurveyError(t("survey_error"));
+              } catch { setSurveyError(t("survey_error")); }
+              finally { setSurveySending(false); }
+            }} className="space-y-8">
+
+              {[
+                { key: "q1", opts: ["a", "b", "c", "d"] },
+                { key: "q2", opts: ["a", "b", "c", "d"] },
+                { key: "q3", opts: ["a", "b", "c", "d"] },
+                { key: "q4", opts: ["a", "b", "c", "d"] },
+              ].map(({ key, opts }) => (
+                <div key={key} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                  <p className="font-bold text-slate-900 mb-4">{t(`survey_${key}`)}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {opts.map((opt) => (
+                      <button key={opt} type="button"
+                        onClick={() => setSurvey({ ...survey, [key]: opt })}
+                        className={`text-sm font-medium px-4 py-3 rounded-xl border-2 transition-all ${
+                          survey[key] === opt
+                            ? "border-violet-500 bg-violet-50 text-violet-700"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                        }`}>
+                        {t(`survey_${key}_${opt}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <input type="email" placeholder={t("survey_email")} value={survey.email}
+                  onChange={(e) => setSurvey({ ...survey, email: e.target.value })}
+                  className="w-full bg-slate-50 text-slate-900 placeholder-slate-400 rounded-xl px-4 py-3.5 text-sm border border-slate-200 focus:border-violet-500 focus:outline-none transition-colors" />
+              </div>
+
+              {surveyError && <p className="text-red-500 text-sm text-center">{surveyError}</p>}
+
+              <button type="submit" disabled={surveySending || !survey.q1 || !survey.q2 || !survey.q3 || !survey.q4}
+                className="w-full bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold py-4 rounded-xl text-base hover:from-violet-600 hover:to-purple-700 transition-all shadow-lg shadow-violet-500/25 disabled:opacity-50">
+                {surveySending ? t("survey_sending") : t("survey_submit")}
               </button>
             </form>
           )}
