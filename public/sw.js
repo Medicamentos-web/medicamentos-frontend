@@ -4,8 +4,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "MediControl";
   const options = {
     body: data.body || "Tienes una notificación pendiente",
-    icon: "/icon-192.svg",
-    badge: "/icon-192.svg",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
     vibrate: [200, 100, 200],
     tag: data.tag || "med-notification",
     renotify: true,

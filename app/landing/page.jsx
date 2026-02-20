@@ -56,8 +56,9 @@ const T = {
     form_message: "Nachricht (optional)",
     form_submit: "Kostenlos starten",
     form_sending: "Wird gesendet...",
-    form_success: "Vielen Dank! Wir haben Ihre Anfrage erhalten.",
+    form_success: "Konto erstellt! Überprüfen Sie Ihre E-Mail für die Zugangsdaten.",
     form_error: "Fehler. Bitte versuchen Sie es erneut.",
+    form_already: "Diese E-Mail ist bereits registriert. Bitte melden Sie sich an.",
     footer_legal: "SaaS-Dienst nach Schweizer Recht. Kein Ersatz für professionelle medizinische Beratung.",
     footer_copy: "MediControl. Alle Rechte vorbehalten.",
     stats_patients: "Patienten",
@@ -152,8 +153,9 @@ const T = {
     form_message: "Mensaje (opcional)",
     form_submit: "Empezar gratis",
     form_sending: "Enviando...",
-    form_success: "¡Gracias! Hemos recibido tu solicitud.",
+    form_success: "¡Cuenta creada! Revisa tu email para los datos de acceso.",
     form_error: "Error. Inténtalo de nuevo.",
+    form_already: "Este email ya está registrado. Usa el login.",
     footer_legal: "Servicio SaaS sujeto al derecho suizo. No sustituye el consejo médico profesional.",
     footer_copy: "MediControl. Todos los derechos reservados.",
     stats_patients: "Pacientes",
@@ -248,8 +250,9 @@ const T = {
     form_message: "Message (optional)",
     form_submit: "Start for free",
     form_sending: "Sending...",
-    form_success: "Thank you! We've received your request.",
+    form_success: "Account created! Check your email for login details.",
     form_error: "Error. Please try again.",
+    form_already: "This email is already registered. Please sign in.",
     footer_legal: "SaaS service under Swiss law. Does not replace professional medical advice.",
     footer_copy: "MediControl. All rights reserved.",
     stats_patients: "Patients",
@@ -317,16 +320,18 @@ export default function LandingPage() {
 
   const submitLead = async (e) => {
     e.preventDefault();
-    if (!formData.email) return;
+    if (!formData.email || !formData.name) return;
     setSending(true);
     setError("");
     try {
-      const res = await fetch("/api/leads", {
+      const res = await fetch("/api/register-trial", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, lang, source: "landing" }),
+        body: JSON.stringify({ name: formData.name, email: formData.email, phone: formData.phone, lang }),
       });
+      const data = await res.json();
       if (res.ok) { setSent(true); setFormData({ name: "", email: "", phone: "", message: "" }); }
+      else if (data.error === "already_registered") setError(t("form_already"));
       else setError(t("form_error"));
     } catch { setError(t("form_error")); }
     finally { setSending(false); }
@@ -558,7 +563,7 @@ export default function LandingPage() {
             </div>
           ) : (
             <form onSubmit={submitLead} className="space-y-4">
-              <input type="text" placeholder={t("form_name")} value={formData.name}
+              <input type="text" required placeholder={t("form_name")} value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
               <input type="email" required placeholder={t("form_email")} value={formData.email}
