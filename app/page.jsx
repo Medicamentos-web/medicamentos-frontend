@@ -542,7 +542,7 @@ export default function HomePage() {
         .then(r => r.json()).then(d => setBilling(d)).catch(() => {});
       const alertInterval = setInterval(loadAlerts, 5 * 60 * 1000);
 
-      // Auto re-subscribe push if permission already granted
+      // Auto re-subscribe push — always force fresh subscription with current VAPID key
       (async () => {
         try {
           if (typeof Notification !== "undefined" && Notification.permission === "granted" && "serviceWorker" in navigator) {
@@ -552,27 +552,18 @@ export default function HomePage() {
               const { publicKey } = await vapidRes.json();
               if (publicKey) {
                 const existing = await reg.pushManager.getSubscription();
-                if (existing) {
-                  // Re-send existing subscription to backend in case it was lost
-                  await fetch("/api/push/subscribe", {
-                    method: "POST",
-                    headers: { ...headers, "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify(existing.toJSON()),
-                  });
-                } else {
-                  // No subscription exists, create one
-                  const sub = await reg.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(publicKey),
-                  });
-                  await fetch("/api/push/subscribe", {
-                    method: "POST",
-                    headers: { ...headers, "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify(sub.toJSON()),
-                  });
-                }
+                if (existing) await existing.unsubscribe();
+                const sub = await reg.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: urlBase64ToUint8Array(publicKey),
+                });
+                await fetch("/api/push/subscribe", {
+                  method: "POST",
+                  headers: { ...headers, "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify(sub.toJSON()),
+                });
+                console.log("[PUSH] Subscription refreshed successfully");
               }
             }
           }
@@ -1038,17 +1029,21 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-bold text-slate-500 uppercase">{t("alerts")} ({alerts.length})</p>
             <div className="flex gap-2">
-              {notifPermission === "granted" && (
-                <button onClick={async () => {
-                  try {
-                    const r = await fetch("/api/push/test", { method: "POST", headers, credentials: "include" });
-                    if (r.ok) alert("Push enviado. Revisa tu dispositivo.");
-                    else alert("Error al enviar push de prueba.");
-                  } catch { alert("Error de conexión"); }
-                }} className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-lg font-bold">
-                  Test Push
-                </button>
-              )}
+              <button onClick={async () => {
+                try {
+                  const r = await fetch("/api/push/test", { method: "POST", headers, credentials: "include" });
+                  const data = await r.json();
+                  if (data.ok) {
+                    alert(`Push enviado (${data.sent}/${data.subscriptions} suscripciones). Revisa tu dispositivo.`);
+                  } else if (data.error === "no_subscriptions") {
+                    alert("No hay suscripciones push. Pulsa la campana azul para activar notificaciones primero.");
+                  } else {
+                    alert(`Error: ${data.message || data.error || "Desconocido"}`);
+                  }
+                } catch { alert("Error de conexión con el servidor"); }
+              }} className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-lg font-bold">
+                Test Push
+              </button>
               <button onClick={loadAlerts} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-bold">
                 {alertsLoading ? "..." : "Refresh"}
               </button>
