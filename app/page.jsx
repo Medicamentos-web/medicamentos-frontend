@@ -541,6 +541,44 @@ export default function HomePage() {
       fetch(`/api/billing/status?family_id=${user.family_id}`, { headers, credentials: "include" })
         .then(r => r.json()).then(d => setBilling(d)).catch(() => {});
       const alertInterval = setInterval(loadAlerts, 5 * 60 * 1000);
+
+      // Auto re-subscribe push if permission already granted
+      (async () => {
+        try {
+          if (typeof Notification !== "undefined" && Notification.permission === "granted" && "serviceWorker" in navigator) {
+            const reg = await navigator.serviceWorker.ready;
+            if (reg?.pushManager) {
+              const vapidRes = await fetch("/api/push/vapid");
+              const { publicKey } = await vapidRes.json();
+              if (publicKey) {
+                const existing = await reg.pushManager.getSubscription();
+                if (existing) {
+                  // Re-send existing subscription to backend in case it was lost
+                  await fetch("/api/push/subscribe", {
+                    method: "POST",
+                    headers: { ...headers, "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify(existing.toJSON()),
+                  });
+                } else {
+                  // No subscription exists, create one
+                  const sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(publicKey),
+                  });
+                  await fetch("/api/push/subscribe", {
+                    method: "POST",
+                    headers: { ...headers, "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify(sub.toJSON()),
+                  });
+                }
+              }
+            }
+          }
+        } catch (e) { console.warn("[PUSH] Auto re-subscribe failed:", e); }
+      })();
+
       return () => clearInterval(alertInterval);
     }
   }, [user, token, loadMeds, loadAlerts]);
