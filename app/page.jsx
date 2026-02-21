@@ -538,9 +538,10 @@ export default function HomePage() {
   useEffect(() => {
     if (user && token) {
       loadMeds(); loadAlerts();
-      // Load billing status
       fetch(`/api/billing/status?family_id=${user.family_id}`, { headers, credentials: "include" })
         .then(r => r.json()).then(d => setBilling(d)).catch(() => {});
+      const alertInterval = setInterval(loadAlerts, 5 * 60 * 1000);
+      return () => clearInterval(alertInterval);
     }
   }, [user, token, loadMeds, loadAlerts]);
 
@@ -554,7 +555,7 @@ export default function HomePage() {
         method: "POST", headers, credentials: "include",
         body: JSON.stringify({ schedule_id: med.id, status: "tomado", family_id: user.family_id, date }),
       });
-      if (res.ok) loadMeds();
+      if (res.ok) { loadMeds(); loadAlerts(); }
     } catch {}
   };
 
@@ -972,9 +973,14 @@ export default function HomePage() {
           <p className="text-xl font-bold text-slate-800 mt-1">1</p>
         </div>
         <button onClick={() => { setShowAlerts((p) => !p); if (!showAlerts) loadAlerts(); }}
-          className="flex-none bg-[#111827] rounded-xl px-4 py-3 shadow-sm min-w-[80px] text-center">
+          className="flex-none bg-[#111827] rounded-xl px-4 py-3 shadow-sm min-w-[80px] text-center relative">
           <p className="text-[9px] font-bold text-blue-300 uppercase">{t("alerts")}</p>
           <p className="text-xs font-bold text-white mt-1">{showAlerts ? t("view_less") : t("view_alerts")}</p>
+          {alerts.length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+              {alerts.length}
+            </span>
+          )}
         </button>
         <button onClick={loadAlerts}
           className="flex-none bg-[#111827] rounded-xl px-4 py-3 shadow-sm min-w-[70px] text-center">
@@ -991,10 +997,48 @@ export default function HomePage() {
       {/* ── Alerts Panel ── */}
       {showAlerts && (
         <div className="mx-4 mt-2 bg-white rounded-xl p-3 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-slate-500 uppercase">{t("alerts")} ({alerts.length})</p>
+            <div className="flex gap-2">
+              {notifPermission === "granted" && (
+                <button onClick={async () => {
+                  try {
+                    const r = await fetch("/api/push/test", { method: "POST", headers, credentials: "include" });
+                    if (r.ok) alert("Push enviado. Revisa tu dispositivo.");
+                    else alert("Error al enviar push de prueba.");
+                  } catch { alert("Error de conexión"); }
+                }} className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-lg font-bold">
+                  Test Push
+                </button>
+              )}
+              <button onClick={loadAlerts} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-bold">
+                {alertsLoading ? "..." : "Refresh"}
+              </button>
+            </div>
+          </div>
+          {notifPermission !== "granted" && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
+              <p className="text-xs text-amber-800 font-medium">
+                Las notificaciones push no están activadas.
+              </p>
+              <button onClick={requestNotifications}
+                className="mt-1 text-xs bg-amber-500 text-white px-3 py-1 rounded-lg font-bold">
+                Activar notificaciones
+              </button>
+            </div>
+          )}
           {alerts.length ? alerts.map((a) => (
-            <div key={a.id} className="py-2 border-b border-slate-100 last:border-0">
-              <p className="text-sm font-semibold text-slate-800">{a.med_name || a.message}{a.med_dosage ? ` · ${a.med_dosage}` : ""}</p>
-              <p className="text-xs text-red-500 font-medium">{a.dose_time ? `${a.dose_time} · ` : ""}{a.alert_date || ""}</p>
+            <div key={a.id} className="py-2 border-b border-slate-100 last:border-0 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">{a.med_name || a.message}{a.med_dosage ? ` · ${a.med_dosage}` : ""}</p>
+                <p className="text-xs text-red-500 font-medium">{a.dose_time ? `${a.dose_time} · ` : ""}{a.alert_date || ""}</p>
+              </div>
+              <button onClick={async () => {
+                try {
+                  await fetch("/api/alerts/read", { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ alert_id: a.id }) });
+                  loadAlerts();
+                } catch {}
+              }} className="text-slate-400 hover:text-emerald-500 text-lg ml-2 flex-none" title="Marcar como leída">✓</button>
             </div>
           )) : <p className="text-sm text-emerald-600 font-semibold">{t("no_stock_alerts")}</p>}
         </div>
@@ -1117,7 +1161,14 @@ export default function HomePage() {
           <button onClick={() => window.location.href = "tel:112"}
             className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center text-white text-lg active:scale-90 transition-transform">📞</button>
           <button onClick={() => { setShowAlerts((p) => !p); if (!showAlerts) loadAlerts(); }}
-            className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-white text-lg active:scale-90 transition-transform">🔔</button>
+            className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-white text-lg active:scale-90 transition-transform relative">
+            🔔
+            {alerts.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                {alerts.length > 99 ? "99+" : alerts.length}
+              </span>
+            )}
+          </button>
           <button onClick={async () => { await loadDoctor(); setShowSos(true); }}
             className="w-12 h-12 bg-yellow-400 rounded-xl flex items-center justify-center text-lg active:scale-90 transition-transform">🏥</button>
           <button onClick={() => fileInputRef.current?.click()}
