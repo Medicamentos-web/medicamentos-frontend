@@ -324,10 +324,12 @@ export default function LandingPage() {
     setSending(true);
     setError("");
     try {
+      const params = new URLSearchParams(window.location.search);
+      const source = params.get("utm_source") || "landing";
       const res = await fetch("/api/register-trial", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: formData.name, email: formData.email, phone: formData.phone, lang }),
+        body: JSON.stringify({ name: formData.name, email: formData.email, phone: formData.phone, lang, source }),
       });
       const data = await res.json();
       if (res.ok) { setSent(true); setFormData({ name: "", email: "", phone: "", message: "" }); }
