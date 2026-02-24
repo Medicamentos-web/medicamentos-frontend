@@ -1,4 +1,5 @@
 import "./globals.css";
+import CookieConsentManager from "../components/CookieConsentManager";
 
 export const metadata = {
   title: "MediControl — Ihre Medikamente. Unter Kontrolle.",
@@ -29,6 +30,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-dvh bg-slate-50">
         {children}
+        <CookieConsentManager />
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js', { scope: '/' })

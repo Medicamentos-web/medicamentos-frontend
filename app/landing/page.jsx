@@ -317,6 +317,7 @@ export default function LandingPage() {
   }, []);
 
   const t = (key) => T[lang]?.[key] || T["de-CH"][key] || key;
+  const GOOGLE_ADS_CONVERSION_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL || "";
 
   const submitLead = async (e) => {
     e.preventDefault();
@@ -332,7 +333,15 @@ export default function LandingPage() {
         body: JSON.stringify({ name: formData.name, email: formData.email, phone: formData.phone, lang, source }),
       });
       const data = await res.json();
-      if (res.ok) { setSent(true); setFormData({ name: "", email: "", phone: "", message: "" }); }
+      if (res.ok) {
+        setSent(true);
+        setFormData({ name: "", email: "", phone: "", message: "" });
+        if (typeof window !== "undefined" && typeof window.gtag === "function" && GOOGLE_ADS_CONVERSION_LABEL) {
+          window.gtag("event", "conversion", {
+            send_to: `AW-17971521405/${GOOGLE_ADS_CONVERSION_LABEL}`,
+          });
+        }
+      }
       else if (data.error === "already_registered") setError(t("form_already"));
       else setError(t("form_error"));
     } catch { setError(t("form_error")); }
