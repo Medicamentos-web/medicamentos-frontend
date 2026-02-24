@@ -168,7 +168,7 @@ export default function PromoPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-lg shrink-0">💊</div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-bold text-slate-800">Euthyrox 50mg</div>
+                          <div className="text-[13px] font-bold text-slate-800">Medikament A</div>
                           <div className="text-[10px] text-slate-500">08:00 · 1 Tablette</div>
                         </div>
                         <div className={`text-[10px] font-bold px-2.5 py-1.5 rounded-full transition-all duration-700 ${demoStep >= 0 ? "bg-emerald-100 text-emerald-700 scale-110" : "bg-slate-100 text-slate-400"}`}>

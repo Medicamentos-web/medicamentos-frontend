@@ -428,7 +428,7 @@ export default function LandingPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-lg">💊</div>
                     <div className="flex-1">
-                      <div className="text-sm font-bold text-slate-800">Euthyrox 50mg</div>
+                      <div className="text-sm font-bold text-slate-800">Medikament A</div>
                       <div className="text-[11px] text-slate-500">08:00 · 1 Tablette</div>
                     </div>
                     <div className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-full">✓</div>
