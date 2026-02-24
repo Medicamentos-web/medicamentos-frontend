@@ -325,13 +325,17 @@ export default function LandingPage() {
     setSending(true);
     setError("");
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
       const params = new URLSearchParams(window.location.search);
       const source = params.get("utm_source") || "landing";
       const res = await fetch("/api/register-trial", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({ name: formData.name, email: formData.email, phone: formData.phone, lang, source }),
       });
+      clearTimeout(timeout);
       const data = await res.json();
       if (res.ok) {
         setSent(true);
@@ -344,7 +348,10 @@ export default function LandingPage() {
       }
       else if (data.error === "already_registered") setError(t("form_already"));
       else setError(t("form_error"));
-    } catch { setError(t("form_error")); }
+    } catch (err) {
+      if (err?.name === "AbortError") setError("Tiempo de espera agotado. Intenta de nuevo en 10 segundos.");
+      else setError(t("form_error"));
+    }
     finally { setSending(false); }
   };
 
