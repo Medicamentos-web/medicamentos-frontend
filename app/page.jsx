@@ -28,7 +28,7 @@ const STRINGS = {
     no_records: "No hay registros hoy",     emergency: "Emergencia 112",
     disclaimer_title: "Aviso legal importante",
     disclaimer_accept: "He leído y acepto",
-    disclaimer_text: "Esta aplicación es una herramienta de apoyo para la gestión y el recordatorio de la medicación prescrita por su médico de cabecera. En ningún caso sustituye, modifica ni reemplaza el diagnóstico, la prescripción ni las indicaciones de su profesional sanitario. El usuario se compromete a seguir siempre las instrucciones de su médico tratante. El uso de esta aplicación no establece una relación médico-paciente. Ante cualquier duda sobre su medicación, consulte a su médico o farmacéutico.",
+    disclaimer_text: "MediControl es una herramienta de apoyo para organización y recordatorios. No emite diagnósticos ni sustituye el criterio médico. Las decisiones sobre su medicación son responsabilidad del paciente y/o su responsable, junto con profesionales sanitarios. Ante cualquier duda, consulte a su médico o farmacéutico.",
     disclaimer_email_note: "Al aceptar, se enviará una confirmación por correo electrónico al usuario y al administrador del sistema como registro legal.",
     feedback_title: "Tu opinión nos importa",
     feedback_subtitle: "¿Cómo calificarías tu experiencia con la app?",
@@ -290,6 +290,38 @@ export default function HomePage() {
   // ── Init ──
   useEffect(() => {
     setMounted(true);
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const oauthOk = params?.get("oauth") === "ok";
+    const oauthError = params?.get("error") === "oauth_failed";
+
+    if (oauthOk || oauthError) {
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+
+    if (oauthOk) {
+      fetch("/auth/me", { credentials: "include" })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.user) {
+            const session = {
+              id: data.user.sub || data.user.id,
+              nombre: data.user.name,
+              email: data.user.email,
+              family_id: data.user.family_id,
+              role: data.user.role,
+              token: "",
+            };
+            localStorage.setItem("userSession", JSON.stringify(session));
+            setUser(session);
+            setToken(session.token || "");
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+
     try {
       const saved = localStorage.getItem("userSession");
       if (saved) {

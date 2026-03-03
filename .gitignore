@@ -7,7 +7,6 @@ node_modules/
 backups/
 scripts/
 mobile/
-backend/
 docker-compose*.yml
 .env.*.example
 database/
