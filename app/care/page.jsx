@@ -32,15 +32,15 @@ const T = {
     price_sub: "Kostenlos starten. Upgraden, wenn Sie bereit sind.",
     trial_name: "Kostenlose Testversion",
     trial_price: "CHF 0",
-    trial_period: "7 Tage",
-    trial_f1: "Bis zu 5 Einträge",
+    trial_period: "30 Tage",
+    trial_f1: "Max. 5 Medikamente",
     trial_f2: "Erinnerungen",
     trial_f3: "E-Mail-Support",
     monthly_name: "Monatsplan",
-    monthly_price: "CHF 9.90",
+    monthly_price: "CHF 4.99",
     monthly_period: "/ Monat",
     yearly_name: "Jahresplan",
-    yearly_price: "CHF 106.90",
+    yearly_price: "CHF 53.90",
     yearly_period: "/ Jahr",
     yearly_save: "10% sparen",
     plan_f1: "Unbegrenzte Einträge",
@@ -243,7 +243,7 @@ export default function CarePage() {
                 {l === "de-CH" ? "DE" : l.toUpperCase()}
               </button>
             ))}
-            <a href="/" className="ml-2 text-sm font-semibold text-white bg-slate-900 px-4 py-2 rounded-full hover:bg-slate-800 transition-colors hidden sm:inline-block">
+            <a href="/" className="ml-2 text-sm font-semibold text-white bg-slate-900 px-4 py-2 rounded-full hover:bg-slate-800 transition-colors">
               {t("nav_login")}
             </a>
           </div>
