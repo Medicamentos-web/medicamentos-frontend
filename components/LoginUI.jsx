@@ -5,7 +5,6 @@ import { useState } from "react";
 // MediControl Login – v2.0 (cache-bust 2026-02-17)
 
 export default function LoginUI({ setUser }) {
-  const [familyId, setFamilyId] = useState("1");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,15 +19,12 @@ export default function LoginUI({ setUser }) {
   const handleLogin = async (event) => {
     event.preventDefault();
     setError("");
+    const body = { email, password };
     const res = await fetch(`/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({
-        family_id: Number(familyId),
-        email,
-        password,
-      }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -72,14 +68,12 @@ export default function LoginUI({ setUser }) {
   const handleForgot = async (event) => {
     event.preventDefault();
     setResetMessage("");
+    const forgotBody = { email };
     const res = await fetch(`/auth/forgot`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({
-        family_id: Number(familyId),
-        email,
-      }),
+      body: JSON.stringify(forgotBody),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -133,17 +127,6 @@ export default function LoginUI({ setUser }) {
             {error}
           </div>
         ) : null}
-
-        <div>
-          <label className="block text-xs font-semibold text-slate-400 mb-1.5">Family ID</label>
-          <input
-            className="w-full rounded-xl border border-slate-600/50 bg-slate-800/50 px-4 py-3.5 text-sm text-white placeholder-slate-500 focus:border-[#007AFF] focus:outline-none focus:ring-1 focus:ring-[#007AFF]"
-            value={familyId}
-            onChange={(event) => setFamilyId(event.target.value)}
-            placeholder="1"
-            required
-          />
-        </div>
 
         <div>
           <label className="block text-xs font-semibold text-slate-400 mb-1.5">Email</label>
