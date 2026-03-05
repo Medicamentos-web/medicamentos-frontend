@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const webpush = require("web-push");
 const { execFile } = require("child_process");
 const os = require("os");
@@ -76,7 +77,7 @@ app.post("/api/billing/webhook", express.raw({ type: "application/json" }), asyn
         if (fam.rows[0]?.email && mailTransport) {
           try {
             await mailTransport.sendMail({
-              from: process.env.SMTP_USER, to: fam.rows[0].email,
+              from: SMTP_USER, to: fam.rows[0].email,
               subject: "Suscripción activada - MediControl",
               html: `<h2>Su suscripción ha sido activada</h2><p>Familia: ${fam.rows[0].name || familyId}</p><p>Todas las funciones están ahora disponibles.</p>`,
             });
@@ -215,18 +216,97 @@ function cookieOpts(req) {
   };
 }
 
-const mailTransport =
-  process.env.SMTP_HOST && process.env.SMTP_USER
-    ? nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: false,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      })
+const SMTP_HOST = (process.env.SMTP_HOST || "").trim().toLowerCase();
+const SMTP_USER = (process.env.SMTP_USER || "").trim();
+const SMTP_PASS = (process.env.SMTP_PASS || "").trim();
+const RESEND_API_KEY = (process.env.RESEND_API_KEY || "").trim();
+const BREVO_API_KEY = (process.env.BREVO_API_KEY || "").trim();
+const FROM_EMAIL = (process.env.FROM_EMAIL || "MediControl <onboarding@resend.dev>").trim();
+const isGmail = SMTP_HOST.includes("gmail") || SMTP_HOST === "smtp.gmail.com";
+
+function parseFromEmail(str) {
+  const m = str.match(/^([^<]*)<([^>]+)>$/);
+  if (m) return { name: (m[1] || "MediControl").trim(), email: m[2].trim() };
+  return { name: "MediControl", email: str.trim() };
+}
+
+const nodemailerTransport =
+  SMTP_HOST && SMTP_USER && SMTP_PASS
+    ? nodemailer.createTransport(
+        isGmail
+          ? { service: "gmail", auth: { user: SMTP_USER, pass: SMTP_PASS } }
+          : {
+              host: process.env.SMTP_HOST,
+              port: Number(process.env.SMTP_PORT || 587),
+              secure: Number(process.env.SMTP_PORT || 587) === 465,
+              requireTLS: Number(process.env.SMTP_PORT || 587) === 587,
+              auth: { user: SMTP_USER, pass: SMTP_PASS },
+            }
+      )
     : null;
+
+const resendClient = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
+const RESEND_FALLBACK_FROM = "MediControl <onboarding@resend.dev>";
+
+const brevoTransport = BREVO_API_KEY
+  ? {
+      sendMail: async (opts) => {
+        const fromStr = (opts.from && String(opts.from).trim()) ? opts.from : FROM_EMAIL;
+        const sender = parseFromEmail(fromStr.includes("@") ? fromStr : FROM_EMAIL);
+        const toList = Array.isArray(opts.to) ? opts.to : [opts.to];
+        const to = toList.map((t) => (typeof t === "string" ? { email: t } : { email: t.address || t.email, name: t.name }));
+        const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "api-key": BREVO_API_KEY,
+          },
+          body: JSON.stringify({
+            sender: { name: sender.name, email: sender.email },
+            to,
+            subject: opts.subject,
+            htmlContent: opts.html,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.messageId) return { messageId: data.messageId };
+        throw new Error(data.message || data.code || `Brevo error ${res.status}`);
+      },
+      verify: async () => {},
+    }
+  : null;
+
+const mailTransport = RESEND_API_KEY
+  ? {
+      sendMail: async (opts) => {
+        const from = FROM_EMAIL.includes("<") ? FROM_EMAIL : `MediControl <${FROM_EMAIL}>`;
+        const to = Array.isArray(opts.to) ? opts.to : [opts.to];
+        const { data, error } = await resendClient.emails.send({
+          from,
+          to,
+          subject: opts.subject,
+          html: opts.html,
+        });
+        if (!error) return { messageId: data?.id };
+        const msg = (error.message || "").toLowerCase();
+        if ((msg.includes("domain") || msg.includes("verif") || msg.includes("from")) && from !== RESEND_FALLBACK_FROM) {
+          console.warn("[RESEND] FROM_EMAIL no verificado, fallback a onboarding@resend.dev:", error.message);
+          const retry = await resendClient.emails.send({
+            from: RESEND_FALLBACK_FROM,
+            to,
+            subject: opts.subject,
+            html: opts.html,
+          });
+          if (!retry.error) return { messageId: retry.data?.id };
+          throw new Error(retry.error.message || "Resend error");
+        }
+        throw new Error(error.message || "Resend error");
+      },
+      verify: async () => {},
+    }
+  : brevoTransport || nodemailerTransport;
 
 let pushKeys = null;
 
@@ -719,7 +799,7 @@ async function ensureBillingColumns() {
     `ALTER TABLE families ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(50) NOT NULL DEFAULT 'trial'`,
     `ALTER TABLE families ADD COLUMN IF NOT EXISTS subscription_start TIMESTAMPTZ`,
     `ALTER TABLE families ADD COLUMN IF NOT EXISTS subscription_end TIMESTAMPTZ`,
-    `ALTER TABLE families ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '7 days')`,
+    `ALTER TABLE families ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 days')`,
     `ALTER TABLE families ADD COLUMN IF NOT EXISTS trial_email_sent BOOLEAN DEFAULT FALSE`,
     `ALTER TABLE families ADD COLUMN IF NOT EXISTS max_medicines INTEGER DEFAULT 5`,
   ];
@@ -730,7 +810,7 @@ async function ensureBillingColumns() {
   }
   // Set trial for existing families without status
   await pool.query(
-    `UPDATE families SET trial_ends_at = NOW() + INTERVAL '7 days' WHERE trial_ends_at IS NULL AND subscription_status = 'trial'`
+    `UPDATE families SET trial_ends_at = NOW() + INTERVAL '30 days' WHERE trial_ends_at IS NULL AND subscription_status = 'trial'`
   );
 }
 ensureBillingColumns().catch((e) => console.error("ERROR billing columns:", e.message));
@@ -740,7 +820,7 @@ async function sendAdminAlertEmail(subject, html, attachments) {
     return false;
   }
   await mailTransport.sendMail({
-    from: process.env.SMTP_USER,
+    from: SMTP_USER,
     to: ADMIN_EMAIL,
     subject,
     html,
@@ -754,7 +834,7 @@ async function sendUserEmail(email, subject, html) {
     return false;
   }
   await mailTransport.sendMail({
-    from: process.env.SMTP_USER,
+    from: SMTP_USER,
     to: email,
     subject,
     html,
@@ -1242,7 +1322,8 @@ function authMiddleware(req, _res, next) {
   const bearer = req.headers.authorization?.startsWith("Bearer ")
     ? req.headers.authorization.slice(7)
     : null;
-  const token = req.cookies[TOKEN_NAME] || bearer;
+  // Preferir Bearer sobre cookie: OAuth pasa token en URL, la cookie puede ser de otro usuario
+  const token = bearer || req.cookies[TOKEN_NAME];
   if (!token) {
     req.user = null;
     return next();
@@ -1371,23 +1452,49 @@ function renderShell(req, title, active, content) {
 
   const userName = escapeHtml(req.user?.name || "Admin");
   const userEmail = escapeHtml(req.user?.email || "");
-  const items = [
-    { key: "panel", label: "🏠 Panel", href: "/dashboard" },
-    { key: "patients", label: "👤 Pacientes", href: "/admin/user-new" },
-    { key: "meds", label: "💊 Medicamentos", href: "/admin/meds-list" },
-    { key: "alerts", label: "🔔 Alertas", href: "/admin/alerts" },
-    { key: "dose", label: "🩺 Cambios de dosis", href: "/admin/dose-requests" },
-    { key: "history", label: "📁 Historial médico", href: "/admin/medical-records" },
-    { key: "imports", label: "⬆ Importaciones", href: "/admin/import" },
-    { key: "billing", label: "💳 Facturación", href: "/admin/billing" },
-    { key: "feedback", label: "⭐ Feedback", href: "/admin/feedback" },
-    { key: "leads", label: "📩 Leads", href: "/admin/leads" },
-    { key: "survey", label: "📋 Encuestas", href: "/admin/survey" },
-    { key: "feature-feedback", label: "💡 Feedback funciones", href: "/admin/feature-feedback" },
-    { key: "online", label: "🟢 En línea", href: "/admin/online" },
-    { key: "inactive", label: "🗑 Usuarios inactivos", href: "/admin/inactive-users" },
-    { key: "reports", label: "📊 Informes", href: "/admin/reports" },
-    { key: "settings", label: "⚙ Ajustes", href: "/admin/settings" },
+  const isAdmin = req.user?.role === "admin";
+  const navSections = [
+    {
+      title: "Principal",
+      items: [
+        { key: "panel", label: "Panel", href: "/dashboard", icon: "◉" },
+        { key: "patients", label: "Pacientes", href: "/admin/users", icon: "👤" },
+        { key: "meds", label: "Medicamentos", href: "/admin/meds-list", icon: "💊" },
+        { key: "alerts", label: "Alertas", href: "/admin/alerts", icon: "🔔" },
+      ],
+    },
+    {
+      title: "Atención clínica",
+      items: [
+        { key: "dose", label: "Cambios de dosis", href: "/admin/dose-requests", icon: "🩺" },
+        { key: "history", label: "Historial médico", href: "/admin/medical-records", icon: "📁" },
+        { key: "imports", label: "Importar", href: "/admin/import", icon: "⬆" },
+      ],
+    },
+    {
+      title: "Marketing y feedback",
+      items: [
+        { key: "billing", label: "Facturación", href: "/admin/billing", icon: "💳", adminOnly: true },
+        { key: "leads", label: "Leads", href: "/admin/leads", icon: "📩" },
+        { key: "survey", label: "Encuestas", href: "/admin/survey", icon: "📋" },
+        { key: "feedback", label: "Feedback", href: "/admin/feedback", icon: "⭐" },
+        { key: "feature-feedback", label: "Feedback funciones", href: "/admin/feature-feedback", icon: "💡" },
+      ],
+    },
+    {
+      title: "Operaciones",
+      items: [
+        { key: "online", label: "En línea", href: "/admin/online", icon: "🟢" },
+        { key: "inactive", label: "Usuarios inactivos", href: "/admin/inactive-users", icon: "🗑", adminOnly: true },
+        { key: "reports", label: "Informes", href: "/admin/reports", icon: "📊" },
+      ],
+    },
+    {
+      title: "Sistema",
+      items: [
+        { key: "settings", label: "Ajustes", href: "/admin/settings", icon: "⚙" },
+      ],
+    },
   ];
   return `
     <!doctype html>
@@ -1413,11 +1520,23 @@ function renderShell(req, title, active, content) {
           body { margin:0; font-family: "Inter", Arial, sans-serif; background:var(--bg); color:var(--ink); }
           a { color:inherit; text-decoration:none; }
           .app { display:flex; min-height:100vh; }
-          .sidebar { width:260px; background:#fff; border-right:1px solid var(--border); padding:20px 16px; position:sticky; top:0; height:100vh; }
-          .sidebar h4 { margin:18px 0 8px; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
-          .nav { display:flex; flex-direction:column; gap:6px; }
-          .nav a { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:var(--ink); }
-          .nav a.active { background:#EEF2FF; color:#1E3A8A; border-left:3px solid var(--accent); padding-left:9px; }
+          .sidebar { width:272px; min-width:272px; background:linear-gradient(180deg,#fff 0%,#f8fafc 100%); border-right:1px solid var(--border); padding:0; position:sticky; top:0; height:100vh; display:flex; flex-direction:column; overflow-y:auto; }
+          .sidebar-brand { padding:20px 20px 16px; border-bottom:1px solid var(--border); }
+          .sidebar-brand .logo { width:36px; height:36px; background:linear-gradient(135deg,#34d399,#06b6d4); border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:16px; }
+          .sidebar-brand .name { font-weight:700; font-size:15px; letter-spacing:-.02em; margin-top:10px; }
+          .sidebar-brand .tagline { font-size:11px; color:var(--muted); margin-top:2px; }
+          .sidebar-nav { flex:1; padding:16px 12px; }
+          .sidebar-section { margin-bottom:20px; }
+          .sidebar-section:last-child { margin-bottom:0; }
+          .sidebar-section-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); padding:0 12px 8px; margin:0; }
+          .sidebar-nav a { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; color:var(--ink); font-size:14px; font-weight:500; transition:background .15s, color .15s; }
+          .sidebar-nav a:hover { background:rgba(37,99,235,.06); color:var(--accent); }
+          .sidebar-nav a.active { background:rgba(37,99,235,.1); color:#1d4ed8; font-weight:600; }
+          .sidebar-nav a .nav-icon { width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+          .sidebar-user { padding:16px 20px; border-top:1px solid var(--border); background:#fff; }
+          .sidebar-user .name { font-size:13px; font-weight:600; }
+          .sidebar-user .email { font-size:11px; color:var(--muted); margin-top:2px; word-break:break-all; }
+          .sidebar-user .role { font-size:10px; color:var(--accent); font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-top:4px; }
           .main { flex:1; display:flex; flex-direction:column; }
           .topbar { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid var(--border); height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 24px; }
           .brand { font-weight:800; letter-spacing:.08em; font-size:14px; }
@@ -1452,37 +1571,40 @@ function renderShell(req, title, active, content) {
       <body>
         <div class="app">
           <aside class="sidebar">
-            <div class="brand" style="display:flex; align-items:center; gap:8px;"><div style="width:28px; height:28px; background:linear-gradient(135deg,#34d399,#06b6d4); border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:bold; font-size:13px;">M</div>MediControl</div>
-            <h4>Gestión</h4>
-            <nav class="nav">
-              ${items
-                .slice(0, 5)
+            <div class="sidebar-brand">
+              <div class="logo">M</div>
+              <div class="name">MediControl</div>
+              <div class="tagline">Admin Panel</div>
+            </div>
+            <nav class="sidebar-nav">
+              ${navSections
                 .map(
-                  (i) =>
-                    `<a class="${active === i.key ? "active" : ""}" href="${i.href}">${i.label}</a>`
+                  (sec) => {
+                    const filtered = sec.items.filter((i) => !i.adminOnly || isAdmin);
+                    if (filtered.length === 0) return "";
+                    return `
+              <div class="sidebar-section">
+                <h4 class="sidebar-section-title">${escapeHtml(sec.title)}</h4>
+                ${filtered
+                  .map(
+                    (i) =>
+                      `<a class="${active === i.key ? "active" : ""}" href="${i.href}"><span class="nav-icon">${i.icon}</span>${escapeHtml(i.label)}</a>`
+                  )
+                  .join("")}
+              </div>`;
+                  }
                 )
                 .join("")}
             </nav>
-            <h4>Documentos</h4>
-            <nav class="nav">
-              ${items
-                .slice(5, 7)
-                .map(
-                  (i) =>
-                    `<a class="${active === i.key ? "active" : ""}" href="${i.href}">${i.label}</a>`
-                )
-                .join("")}
-            </nav>
-            <h4>Sistema</h4>
-            <nav class="nav">
-              ${items
-                .slice(7)
-                .map(
-                  (i) =>
-                    `<a class="${active === i.key ? "active" : ""}" href="${i.href}">${i.label}</a>`
-                )
-                .join("")}
-            </nav>
+            <div class="sidebar-user">
+              <div class="name">${userName}</div>
+              <div class="email">${userEmail}</div>
+              <div class="role">${escapeHtml(req.user?.role || "user")}</div>
+              <div style="margin-top:10px; display:flex; gap:8px;">
+                <a href="/admin/settings" style="font-size:12px; color:var(--accent); font-weight:600;">Ajustes</a>
+                <a href="/admin/logout" style="font-size:12px; color:var(--muted);">Cerrar sesión</a>
+              </div>
+            </div>
           </aside>
           <div class="main">
             <header class="topbar">
@@ -1706,6 +1828,7 @@ app.get("/health", async (_req, res) => {
 
 // Diagnóstico: muestra info del servidor sin consultar DB
 app.get("/diag", (req, res) => {
+  const emailConfigured = !!mailTransport;
   res.json({
     ok: true,
     node: process.version,
@@ -1715,6 +1838,10 @@ app.get("/diag", (req, res) => {
       NODE_ENV: process.env.NODE_ENV || "dev",
       HAS_DATABASE_URL: !!process.env.DATABASE_URL,
       HAS_JWT_SECRET: !!process.env.JWT_SECRET,
+      HAS_EMAIL: emailConfigured,
+      HAS_SMTP: emailConfigured,
+      EMAIL_PROVIDER: RESEND_API_KEY ? "resend" : BREVO_API_KEY ? "brevo" : nodemailerTransport ? "smtp" : "none",
+      HAS_ADMIN_EMAIL: !!process.env.ADMIN_EMAIL,
       PORT: process.env.PORT || "4000",
     },
     cookies: req.cookies ? Object.keys(req.cookies) : [],
@@ -1755,12 +1882,9 @@ app.post("/auth/register", async (req, res) => {
     city,
     email,
     password,
-    role,
   } = req.body || {};
-  let safeRole = ["admin", "superuser", "user"].includes(role) ? role : "user";
-  if (safeRole === "superuser" && req.user?.role !== "superuser") {
-    safeRole = "user";
-  }
+  // Auto-registro: siempre "user". Solo admin/superuser pueden crear otros roles desde el panel.
+  const safeRole = "user";
 
   const finalName = buildUserName(name, first_name, last_name);
   if (!family_id || !finalName || !email || !password) {
@@ -1808,24 +1932,36 @@ app.post("/auth/register", async (req, res) => {
 
 app.post("/auth/login", async (req, res) => {
   const { family_id, email, password } = req.body || {};
-  if (!family_id || !email || !password) {
+  if (!email || !password) {
     return res
       .status(400)
-      .json({ error: "family_id, email y password son requeridos" });
+      .json({ error: "email y password son requeridos" });
   }
 
   try {
-    const result = await pool.query(
-      `SELECT id, family_id, name, first_name, last_name, email, role, password_hash, must_change_password
-       FROM users
-       WHERE family_id = $1 AND email = $2`,
-      [Number(family_id), email]
-    );
+    // Si se envía family_id, usarlo. Si no, buscar por email (email es único por usuario).
+    const result = family_id
+      ? await pool.query(
+          `SELECT id, family_id, name, first_name, last_name, email, role, password_hash, must_change_password, auth_provider
+           FROM users WHERE family_id = $1 AND email = $2`,
+          [Number(family_id), email]
+        )
+      : await pool.query(
+          `SELECT id, family_id, name, first_name, last_name, email, role, password_hash, must_change_password, auth_provider
+           FROM users WHERE email = $1`,
+          [email]
+        );
     if (result.rows.length === 0) {
       return res.status(401).json({ error: "credenciales inválidas" });
     }
 
     const user = result.rows[0];
+    // Si el usuario se registró con Google/Facebook, no tiene contraseña válida
+    if (user.auth_provider && user.auth_provider !== "email") {
+      return res.status(401).json({
+        error: `Esta cuenta usa inicio de sesión con ${user.auth_provider === "google" ? "Google" : "Facebook"}. Usa el botón correspondiente en lugar de email/contraseña.`,
+      });
+    }
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) {
       return res.status(401).json({ error: "credenciales inválidas" });
@@ -1891,14 +2027,14 @@ async function findOrCreateOAuthUser(profile, provider) {
   await pool.query("BEGIN");
   const famResult = await pool.query(
     `INSERT INTO families (name, subscription_status, trial_ends_at, max_medicines)
-     VALUES ($1, 'trial', NOW() + INTERVAL '7 days', 5)
+     VALUES ($1, 'trial', NOW() + INTERVAL '30 days', 5)
      RETURNING id`,
     [`Familie ${name}`]
   );
   const familyId = famResult.rows[0].id;
   const userResult = await pool.query(
     `INSERT INTO users (family_id, name, email, password_hash, role, auth_provider, must_change_password)
-     VALUES ($1, $2, $3, $4, 'admin', $5, false)
+     VALUES ($1, $2, $3, $4, 'superuser', $5, false)
      RETURNING id, family_id, name, email, role`,
     [familyId, name, cleanEmail, oauthPlaceholder, provider]
   );
@@ -1924,7 +2060,10 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
       }
     )
   );
-  app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+  app.get("/auth/google", passport.authenticate("google", {
+    scope: ["profile", "email"],
+    prompt: "select_account", // Siempre mostrar selector de cuentas (útil con 2+ usuarios en el mismo móvil)
+  }));
   app.get(
     "/auth/google/callback",
     passport.authenticate("google", { session: false }),
@@ -1933,7 +2072,8 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
       if (!user) return res.redirect(FRONTEND_URL + "?error=oauth_failed");
       const token = signToken(user);
       res.cookie(TOKEN_NAME, token, cookieOpts(req));
-      res.redirect(FRONTEND_URL + "?oauth=ok");
+      const sep = FRONTEND_URL.includes("?") ? "&" : "?";
+      res.redirect(FRONTEND_URL + sep + "oauth=ok&token=" + encodeURIComponent(token));
     }
   );
   console.log("[OAUTH] Google configurado");
@@ -1967,25 +2107,53 @@ if (FACEBOOK_APP_ID && FACEBOOK_APP_SECRET) {
       if (!user) return res.redirect(FRONTEND_URL + "?error=oauth_failed");
       const token = signToken(user);
       res.cookie(TOKEN_NAME, token, cookieOpts(req));
-      res.redirect(FRONTEND_URL + "?oauth=ok");
+      const sep = FRONTEND_URL.includes("?") ? "&" : "?";
+      res.redirect(FRONTEND_URL + sep + "oauth=ok&token=" + encodeURIComponent(token));
     }
   );
   console.log("[OAUTH] Facebook configurado");
 }
 
+// Diagnóstico: comprobar si un email existe y cómo debe iniciar sesión (sin auth)
+app.get("/api/check-email", async (req, res) => {
+  const email = (req.query.email || "").trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return res.status(400).json({ error: "email requerido" });
+  }
+  try {
+    const r = await pool.query(
+      `SELECT id, family_id, auth_provider FROM users WHERE email = $1 LIMIT 1`,
+      [email]
+    );
+    if (r.rows.length === 0) {
+      return res.json({ exists: false, hint: "No hay cuenta con este email. Regístrate desde la landing o usa Google." });
+    }
+    const u = r.rows[0];
+    const provider = u.auth_provider || "email";
+    return res.json({
+      exists: true,
+      family_id: u.family_id,
+      auth_provider: provider,
+      hint: provider === "email"
+        ? "Usa email + contraseña. Si no recuerdas: Olvidé mi contraseña. Si no tienes Family ID, déjalo vacío."
+        : `Esta cuenta usa ${provider === "google" ? "Google" : "Facebook"}. Usa el botón correspondiente en lugar de email/contraseña.`,
+    });
+  } catch (err) {
+    console.error("[CHECK-EMAIL]", err.message);
+    res.status(500).json({ error: "Error al consultar" });
+  }
+});
+
 app.post("/auth/forgot", async (req, res) => {
   const { family_id, email } = req.body || {};
-  if (!family_id || !email) {
-    return res
-      .status(400)
-      .json({ error: "family_id y email son requeridos" });
+  if (!email) {
+    return res.status(400).json({ error: "email es requerido" });
   }
 
   try {
-    const userResult = await pool.query(
-      `SELECT id FROM users WHERE family_id = $1 AND email = $2`,
-      [Number(family_id), email]
-    );
+    const userResult = family_id
+      ? await pool.query(`SELECT id FROM users WHERE family_id = $1 AND email = $2`, [Number(family_id), email])
+      : await pool.query(`SELECT id FROM users WHERE email = $1`, [email]);
 
     if (userResult.rows.length === 0) {
       return res.json({ ok: true });
@@ -2093,19 +2261,52 @@ app.post("/auth/change-password", requireAuth, async (req, res) => {
   }
 });
 
-async function sendWelcomeEmail(email, tempPassword) {
-  if (!mailTransport || !email) {
-    return false;
+async function sendWelcomeEmail(email, tempPassword, context = {}) {
+  if (!mailTransport || !email) return false;
+  const { name, familyId } = context;
+  const FRONTEND = process.env.FRONTEND_URL || "https://medicamentos-frontend.vercel.app";
+  const GUIDE_BASE = process.env.GUIDE_BASE_URL || FRONTEND;
+  const pdfDe = `${GUIDE_BASE}/guides/MediControl_Guide_DE.pdf`;
+  const pdfEs = `${GUIDE_BASE}/guides/MediControl_Guide_ES.pdf`;
+  const pdfEn = `${GUIDE_BASE}/guides/MediControl_Guide_EN.pdf`;
+  const html = `
+    <p>Tu contraseña temporal es: <strong>${escapeHtml(tempPassword)}</strong></p>
+    <p>Ingresa en <a href="${FRONTEND}">${FRONTEND}</a> y cámbiala desde la app.</p>
+    ${familyId ? `<p><strong>Family ID:</strong> ${familyId}</p>` : ""}
+    <p style="margin-top:16px;"><strong>Guías de ayuda en PDF:</strong><br>
+      <a href="${pdfDe}">Deutsch</a> · <a href="${pdfEs}">Español</a> · <a href="${pdfEn}">English</a>
+    </p>`;
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 2000;
+  let lastError = null;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      await mailTransport.sendMail({
+        from: SMTP_USER,
+        to: email,
+        subject: "Tu acceso inicial a MediControl",
+        html,
+      });
+      return true;
+    } catch (e) {
+      lastError = e;
+      console.error(`[SEND WELCOME] Intento ${attempt}/${MAX_RETRIES} fallido:`, e.message);
+      if (attempt < MAX_RETRIES) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    }
   }
-  await mailTransport.sendMail({
-    from: process.env.SMTP_USER,
-    to: email,
-    subject: "Tu acceso inicial",
-    html: `<p>Tu contraseña temporal es: <strong>${escapeHtml(
-      tempPassword
-    )}</strong></p><p>Ingresa y cámbiala desde la app.</p>`,
-  });
-  return true;
+  if (ADMIN_EMAIL) {
+    try {
+      await mailTransport.sendMail({
+        from: SMTP_USER,
+        to: ADMIN_EMAIL,
+        subject: `[MediControl] Error: Email de acceso NO enviado a ${email}`,
+        html: `<p><strong>No se pudo enviar el email de credenciales</strong> tras ${MAX_RETRIES} intentos.</p>
+          <p><strong>Email:</strong> ${escapeHtml(email)}${name ? `<br><strong>Nombre:</strong> ${escapeHtml(name)}` : ""}${familyId ? `<br><strong>Family ID:</strong> ${familyId}` : ""}</p>
+          <p><strong>Error:</strong> ${escapeHtml(lastError?.message || "Desconocido")}</p>`,
+      });
+    } catch (adminErr) { console.error("[SEND WELCOME] No se pudo notificar al admin:", adminErr.message); }
+  }
+  return false;
 }
 
 // =============================================================================
@@ -2175,8 +2376,8 @@ app.get("/admin/login", (_req, res) => {
         <span class="badge">🇨🇭 Swiss Healthcare SaaS</span>
         ${errorMessage ? `<div class="error">${errorMessage}</div>` : ""}
         <form method="POST" action="/admin/login">
-          <label>Family ID</label>
-          <input name="family_id" type="text" placeholder="1" required value="1" />
+          <label>Family ID <span style="font-weight:400; color:#64748b;">(opcional — si no lo recuerdas, déjalo vacío)</span></label>
+          <input name="family_id" type="text" placeholder="Ej: 1" />
           <label>Email</label>
           <input name="email" type="email" placeholder="admin@medicontrol.app" required />
           <label>Password</label>
@@ -2196,18 +2397,23 @@ app.get("/admin/login", (_req, res) => {
 
 app.post("/admin/login", async (req, res) => {
   const { family_id, email, password } = req.body || {};
-  if (!family_id || !email || !password) {
+  if (!email || !password) {
     return res.redirect("/admin/login?error=1");
   }
 
   try {
-    console.log("[AUTH] Intentando login admin:", email, "family:", family_id);
-    const result = await pool.query(
-      `SELECT id, family_id, name, email, role, password_hash
-       FROM users
-       WHERE family_id = $1 AND email = $2`,
-      [Number(family_id), email]
-    );
+    const result = family_id
+      ? await pool.query(
+          `SELECT id, family_id, name, email, role, password_hash
+           FROM users WHERE family_id = $1 AND email = $2`,
+          [Number(family_id), email]
+        )
+      : await pool.query(
+          `SELECT id, family_id, name, email, role, password_hash
+           FROM users WHERE email = $1`,
+          [email]
+        );
+    console.log("[AUTH] Login admin:", email, "family:", result.rows[0]?.family_id);
     console.log("[AUTH] Query OK, rows:", result.rows.length);
     if (result.rows.length === 0) {
       return res.redirect("/admin/login?error=1");
@@ -2501,6 +2707,477 @@ app.get("/dashboard", requireRoleHtml(["admin", "superuser"]), async (req, res) 
 // =============================================================================
 // ADMIN USERS HTML
 // =============================================================================
+app.get("/admin/users", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+  const familyId = req.user.family_id;
+  const currentUserId = Number(req.user.sub);
+  const isAdmin = req.user.role === "admin";
+  const q = (req.query?.q || "").trim().toLowerCase();
+  const roleFilter = req.query?.role || "";
+  const familyFilter = req.query?.family_id || "";
+  const msg = req.query?.msg || "";
+  const errDetail = (req.query?.err || "").trim();
+  const failUserId = /^\d+$/.test(req.query?.user_id || "") ? req.query.user_id : "";
+  const users = await pool.query(
+    isAdmin
+      ? `SELECT u.id, u.name, u.email, u.role, u.auth_provider, u.last_login, u.created_at, u.family_id,
+              f.name AS family_name,
+              (SELECT COUNT(*) FROM medicines m WHERE m.user_id = u.id) AS meds_count,
+              (SELECT COUNT(*) FROM schedules s JOIN medicines m ON m.id = s.medicine_id WHERE m.user_id = u.id) AS schedules_count
+       FROM users u
+       LEFT JOIN families f ON f.id = u.family_id
+       ORDER BY f.name ASC NULLS LAST, u.name ASC`
+      : `SELECT u.id, u.name, u.email, u.role, u.auth_provider, u.last_login, u.created_at, u.family_id,
+            (SELECT name FROM families WHERE id = u.family_id) AS family_name,
+            (SELECT COUNT(*) FROM medicines m WHERE m.user_id = u.id) AS meds_count,
+            (SELECT COUNT(*) FROM schedules s JOIN medicines m ON m.id = s.medicine_id WHERE m.user_id = u.id) AS schedules_count
+     FROM users u
+     WHERE u.family_id = $1
+     ORDER BY u.name ASC`,
+    isAdmin ? [] : [familyId]
+  );
+  let familiesForFilter = [];
+  if (isAdmin) {
+    const famRes = await pool.query(`SELECT id, name FROM families ORDER BY name ASC`);
+    familiesForFilter = famRes.rows;
+  }
+  let rows = users.rows;
+  if (q) {
+    rows = rows.filter(
+      (u) =>
+        (u.name || "").toLowerCase().includes(q) ||
+        (u.email || "").toLowerCase().includes(q) ||
+        (u.family_name || "").toLowerCase().includes(q)
+    );
+  }
+  if (roleFilter) {
+    rows = rows.filter((u) => u.role === roleFilter);
+  }
+  if (isAdmin && familyFilter) {
+    rows = rows.filter((u) => String(u.family_id) === familyFilter);
+  }
+  rows.sort((a, b) => (a.name || "").localeCompare(b.name || "", "es", { sensitivity: "base" }));
+  const msgHtml = msg === "deleted"
+    ? '<div style="background:#dcfce7; border:1px solid #22c55e; border-radius:12px; padding:12px; margin-bottom:16px; color:#166534;">✓ Usuario eliminado correctamente.</div>'
+    : msg === "resend_ok" || msg === "force_pw_ok"
+    ? '<div style="background:#dcfce7; border:1px solid #22c55e; border-radius:12px; padding:12px; margin-bottom:16px; color:#166534;">✓ Credenciales enviadas por email. El usuario puede entrar con email y contraseña.</div>'
+    : msg === "resend_not_configured"
+    ? '<div style="background:#fef3c7; border:1px solid #f59e0b; border-radius:12px; padding:12px; margin-bottom:16px; color:#92400e;"><strong>Email no configurado.</strong> Ve a <a href="/admin/settings">Ajustes</a> y añade <code>BREVO_API_KEY</code> (brevo.com, gratis sin dominio) o <code>RESEND_API_KEY</code> (resend.com, requiere dominio verificado).</div>'
+    : msg === "resend_fail"
+    ? '<div style="background:#fef2f2; border:1px solid #ef4444; border-radius:12px; padding:12px; margin-bottom:16px; color:#991b1b;">' + (errDetail ? `<strong>Error Resend:</strong> ${escapeHtml(errDetail)}<br><br>` : '') + '<strong>Solución:</strong> Con <code>onboarding@resend.dev</code> solo puedes enviar a tu propio email. Verifica un dominio en <a href="https://resend.com/domains" target="_blank" rel="noopener">resend.com/domains</a> y configura <code>FROM_EMAIL</code> con ese dominio (ej: <code>noreply@tudominio.com</code>).' + (failUserId ? `<br><br><a href="/admin/show-password/${escapeHtml(failUserId)}" class="btn outline" style="margin-top:8px; display:inline-block;">🔑 Obtener contraseña para copiar y enviar por WhatsApp</a>` : '') + '</div>'
+    : msg === "resend_oauth"
+    ? '<div style="background:#fef3c7; border:1px solid #f59e0b; border-radius:12px; padding:12px; margin-bottom:16px; color:#92400e;">No se puede reenviar credenciales a usuarios con login Google/Facebook. <strong>Usa el botón 🔑</strong> para crear contraseña y enviar por email.</div>'
+    : msg === "merge_ok"
+    ? '<div style="background:#dcfce7; border:1px solid #22c55e; border-radius:12px; padding:12px; margin-bottom:16px; color:#166534;">✓ Usuarios fusionados correctamente. Los datos están en el usuario destino.</div>'
+    : msg === "cannot_delete_self"
+    ? '<div style="background:#fef2f2; border:1px solid #ef4444; border-radius:12px; padding:12px; margin-bottom:16px; color:#991b1b;">No puedes eliminarte a ti mismo.</div>'
+    : msg === "not_found" || msg === "error"
+    ? '<div style="background:#fef2f2; border:1px solid #ef4444; border-radius:12px; padding:12px; margin-bottom:16px; color:#991b1b;">Error al procesar la solicitud.</div>'
+    : "";
+  const content = `
+    <style>
+      .users-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:24px; }
+      .users-header h1 { margin:0; font-size:24px; font-weight:700; }
+      .users-filters { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+      .users-filters input, .users-filters select { padding:10px 14px; border:1px solid var(--border); border-radius:12px; font-size:14px; }
+      .users-filters input { min-width:220px; }
+      .users-table-wrap { margin-top:24px; border:1px solid var(--border); border-radius:12px; overflow:hidden; max-width:100%; }
+      .users-table { width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed; }
+      .users-table th, .users-table td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--border); vertical-align:middle; word-break:break-word; }
+      .users-table th { background:var(--bg); font-weight:600; color:var(--muted); font-size:12px; }
+      .users-table tr:last-child td { border-bottom:none; }
+      .users-table tr:hover td { background:rgba(0,0,0,.02); }
+      .users-table .col-avatar { width:40px; }
+      .users-table .col-name { width:14%; }
+      .users-table .col-email { width:18%; }
+      .users-table .col-family { width:14%; }
+      .users-table .col-role { width:10%; }
+      .users-table .col-meds { width:6%; }
+      .users-table .col-hor { width:6%; }
+      .users-table .col-login { width:12%; }
+      .users-table .col-actions { width:20%; }
+      .user-avatar-sm { width:28px; height:28px; border-radius:6px; background:linear-gradient(135deg,#34d399,#06b6d4); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:12px; flex-shrink:0; }
+      .user-name-cell { font-weight:600; }
+      .user-email-cell { color:var(--muted); font-size:12px; }
+      .user-badge { font-size:10px; padding:3px 6px; border-radius:999px; font-weight:600; }
+      .user-badge.role-admin { background:#DBEAFE; color:#1E3A8A; }
+      .user-badge.role-user { background:#E7F7ED; color:#166534; }
+      .user-badge.role-superuser { background:#FEF3C7; color:#92400E; }
+      .user-badge.auth { background:#F1F5F9; color:#475569; }
+      .user-actions-cell { white-space:normal; }
+      .user-actions-cell .act-wrap { display:flex; flex-wrap:wrap; gap:4px; }
+      .user-actions-cell a, .user-actions-cell button { font-size:11px; padding:4px 8px; border-radius:6px; font-weight:600; text-decoration:none; display:inline-block; }
+      .user-actions-cell .btn-edit { background:var(--accent); color:#fff; border:none; }
+      .user-actions-cell .btn-outline { border:1px solid var(--border); color:var(--ink); background:#fff; }
+      .user-actions-cell .btn-danger { background:#dc2626; color:#fff; border:none; }
+      .user-actions-cell a:hover, .user-actions-cell button:hover { opacity:.9; }
+      .user-actions-cell form { display:inline; margin:0; }
+      .user-actions-cell button { cursor:pointer; font-family:inherit; }
+      .users-empty { text-align:center; padding:48px 24px; color:var(--muted); }
+      .users-empty p { margin:0 0 16px; font-size:16px; }
+    </style>
+    <div class="card">
+      ${msgHtml}
+      <div class="users-header">
+        <h1>👤 Pacientes y usuarios</h1>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          ${isAdmin ? '<a class="btn outline" href="/admin/merge-users">🔀 Fusionar usuarios</a>' : ""}
+          <a class="btn primary" href="/admin/user-new">➕ Nuevo usuario</a>
+        </div>
+      </div>
+      <form method="GET" action="/admin/users" class="users-filters">
+        <input name="q" type="search" placeholder="Buscar por nombre, email${isAdmin ? " o familia" : ""}..." value="${escapeHtml(q)}" />
+        ${isAdmin && familiesForFilter.length ? `
+        <select name="family_id">
+          <option value="">Todas las familias</option>
+          ${familiesForFilter.map((f) => `<option value="${f.id}" ${familyFilter === String(f.id) ? "selected" : ""}>${escapeHtml(f.name || `Familia ${f.id}`)}</option>`).join("")}
+        </select>` : ""}
+        <select name="role">
+          <option value="">Todos los roles</option>
+          <option value="admin" ${roleFilter === "admin" ? "selected" : ""}>Admin</option>
+          <option value="user" ${roleFilter === "user" ? "selected" : ""}>Usuario</option>
+          <option value="superuser" ${roleFilter === "superuser" ? "selected" : ""}>Superuser</option>
+        </select>
+        <button type="submit" class="btn outline">🔎 Filtrar</button>
+      </form>
+      ${
+        rows.length === 0
+          ? `
+      <div class="users-empty" style="margin-top:24px;">
+        <p>${q || roleFilter || familyFilter ? "No hay usuarios que coincidan con el filtro." : "Aún no hay usuarios. Añade el primero."}</p>
+        ${!q && !roleFilter && !familyFilter ? '<a class="btn primary" href="/admin/user-new">➕ Crear primer usuario</a>' : '<a class="btn outline" href="/admin/users">Limpiar filtros</a>'}
+      </div>`
+          : `
+      <div class="users-table-wrap">
+        <table class="users-table">
+          <colgroup>
+            <col class="col-avatar" />
+            <col class="col-name" />
+            <col class="col-email" />
+            ${isAdmin ? '<col class="col-family" />' : ""}
+            <col class="col-role" />
+            <col class="col-meds" />
+            <col class="col-hor" />
+            <col class="col-login" />
+            <col class="col-actions" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Nombre</th>
+              <th>Email</th>
+              ${isAdmin ? "<th>Familia</th>" : ""}
+              <th>Rol</th>
+              <th>Med.</th>
+              <th>Hor.</th>
+              <th>Login</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows
+              .map((u) => {
+                const initial = (u.name || u.email || "?").charAt(0).toUpperCase();
+                const lastLogin = u.last_login
+                  ? new Date(u.last_login).toLocaleDateString("es-ES", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Sin login";
+                const medsCount = Number(u.meds_count) || 0;
+                const schedCount = Number(u.schedules_count) || 0;
+                return `
+            <tr>
+              <td><div class="user-avatar-sm">${escapeHtml(initial)}</div></td>
+              <td><span class="user-name-cell">${escapeHtml(u.name || "-")}</span></td>
+              <td><span class="user-email-cell">${escapeHtml(u.email)}</span></td>
+              ${isAdmin ? `<td><span class="user-badge" style="background:#E0E7FF; color:#3730A3;">${escapeHtml(u.family_name || "-")}</span></td>` : ""}
+              <td><span class="user-badge role-${u.role || "user"}">${escapeHtml(u.role || "user")}</span></td>
+              <td>${medsCount}</td>
+              <td>${schedCount}</td>
+              <td>${lastLogin}</td>
+              <td class="user-actions-cell">
+                <div class="act-wrap">
+                  <a class="btn-edit" href="/admin/user-edit/${u.id}" title="Editar">✏️</a>
+                  <a class="btn-outline" href="/admin/meds-list?user_id=${u.id}" title="Medicamentos">💊</a>
+                  ${(u.auth_provider === "email" || !u.auth_provider) ? `
+                  <form method="POST" action="/admin/resend-credentials/${u.id}" style="display:inline;">
+                    <button type="submit" class="btn-outline" title="Reenviar credenciales por email" onclick="return confirm('¿Reenviar credenciales por email?');">📧</button>
+                  </form>` : ""}
+                  <form method="POST" action="/admin/force-email-password/${u.id}" style="display:inline;">
+                    <button type="submit" class="btn-outline" title="Crear/restablecer contraseña. Si el email falla, usa el enlace para copiar y enviar por WhatsApp." onclick="return confirm('¿Crear contraseña y enviar por email? Si falla, podrás copiarla para enviar por WhatsApp.');">🔑</button>
+                  </form>
+                  ${u.id !== currentUserId ? `
+                  <form method="POST" action="/admin/user-delete/${u.id}" style="display:inline;">
+                    <button type="submit" class="btn-danger" title="Eliminar" onclick="return confirm('¿Eliminar este usuario? Se borrarán sus medicamentos y horarios. Esta acción no se puede deshacer.');">🗑</button>
+                  </form>` : ""}
+                </div>
+              </td>
+            </tr>`;
+              })
+              .join("")}
+          </tbody>
+        </table>
+      </div>`
+      }
+    </div>
+  `;
+  res.send(renderShell(req, "Usuarios", "patients", content));
+});
+
+app.post("/admin/user-delete/:id", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+  const familyId = req.user.family_id;
+  const isAdmin = req.user.role === "admin";
+  const id = Number(req.params.id);
+  const currentUserId = Number(req.user.sub);
+  if (id === currentUserId) {
+    return res.redirect("/admin/users?msg=cannot_delete_self");
+  }
+  if (!Number.isFinite(id)) {
+    return res.redirect("/admin/users?msg=error");
+  }
+  try {
+    const result = isAdmin
+      ? await pool.query(`DELETE FROM users WHERE id = $1 RETURNING id`, [id])
+      : await pool.query(
+          `DELETE FROM users WHERE id = $1 AND family_id = $2 RETURNING id`,
+          [id, familyId]
+        );
+    if (result.rows.length === 0) {
+      return res.redirect("/admin/users?msg=not_found");
+    }
+    res.redirect("/admin/users?msg=deleted");
+  } catch (err) {
+    console.error("[ADMIN USER DELETE]", err.message);
+    res.redirect("/admin/users?msg=error");
+  }
+});
+
+app.post("/admin/resend-credentials/:id", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+  const familyId = req.user.family_id;
+  const isAdmin = req.user.role === "admin";
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    return res.redirect("/admin/users?msg=resend_fail");
+  }
+  if (!mailTransport) {
+    console.error("[ADMIN RESEND] Email no configurado. Añade RESEND_API_KEY en Render.");
+    return res.redirect("/admin/users?msg=resend_not_configured");
+  }
+  try {
+    const user = await pool.query(
+      isAdmin
+        ? `SELECT id, name, email, auth_provider, family_id FROM users WHERE id = $1`
+        : `SELECT id, name, email, auth_provider, family_id FROM users WHERE id = $1 AND family_id = $2`,
+      isAdmin ? [id] : [id, familyId]
+    );
+    if (user.rows.length === 0) {
+      return res.redirect("/admin/users?msg=resend_fail");
+    }
+    const u = user.rows[0];
+    if (u.auth_provider && u.auth_provider !== "email") {
+      return res.redirect("/admin/users?msg=resend_oauth");
+    }
+    const tempPassword = Math.random().toString(36).slice(-8) + "A1!";
+    const hashed = await bcrypt.hash(tempPassword, 10);
+    await pool.query(`UPDATE users SET password_hash = $1, must_change_password = true WHERE id = $2`, [hashed, id]);
+    const result = await sendWelcomeEmailToUser(u.name, u.email, u.family_id, tempPassword, "de-CH");
+    const sent = result?.ok === true;
+    const errParam = !sent && result?.error ? "&err=" + encodeURIComponent(String(result.error).slice(0, 250).replace(/[\r\n<>]/g, "")) : "";
+    res.redirect("/admin/users?msg=" + (sent ? "resend_ok" : "resend_fail") + errParam + (!sent ? "&user_id=" + id : ""));
+  } catch (err) {
+    const errMsg = (err?.message || String(err)).slice(0, 250).replace(/[\r\n<>]/g, "");
+    console.error("[ADMIN RESEND CREDENTIALS]", err.message, err.code || "");
+    res.redirect("/admin/users?msg=resend_fail&err=" + encodeURIComponent(errMsg) + "&user_id=" + id);
+  }
+});
+
+// Mostrar contraseña temporal para copiar (cuando el email no se pudo enviar)
+app.get("/admin/show-password/:id", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+  const id = Number(req.params.id);
+  const familyId = req.user.family_id;
+  const isAdmin = req.user.role === "admin";
+  if (!Number.isFinite(id)) return res.redirect("/admin/users?msg=error");
+  try {
+    const user = await pool.query(
+      isAdmin
+        ? `SELECT id, name, email, family_id FROM users WHERE id = $1`
+        : `SELECT id, name, email, family_id FROM users WHERE id = $1 AND family_id = $2`,
+      isAdmin ? [id] : [id, familyId]
+    );
+    if (user.rows.length === 0) return res.redirect("/admin/users?msg=not_found");
+    const u = user.rows[0];
+    const tempPassword = Math.random().toString(36).slice(-8) + "A1!";
+    const hashed = await bcrypt.hash(tempPassword, 10);
+    await pool.query(
+      `UPDATE users SET password_hash = $1, must_change_password = true, auth_provider = 'email' WHERE id = $2`,
+      [hashed, id]
+    );
+    const content = `
+      <div class="card" style="max-width:480px;">
+        <h1>🔑 Contraseña temporal</h1>
+        <p class="muted" style="margin-bottom:16px;">Copia esta contraseña y envíala al usuario por WhatsApp u otro medio (el email no se pudo enviar).</p>
+        <div style="background:#f0fdf4; border:2px solid #22c55e; border-radius:12px; padding:20px; margin:16px 0;">
+          <p style="margin:0 0 8px; font-size:12px; color:#64748b;">Usuario: <strong>${escapeHtml(u.name || "-")}</strong> · ${escapeHtml(u.email)}</p>
+          <p style="margin:0 0 8px; font-size:12px; color:#64748b;">Family ID: <strong>${u.family_id}</strong></p>
+          <p id="pw-temp" style="margin:12px 0 0; font-size:20px; font-weight:bold; font-family:monospace; color:#166534; letter-spacing:2px;">${escapeHtml(tempPassword)}</p>
+        </div>
+        <button onclick="var pw=document.getElementById('pw-temp').textContent; navigator.clipboard.writeText(pw); this.textContent='✓ Copiado'; setTimeout(function(){this.textContent='Copiar'}.bind(this), 2000)" class="btn primary" style="margin-right:8px;">Copiar</button>
+        <a href="/admin/users" class="btn outline">Volver a Usuarios</a>
+      </div>`;
+    res.send(renderShell(req, "Contraseña temporal", "users", content));
+  } catch (err) {
+    console.error("[ADMIN SHOW PASSWORD]", err.message);
+    res.redirect("/admin/users?msg=error");
+  }
+});
+
+// Forzar contraseña de email para usuarios Google/Facebook (permite login con email)
+app.post("/admin/force-email-password/:id", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+  const familyId = req.user.family_id;
+  const isAdmin = req.user.role === "admin";
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.redirect("/admin/users?msg=resend_fail");
+  if (!mailTransport) {
+    return res.redirect("/admin/users?msg=resend_not_configured");
+  }
+  try {
+    const user = await pool.query(
+      isAdmin
+        ? `SELECT id, name, email, auth_provider, family_id FROM users WHERE id = $1`
+        : `SELECT id, name, email, auth_provider, family_id FROM users WHERE id = $1 AND family_id = $2`,
+      isAdmin ? [id] : [id, familyId]
+    );
+    if (user.rows.length === 0) return res.redirect("/admin/users?msg=resend_fail");
+    const u = user.rows[0];
+    const tempPassword = Math.random().toString(36).slice(-8) + "A1!";
+    const hashed = await bcrypt.hash(tempPassword, 10);
+    await pool.query(
+      `UPDATE users SET password_hash = $1, must_change_password = true, auth_provider = 'email' WHERE id = $2`,
+      [hashed, id]
+    );
+    const result = await sendWelcomeEmailToUser(u.name, u.email, u.family_id, tempPassword, "de-CH");
+    const sent = result?.ok === true;
+    const errParam = !sent && result?.error ? "&err=" + encodeURIComponent(String(result.error).slice(0, 250).replace(/[\r\n<>]/g, "")) : "";
+    res.redirect("/admin/users?msg=" + (sent ? "force_pw_ok" : "resend_fail") + errParam + (!sent ? "&user_id=" + id : ""));
+  } catch (err) {
+    const errMsg = (err?.message || String(err)).slice(0, 250).replace(/[\r\n<>]/g, "");
+    console.error("[ADMIN FORCE EMAIL PW]", err.message);
+    res.redirect("/admin/users?msg=resend_fail&err=" + encodeURIComponent(errMsg) + "&user_id=" + id);
+  }
+});
+
+// Fusionar dos usuarios: mueve datos de source a target, elimina source
+app.get("/admin/merge-users", requireRoleHtml(["admin"]), async (req, res) => {
+  const mergeMsg = req.query?.msg || "";
+  const mergeMsgHtml = mergeMsg === "invalid"
+    ? '<div class="card" style="background:#fef2f2; border-color:#ef4444; margin-bottom:12px;"><p style="margin:0;">Selecciona dos usuarios distintos.</p></div>'
+    : mergeMsg === "not_found"
+    ? '<div class="card" style="background:#fef2f2; border-color:#ef4444; margin-bottom:12px;"><p style="margin:0;">Usuario no encontrado.</p></div>'
+    : mergeMsg === "error"
+    ? '<div class="card" style="background:#fef2f2; border-color:#ef4444; margin-bottom:12px;"><p style="margin:0;">Error al fusionar. Revisa los logs.</p></div>'
+    : "";
+
+  const users = await pool.query(
+    `SELECT u.id, u.name, u.email, u.auth_provider, u.family_id, f.name AS family_name,
+            (SELECT COUNT(*) FROM medicines m WHERE m.family_id = u.family_id) AS meds_count
+     FROM users u
+     LEFT JOIN families f ON f.id = u.family_id
+     ORDER BY f.name ASC NULLS LAST, u.name ASC`
+  );
+  const content = `
+    <div class="card" style="max-width:640px;">
+      ${mergeMsgHtml}
+      <h1>🔀 Fusionar usuarios</h1>
+      <p class="muted" style="margin-bottom:16px;">Mueve medicamentos, historial y datos del usuario <strong>origen</strong> al usuario <strong>destino</strong>. El usuario origen será eliminado.</p>
+      <form method="POST" action="/admin/merge-users">
+        <label><strong>Origen</strong> (usuario con datos — se eliminará)</label>
+        <select name="from_user_id" required class="form-control" style="margin-bottom:12px;">
+          <option value="">Seleccionar...</option>
+          ${users.rows.map((u) => `<option value="${u.id}">${escapeHtml(u.name || "-")} — ${escapeHtml(u.email)} (${u.family_name || "-"}) · ${u.meds_count || 0} meds</option>`).join("")}
+        </select>
+        <label><strong>Destino</strong> (usuario que conservará todo)</label>
+        <select name="to_user_id" required class="form-control" style="margin-bottom:16px;">
+          <option value="">Seleccionar...</option>
+          ${users.rows.map((u) => `<option value="${u.id}">${escapeHtml(u.name || "-")} — ${escapeHtml(u.email)} (${u.family_name || "-"})</option>`).join("")}
+        </select>
+        <button type="submit" class="btn primary" onclick="return confirm('¿Fusionar? Los datos del origen se moverán al destino y el usuario origen será eliminado.');">Fusionar</button>
+        <a class="btn outline" href="/admin/users" style="margin-left:8px;">Cancelar</a>
+      </form>
+    </div>`;
+  res.send(renderShell(req, "Fusionar usuarios", "patients", content));
+});
+
+app.post("/admin/merge-users", requireRoleHtml(["admin"]), async (req, res) => {
+  const fromId = Number(req.body?.from_user_id);
+  const toId = Number(req.body?.to_user_id);
+  if (!fromId || !toId || fromId === toId) {
+    return res.redirect("/admin/merge-users?msg=invalid");
+  }
+  try {
+    const [fromUser, toUser] = await Promise.all([
+      pool.query(`SELECT id, name, email, family_id FROM users WHERE id = $1`, [fromId]),
+      pool.query(`SELECT id, name, email, family_id FROM users WHERE id = $1`, [toId]),
+    ]);
+    if (fromUser.rows.length === 0 || toUser.rows.length === 0) {
+      return res.redirect("/admin/merge-users?msg=not_found");
+    }
+    const src = fromUser.rows[0];
+    const tgt = toUser.rows[0];
+    const srcFam = src.family_id;
+    const tgtFam = tgt.family_id;
+
+    await pool.query("BEGIN");
+
+    const medIds = await pool.query(`SELECT id FROM medicines WHERE family_id = $1`, [srcFam]);
+
+    await pool.query(`UPDATE medicines SET family_id = $1, user_id = $2 WHERE family_id = $3`, [tgtFam, toId, srcFam]);
+
+    if (medIds.rows.length > 0) {
+      const ids = medIds.rows.map((r) => r.id).join(",");
+      await pool.query(`UPDATE schedules SET user_id = $1 WHERE medicine_id IN (${ids}) AND user_id = $2`, [toId, fromId]);
+    }
+
+    await pool.query(`UPDATE dose_logs SET user_id = $1, family_id = $2 WHERE user_id = $3`, [toId, tgtFam, fromId]);
+    await pool.query(`UPDATE alerts SET user_id = $1, family_id = $2 WHERE user_id = $3`, [toId, tgtFam, fromId]);
+    await pool.query(`UPDATE alerts SET user_id = $1, family_id = $2 WHERE family_id = $3`, [toId, tgtFam, srcFam]);
+    await pool.query(`UPDATE medical_records SET user_id = $1, family_id = $2 WHERE user_id = $3`, [toId, tgtFam, fromId]);
+    await pool.query(`UPDATE import_batches SET user_id = $1, family_id = $2 WHERE family_id = $3`, [toId, tgtFam, srcFam]);
+    await pool.query(`UPDATE push_subscriptions SET user_id = $1, family_id = $2 WHERE user_id = $3`, [toId, tgtFam, fromId]);
+    await pool.query(`UPDATE daily_checkouts SET user_id = $1, family_id = $2 WHERE user_id = $3`, [toId, tgtFam, fromId]);
+    await pool.query(`UPDATE medicine_audits SET user_id = $1, family_id = $2 WHERE user_id = $3`, [toId, tgtFam, fromId]);
+    await pool.query(`UPDATE dose_change_requests SET user_id = $1, family_id = $2 WHERE user_id = $3`, [toId, tgtFam, fromId]);
+    await pool.query(`UPDATE deletion_logs SET user_id = $1, family_id = $2 WHERE user_id = $3`, [toId, tgtFam, fromId]);
+    await pool.query(`UPDATE feedback SET user_id = $1 WHERE user_id = $2`, [toId, fromId]);
+
+    const famDoctors = await pool.query(`SELECT first_name, last_name, email, street, house_number, postal_code, city FROM family_doctors WHERE family_id = $1`, [srcFam]);
+    for (const d of famDoctors.rows) {
+      await pool.query(
+        `INSERT INTO family_doctors (family_id, first_name, last_name, email, street, house_number, postal_code, city)
+         SELECT $1, $2, $3, $4, $5, $6, $7, $8 WHERE NOT EXISTS (SELECT 1 FROM family_doctors WHERE family_id = $1 AND first_name = $2 AND last_name = $3)`,
+        [tgtFam, d.first_name, d.last_name, d.email, d.street, d.house_number, d.postal_code, d.city]
+      );
+    }
+
+    await pool.query(`DELETE FROM users WHERE id = $1`, [fromId]);
+    const remainingInFamily = await pool.query(`SELECT COUNT(*) AS c FROM users WHERE family_id = $1`, [srcFam]);
+    if (Number(remainingInFamily.rows[0]?.c || 0) === 0) {
+      await pool.query(`DELETE FROM families WHERE id = $1`, [srcFam]);
+    }
+
+    await pool.query("COMMIT");
+
+    console.log(`[MERGE] Usuario ${fromId} (${src.email}) fusionado en ${toId} (${tgt.email})`);
+    res.redirect("/admin/users?msg=merge_ok");
+  } catch (err) {
+    await pool.query("ROLLBACK").catch(() => {});
+    console.error("[ADMIN MERGE]", err.message);
+    res.redirect("/admin/merge-users?msg=error");
+  }
+});
+
 app.get("/admin/user-new", requireRoleHtml(["admin", "superuser"]), (_req, res) => {
   const fieldClass = 'class="form-control"';
   const content = `
@@ -2549,6 +3226,9 @@ app.get("/admin/user-new", requireRoleHtml(["admin", "superuser"]), (_req, res) 
           <option value="superuser">superuser</option>
         </select>
         <button class="btn primary" type="submit" style="width:100%; margin-top:18px;">Crear usuario</button>
+        <div style="margin-top:12px;">
+          <a class="btn outline" href="/admin/users">← Volver a la lista</a>
+        </div>
       </form>
     </div>
   `;
@@ -2640,22 +3320,21 @@ app.post("/admin/user-create", requireRoleHtml(["admin", "superuser"]), async (r
         ]
       );
     }
-    try {
-      await sendWelcomeEmail(email, tempPassword);
-    } catch (emailError) {
+    const welcomeOk = await sendWelcomeEmail(email, tempPassword, { name: finalName, familyId });
+    if (!welcomeOk) {
       const content = `
         <div class="card">
           <h1>Usuario creado</h1>
-          <p>El usuario fue creado, pero no se pudo enviar el email.</p>
-          <p class="muted">${escapeHtml(emailError.message)}</p>
+          <p>El usuario fue creado, pero no se pudo enviar el email tras varios intentos.</p>
+          <p class="muted">Revisa SMTP o reenvía desde Admin → Usuarios inactivos. Si ADMIN_EMAIL está configurado, el administrador recibió un email con el error.</p>
           <div style="margin-top:12px;">
-            <a class="btn outline" href="/dashboard">Volver</a>
+            <a class="btn outline" href="/admin/users">Volver a la lista</a>
           </div>
         </div>
       `;
       return res.send(renderShell(req, "Usuario creado", "patients", content));
     }
-    return res.redirect("/dashboard");
+    return res.redirect("/admin/users");
   } catch (error) {
     const isDuplicate = error?.code === "23505";
     if (isDuplicate) {
@@ -2680,7 +3359,7 @@ app.post("/admin/user-create", requireRoleHtml(["admin", "superuser"]), async (r
         <p>${message}</p>
         <p class="muted">${escapeHtml(error.message)}</p>
         <div style="margin-top:12px;">
-          <a class="btn outline" href="/admin/user-new">Volver</a>
+          <a class="btn outline" href="/admin/users">Volver a la lista</a>
         </div>
       </div>
     `;
@@ -2690,23 +3369,27 @@ app.post("/admin/user-create", requireRoleHtml(["admin", "superuser"]), async (r
 
 app.get("/admin/user-edit/:id", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
   const familyId = req.user.family_id;
+  const isAdmin = req.user.role === "admin";
   const id = Number(req.params.id);
-  const [result, doctorResult] = await Promise.all([
-    pool.query(
-      `SELECT id, name, first_name, last_name, birth_date, street, house_number, postal_code, city, email, role,
-              disclaimer_accepted_at, disclaimer_ip, disclaimer_lang
-       FROM users WHERE id = $1 AND family_id = $2`,
-      [id, familyId]
-    ),
-    pool.query(
-      `SELECT * FROM doctors WHERE family_id = $1 AND user_id = $2`,
-      [familyId, id]
-    ),
-  ]);
+  const result = await pool.query(
+    isAdmin
+      ? `SELECT id, name, first_name, last_name, birth_date, street, house_number, postal_code, city, email, role, family_id,
+                disclaimer_accepted_at, disclaimer_ip, disclaimer_lang
+         FROM users WHERE id = $1`
+      : `SELECT id, name, first_name, last_name, birth_date, street, house_number, postal_code, city, email, role, family_id,
+                disclaimer_accepted_at, disclaimer_ip, disclaimer_lang
+         FROM users WHERE id = $1 AND family_id = $2`,
+    isAdmin ? [id] : [id, familyId]
+  );
   if (result.rows.length === 0) {
-    return res.redirect("/dashboard");
+    return res.redirect("/admin/users");
   }
   const user = result.rows[0];
+  const userFamilyId = user.family_id || familyId;
+  const doctorResult = await pool.query(
+    `SELECT * FROM doctors WHERE family_id = $1 AND user_id = $2`,
+    [userFamilyId, id]
+  );
   const doctor = doctorResult.rows[0] || {};
   const fieldClass = 'class="form-control"';
   const content = `
@@ -2768,6 +3451,9 @@ app.get("/admin/user-edit/:id", requireRoleHtml(["admin", "superuser"]), async (
         <label>Ciudad</label>
         <input name="doctor_city" value="${escapeHtml(doctor.city || "")}" ${fieldClass} />
         <button class="btn primary" type="submit" style="width:100%; margin-top:18px;">Guardar cambios</button>
+        <div style="margin-top:12px;">
+          <a class="btn outline" href="/admin/users">← Volver a la lista</a>
+        </div>
       </form>
     </div>
   `;
@@ -2776,6 +3462,7 @@ app.get("/admin/user-edit/:id", requireRoleHtml(["admin", "superuser"]), async (
 
 app.post("/admin/user-save", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
   const familyId = req.user.family_id;
+  const isAdmin = req.user.role === "admin";
   const {
     id,
     first_name,
@@ -2798,33 +3485,18 @@ app.post("/admin/user-save", requireRoleHtml(["admin", "superuser"]), async (req
   } = req.body || {};
   const safeRole = ["admin", "superuser", "user"].includes(role) ? role : "user";
   const finalName = buildUserName(null, first_name, last_name);
+  let targetFamilyId = familyId;
+  if (isAdmin) {
+    const u = await pool.query(`SELECT family_id FROM users WHERE id = $1`, [Number(id)]);
+    if (u.rows[0]) targetFamilyId = u.rows[0].family_id;
+  }
   await pool.query(
-    `UPDATE users
-     SET name = $1,
-         first_name = $2,
-         last_name = $3,
-         birth_date = $4,
-         street = $5,
-         house_number = $6,
-         postal_code = $7,
-         city = $8,
-         email = $9,
-         role = $10
-     WHERE id = $11 AND family_id = $12`,
-    [
-      finalName,
-      first_name || null,
-      last_name || null,
-      birth_date || null,
-      street || null,
-      house_number || null,
-      postal_code || null,
-      city || null,
-      email,
-      safeRole,
-      Number(id),
-      familyId,
-    ]
+    isAdmin
+      ? `UPDATE users SET name = $1, first_name = $2, last_name = $3, birth_date = $4, street = $5, house_number = $6, postal_code = $7, city = $8, email = $9, role = $10 WHERE id = $11`
+      : `UPDATE users SET name = $1, first_name = $2, last_name = $3, birth_date = $4, street = $5, house_number = $6, postal_code = $7, city = $8, email = $9, role = $10 WHERE id = $11 AND family_id = $12`,
+    isAdmin
+      ? [finalName, first_name || null, last_name || null, birth_date || null, street || null, house_number || null, postal_code || null, city || null, email, safeRole, Number(id)]
+      : [finalName, first_name || null, last_name || null, birth_date || null, street || null, house_number || null, postal_code || null, city || null, email, safeRole, Number(id), familyId]
   );
   if (
     doctor_first_name ||
@@ -2849,7 +3521,7 @@ app.post("/admin/user-save", requireRoleHtml(["admin", "superuser"]), async (req
          postal_code = EXCLUDED.postal_code,
          city = EXCLUDED.city`,
       [
-        familyId,
+        targetFamilyId,
         Number(id),
         doctor_first_name || null,
         doctor_last_name || null,
@@ -2862,7 +3534,7 @@ app.post("/admin/user-save", requireRoleHtml(["admin", "superuser"]), async (req
       ]
     );
   }
-  res.redirect("/dashboard");
+  res.redirect("/admin/users");
 });
 
 // =============================================================================
@@ -3406,7 +4078,10 @@ app.post("/api/users", requireRole(["admin", "superuser"]), async (req, res) => 
       `UPDATE users SET must_change_password = true WHERE id = $1`,
       [result.rows[0].id]
     );
-    await sendWelcomeEmail(email, tempPassword);
+    await sendWelcomeEmail(email, tempPassword, {
+      name: buildUserName(null, first_name, last_name),
+      familyId: result.rows[0].family_id,
+    });
     res.status(201).json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -4474,7 +5149,7 @@ app.post("/api/billing/portal", requireAuth, async (req, res) => {
 });
 
 // Admin: sincronizar suscripción con Stripe
-app.post("/admin/billing/sync/:familyId", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+app.post("/admin/billing/sync/:familyId", requireRoleHtml(["admin"]), async (req, res) => {
   const familyId = Number(req.params.familyId);
   if (!stripe) return res.redirect("/admin/billing?msg=Stripe+no+configurado");
   try {
@@ -4503,7 +5178,7 @@ app.post("/admin/billing/sync/:familyId", requireRoleHtml(["admin", "superuser"]
 });
 
 // Admin: ver billing de todas las familias
-app.get("/admin/billing", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+app.get("/admin/billing", requireRoleHtml(["admin"]), async (req, res) => {
   try {
     const families = await pool.query(
       `SELECT f.id, f.name, f.subscription_status, f.trial_ends_at, f.subscription_start, f.subscription_end,
@@ -4703,7 +5378,7 @@ app.post("/api/register-trial", async (req, res) => {
 
     const famResult = await pool.query(
       `INSERT INTO families (name, subscription_status, trial_ends_at, max_medicines)
-       VALUES ($1, 'trial', NOW() + INTERVAL '7 days', 5)
+       VALUES ($1, 'trial', NOW() + INTERVAL '30 days', 5)
        RETURNING id`,
       [`Familie ${cleanName}`]
     );
@@ -4711,7 +5386,7 @@ app.post("/api/register-trial", async (req, res) => {
 
     const userResult = await pool.query(
       `INSERT INTO users (family_id, name, email, password_hash, role, must_change_password, auth_provider)
-       VALUES ($1, $2, $3, $4, 'admin', true, 'email')
+       VALUES ($1, $2, $3, $4, 'superuser', true, 'email')
        RETURNING id, family_id, name, email, role`,
       [familyId, cleanName, cleanEmail, hashed]
     );
@@ -4727,14 +5402,18 @@ app.post("/api/register-trial", async (req, res) => {
 
     const user = userResult.rows[0];
     const FRONTEND = process.env.FRONTEND_URL || "https://medicamentos-frontend.vercel.app";
+    const GUIDE_BASE = process.env.GUIDE_BASE_URL || FRONTEND;
+    const pdfDe = `${GUIDE_BASE}/guides/MediControl_Guide_DE.pdf`;
+    const pdfEs = `${GUIDE_BASE}/guides/MediControl_Guide_ES.pdf`;
+    const pdfEn = `${GUIDE_BASE}/guides/MediControl_Guide_EN.pdf`;
 
-    // Send welcome email with login instructions
+    // Send welcome email with login instructions (con reintentos y notificación al admin si falla)
     if (mailTransport) {
       const translations = {
         "de-CH": {
           subject: "Willkommen bei MediControl — Ihre Zugangsdaten",
           greeting: `Hallo ${cleanName}`,
-          intro: "Vielen Dank für Ihre Registrierung bei MediControl! Ihr 7-Tage-Testversion ist aktiv.",
+          intro: "Vielen Dank für Ihre Registrierung bei MediControl! Ihre 30-Tage-Testversion ist aktiv.",
           credentials: "Ihre Zugangsdaten",
           family_id: "Family ID",
           email_label: "E-Mail",
@@ -4746,13 +5425,18 @@ app.post("/api/register-trial", async (req, res) => {
           step3: "Ändern Sie Ihr Passwort",
           step4: "Fügen Sie Ihre Medikamente hinzu (manuell oder per Rezept-Scan)",
           step5: "Aktivieren Sie Push-Benachrichtigungen für Erinnerungen",
-          trial_info: "Ihre kostenlose Testversion läuft 7 Tage mit bis zu 5 Medikamenten.",
+          trial_info: "Ihre kostenlose Testversion läuft 30 Tage mit maximal 5 Medikamenten.",
           cta: "Jetzt anmelden",
+          guide_title: "📄 Hilfe-Guide als PDF",
+          guide_intro: "Laden Sie die Anleitung in Ihrer Sprache herunter:",
+          guide_de: "Deutsch",
+          guide_es: "Español",
+          guide_en: "English",
         },
         es: {
           subject: "Bienvenido a MediControl — Tus datos de acceso",
           greeting: `Hola ${cleanName}`,
-          intro: "Gracias por registrarte en MediControl. Tu prueba gratuita de 7 días está activa.",
+          intro: "Gracias por registrarte en MediControl. Tu prueba gratuita de 30 días está activa.",
           credentials: "Tus datos de acceso",
           family_id: "Family ID",
           email_label: "Email",
@@ -4764,13 +5448,18 @@ app.post("/api/register-trial", async (req, res) => {
           step3: "Cambia tu contraseña",
           step4: "Añade tus medicamentos (manual o escaneando receta)",
           step5: "Activa las notificaciones push para recordatorios",
-          trial_info: "Tu prueba gratuita dura 7 días con hasta 5 medicamentos.",
+          trial_info: "Tu prueba gratuita dura 30 días con máximo 5 medicamentos.",
           cta: "Iniciar sesión",
+          guide_title: "📄 Guía de ayuda en PDF",
+          guide_intro: "Descarga la guía de usuario en tu idioma:",
+          guide_de: "Deutsch",
+          guide_es: "Español",
+          guide_en: "English",
         },
         en: {
           subject: "Welcome to MediControl — Your login details",
           greeting: `Hello ${cleanName}`,
-          intro: "Thank you for signing up for MediControl! Your 7-day free trial is active.",
+          intro: "Thank you for signing up for MediControl! Your 30-day free trial is active.",
           credentials: "Your login details",
           family_id: "Family ID",
           email_label: "Email",
@@ -4782,8 +5471,13 @@ app.post("/api/register-trial", async (req, res) => {
           step3: "Change your password",
           step4: "Add your medications (manually or by scanning a prescription)",
           step5: "Enable push notifications for reminders",
-          trial_info: "Your free trial lasts 7 days with up to 5 medications.",
+          trial_info: "Your free trial lasts 30 days with max. 5 medications.",
           cta: "Sign in now",
+          guide_title: "📄 Help guide in PDF",
+          guide_intro: "Download the user guide in your preferred language:",
+          guide_de: "Deutsch",
+          guide_es: "Español",
+          guide_en: "English",
         },
       };
 
@@ -4815,31 +5509,69 @@ app.post("/api/register-trial", async (req, res) => {
             <li>${t.step5}</li>
           </ol>
           <p style="color:#64748b; font-size:13px; background:#f8fafc; border-radius:8px; padding:12px;">${t.trial_info}</p>
+          <div style="background:#eff6ff; border:1px solid #3b82f6; border-radius:12px; padding:16px; margin:20px 0;">
+            <h3 style="color:#1e40af; margin:0 0 8px; font-size:15px;">${t.guide_title}</h3>
+            <p style="color:#475569; font-size:13px; margin:0 0 12px;">${t.guide_intro}</p>
+            <p style="margin:0; font-size:13px;">
+              <a href="${pdfDe}" style="color:#2563eb; text-decoration:none; margin-right:12px;">📄 ${t.guide_de}</a>
+              <a href="${pdfEs}" style="color:#2563eb; text-decoration:none; margin-right:12px;">📄 ${t.guide_es}</a>
+              <a href="${pdfEn}" style="color:#2563eb; text-decoration:none;">📄 ${t.guide_en}</a>
+            </p>
+          </div>
           <div style="text-align:center; margin:24px 0;">
             <a href="${FRONTEND}" style="display:inline-block; background:#007AFF; color:white; text-decoration:none; padding:14px 36px; border-radius:12px; font-weight:bold; font-size:16px;">${t.cta}</a>
           </div>
           <p style="color:#94a3b8; font-size:11px; text-align:center;">© ${new Date().getFullYear()} MediControl. Swiss Quality Software.</p>
         </div>`;
 
-      try {
-        await Promise.race([
-          mailTransport.sendMail({
-            from: process.env.SMTP_USER,
-            to: cleanEmail,
-            subject: t.subject,
-            html: emailHtml,
-          }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout welcome email")), 8000)),
-        ]);
-      } catch (e) { console.error("[TRIAL] Email error:", e.message); }
+      const MAX_RETRIES = 3;
+      const RETRY_DELAY_MS = 2000;
+      let welcomeSent = false;
+      let lastError = null;
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          await Promise.race([
+            mailTransport.sendMail({
+              from: SMTP_USER,
+              to: cleanEmail,
+              subject: t.subject,
+              html: emailHtml,
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("timeout welcome email")), 8000)),
+          ]);
+          welcomeSent = true;
+          break;
+        } catch (e) {
+          lastError = e;
+          console.error(`[TRIAL] Email intento ${attempt}/${MAX_RETRIES} fallido:`, e.message);
+          if (attempt < MAX_RETRIES) {
+            await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+          }
+        }
+      }
+      if (!welcomeSent && ADMIN_EMAIL) {
+        try {
+          await mailTransport.sendMail({
+            from: SMTP_USER,
+            to: ADMIN_EMAIL,
+            subject: `[MediControl] Error: Email de bienvenida NO enviado a ${cleanName} (${cleanEmail})`,
+            html: `<p><strong>El usuario se registró desde la landing pero no se pudo enviar el email de bienvenida</strong> tras ${MAX_RETRIES} intentos.</p>
+              <p><strong>Usuario:</strong> ${escapeHtml(cleanName)}<br><strong>Email:</strong> ${escapeHtml(cleanEmail)}<br><strong>Family ID:</strong> ${familyId}</p>
+              <p><strong>Error:</strong> ${escapeHtml(lastError?.message || "Desconocido")}</p>
+              <p>Reenvía manualmente desde Admin → Usuarios inactivos.</p>`,
+          });
+        } catch (adminErr) {
+          console.error("[TRIAL] No se pudo notificar al admin:", adminErr.message);
+        }
+      }
     }
 
-    // Notify admin
+    // Notify admin (nuevo trial registrado)
     if (mailTransport && ADMIN_EMAIL) {
       try {
         await Promise.race([
           mailTransport.sendMail({
-            from: process.env.SMTP_USER,
+            from: SMTP_USER,
             to: ADMIN_EMAIL,
             subject: `Nuevo trial: ${cleanName} (${cleanEmail})`,
             html: `<p>Nuevo usuario trial registrado desde landing.</p><p>Family ID: ${familyId}<br>Nombre: ${cleanName}<br>Email: ${cleanEmail}<br>Idioma: ${lang || "de-CH"}</p>`,
@@ -4889,14 +5621,14 @@ app.post("/api/leads", async (req, res) => {
           <p style="color:#475569; font-size:14px;">Wir haben Ihre Anfrage erhalten. Sie werden benachrichtigt, sobald die App verfügbar ist.</p>
           <p style="color:#475569; font-size:14px;">Hemos recibido su solicitud. Le notificaremos cuando la app esté disponible.</p>
           <div style="background:#f8fafc; border-radius:12px; padding:20px; margin:20px 0; text-align:center;">
-            <p style="font-size:16px; font-weight:bold; color:#0f172a;">Kostenlose 7-Tage-Testversion / Prueba gratuita de 7 días</p>
+            <p style="font-size:16px; font-weight:bold; color:#0f172a;">Kostenlose 30-Tage-Testversion / Prueba gratuita de 30 días</p>
             <a href="${FRONTEND_URL}" style="display:inline-block; background:#007AFF; color:white; text-decoration:none; padding:12px 32px; border-radius:12px; font-weight:bold; margin-top:12px;">Jetzt testen / Probar ahora</a>
           </div>
           <p style="color:#94a3b8; font-size:11px; text-align:center;">SaaS-Service nach Schweizer Recht. © ${new Date().getFullYear()} MediControl</p>
         </div>`;
       try {
         await mailTransport.sendMail({
-          from: process.env.SMTP_USER, to: email.trim(),
+          from: SMTP_USER, to: email.trim(),
           subject: "Willkommen bei MediControl / Bienvenido a MediControl",
           html: welcomeHtml,
         });
@@ -5326,8 +6058,13 @@ app.get("/admin/online", requireRoleHtml(["admin", "superuser"]), async (req, re
 const INACTIVE_DAYS = Number(process.env.INACTIVE_USER_DAYS) || 7;
 
 async function sendWelcomeEmailToUser(name, email, familyId, tempPassword, lang) {
-  if (!mailTransport) return false;
+  if (!mailTransport) return { ok: false, error: "Email no configurado" };
   const FRONTEND = process.env.FRONTEND_URL || "https://medicamentos-frontend.vercel.app";
+  const GUIDE_BASE = process.env.GUIDE_BASE_URL || FRONTEND;
+  const pdfDe = `${GUIDE_BASE}/guides/MediControl_Guide_DE.pdf`;
+  const pdfEs = `${GUIDE_BASE}/guides/MediControl_Guide_ES.pdf`;
+  const pdfEn = `${GUIDE_BASE}/guides/MediControl_Guide_EN.pdf`;
+  const familyIdDisplay = familyId != null ? familyId : "-";
   const translations = {
     "de-CH": {
       subject: "Willkommen bei MediControl — Ihre Zugangsdaten",
@@ -5340,17 +6077,22 @@ async function sendWelcomeEmailToUser(name, email, familyId, tempPassword, lang)
       change_pw: "Bitte ändern Sie Ihr Passwort beim ersten Login.",
       steps_title: "So starten Sie",
       step1: `Öffnen Sie <a href="${FRONTEND}">${FRONTEND}</a>`,
-      step2: `Geben Sie Family ID: <strong>${familyId}</strong>, E-Mail und Passwort ein`,
+      step2: `Geben Sie Family ID: <strong>${familyIdDisplay}</strong>, E-Mail und Passwort ein`,
       step3: "Ändern Sie Ihr Passwort",
       step4: "Fügen Sie Ihre Medikamente hinzu (manuell oder per Rezept-Scan)",
       step5: "Aktivieren Sie Push-Benachrichtigungen für Erinnerungen",
-      trial_info: "Ihre kostenlose Testversion läuft 7 Tage mit bis zu 5 Medikamenten.",
+      trial_info: "Ihre kostenlose Testversion läuft 30 Tage mit maximal 5 Medikamenten.",
       cta: "Jetzt anmelden",
+      guide_title: "📄 Hilfe-Guide als PDF",
+      guide_intro: "Laden Sie die Anleitung in Ihrer Sprache herunter:",
+      guide_de: "Deutsch",
+      guide_es: "Español",
+      guide_en: "English",
     },
     es: {
       subject: "Bienvenido a MediControl — Tus datos de acceso",
       greeting: `Hola ${name}`,
-      intro: "Gracias por registrarte en MediControl. Tu prueba gratuita de 7 días está activa.",
+      intro: "Gracias por registrarte en MediControl. Tu prueba gratuita de 30 días está activa.",
       credentials: "Tus datos de acceso",
       family_id: "Family ID",
       email_label: "Email",
@@ -5358,17 +6100,22 @@ async function sendWelcomeEmailToUser(name, email, familyId, tempPassword, lang)
       change_pw: "Por favor cambia tu contraseña en el primer login.",
       steps_title: "Cómo empezar",
       step1: `Abre <a href="${FRONTEND}">${FRONTEND}</a>`,
-      step2: `Ingresa Family ID: <strong>${familyId}</strong>, email y contraseña`,
+      step2: `Ingresa Family ID: <strong>${familyIdDisplay}</strong>, email y contraseña`,
       step3: "Cambia tu contraseña",
       step4: "Añade tus medicamentos (manual o escaneando receta)",
       step5: "Activa las notificaciones push para recordatorios",
-      trial_info: "Tu prueba gratuita dura 7 días con hasta 5 medicamentos.",
+      trial_info: "Tu prueba gratuita dura 30 días con máximo 5 medicamentos.",
       cta: "Iniciar sesión",
+      guide_title: "📄 Guía de ayuda en PDF",
+      guide_intro: "Descarga la guía de usuario en tu idioma:",
+      guide_de: "Deutsch",
+      guide_es: "Español",
+      guide_en: "English",
     },
     en: {
       subject: "Welcome to MediControl — Your login details",
       greeting: `Hello ${name}`,
-      intro: "Thank you for signing up for MediControl! Your 7-day free trial is active.",
+      intro: "Thank you for signing up for MediControl! Your 30-day free trial is active.",
       credentials: "Your login details",
       family_id: "Family ID",
       email_label: "Email",
@@ -5376,12 +6123,17 @@ async function sendWelcomeEmailToUser(name, email, familyId, tempPassword, lang)
       change_pw: "Please change your password on first login.",
       steps_title: "How to get started",
       step1: `Open <a href="${FRONTEND}">${FRONTEND}</a>`,
-      step2: `Enter Family ID: <strong>${familyId}</strong>, email and password`,
+      step2: `Enter Family ID: <strong>${familyIdDisplay}</strong>, email and password`,
       step3: "Change your password",
       step4: "Add your medications (manually or by scanning a prescription)",
       step5: "Enable push notifications for reminders",
-      trial_info: "Your free trial lasts 7 days with up to 5 medications.",
+      trial_info: "Your free trial lasts 30 days with max. 5 medications.",
       cta: "Sign in now",
+      guide_title: "📄 Help guide in PDF",
+      guide_intro: "Download the user guide in your preferred language:",
+      guide_de: "Deutsch",
+      guide_es: "Español",
+      guide_en: "English",
     },
   };
   const t = translations[lang] || translations["de-CH"];
@@ -5396,7 +6148,7 @@ async function sendWelcomeEmailToUser(name, email, familyId, tempPassword, lang)
       <div style="background:#f0fdf4; border:2px solid #34d399; border-radius:12px; padding:20px; margin:20px 0;">
         <h3 style="color:#166534; margin:0 0 12px;">${t.credentials}</h3>
         <table style="width:100%; font-size:14px;">
-          <tr><td style="color:#64748b; padding:4px 0;">${t.family_id}:</td><td style="font-weight:bold; color:#0f172a;">${familyId}</td></tr>
+          <tr><td style="color:#64748b; padding:4px 0;">${t.family_id}:</td><td style="font-weight:bold; color:#0f172a;">${familyIdDisplay}</td></tr>
           <tr><td style="color:#64748b; padding:4px 0;">${t.email_label}:</td><td style="font-weight:bold; color:#0f172a;">${email}</td></tr>
           <tr><td style="color:#64748b; padding:4px 0;">${t.password}:</td><td style="font-weight:bold; color:#dc2626; font-family:monospace; font-size:16px;">${tempPassword}</td></tr>
         </table>
@@ -5411,34 +6163,71 @@ async function sendWelcomeEmailToUser(name, email, familyId, tempPassword, lang)
         <li>${t.step5}</li>
       </ol>
       <p style="color:#64748b; font-size:13px; background:#f8fafc; border-radius:8px; padding:12px;">${t.trial_info}</p>
+      <div style="background:#eff6ff; border:1px solid #3b82f6; border-radius:12px; padding:16px; margin:20px 0;">
+        <h3 style="color:#1e40af; margin:0 0 8px; font-size:15px;">${t.guide_title}</h3>
+        <p style="color:#475569; font-size:13px; margin:0 0 12px;">${t.guide_intro}</p>
+        <p style="margin:0; font-size:13px;">
+          <a href="${pdfDe}" style="color:#2563eb; text-decoration:none; margin-right:12px;">📄 ${t.guide_de}</a>
+          <a href="${pdfEs}" style="color:#2563eb; text-decoration:none; margin-right:12px;">📄 ${t.guide_es}</a>
+          <a href="${pdfEn}" style="color:#2563eb; text-decoration:none;">📄 ${t.guide_en}</a>
+        </p>
+      </div>
       <div style="text-align:center; margin:24px 0;">
         <a href="${FRONTEND}" style="display:inline-block; background:#007AFF; color:white; text-decoration:none; padding:14px 36px; border-radius:12px; font-weight:bold; font-size:16px;">${t.cta}</a>
       </div>
       <p style="color:#94a3b8; font-size:11px; text-align:center;">© ${new Date().getFullYear()} MediControl. Swiss Quality Software.</p>
     </div>`;
-  try {
-    await Promise.race([
-      mailTransport.sendMail({ from: process.env.SMTP_USER, to: email, subject: t.subject, html: emailHtml }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000)),
-    ]);
-    return true;
-  } catch (e) {
-    console.error("[RESEND WELCOME] Email error:", e.message);
-    return false;
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 2000;
+  let lastError = null;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      await Promise.race([
+        mailTransport.sendMail({ from: SMTP_USER, to: email, subject: t.subject, html: emailHtml }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000)),
+      ]);
+      return { ok: true };
+    } catch (e) {
+      lastError = e;
+      const errDetail = e?.message || String(e);
+      const errJson = e?.response?.data ? JSON.stringify(e.response.data) : "";
+      console.error(`[RESEND WELCOME] Intento ${attempt}/${MAX_RETRIES} fallido para ${email}:`, errDetail, errJson || "");
+      if (attempt < MAX_RETRIES) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      }
+    }
   }
+  if (ADMIN_EMAIL) {
+    try {
+      await mailTransport.sendMail({
+        from: SMTP_USER,
+        to: ADMIN_EMAIL,
+        subject: `[MediControl] Error: Reenvío de credenciales fallido para ${email}`,
+        html: `<p><strong>No se pudo reenviar el email de bienvenida</strong> tras ${MAX_RETRIES} intentos.</p>
+          <p><strong>Usuario:</strong> ${escapeHtml(name || "-")}<br><strong>Email:</strong> ${escapeHtml(email)}<br><strong>Family ID:</strong> ${familyId}</p>
+          <p><strong>Error:</strong> ${escapeHtml(lastError?.message || "Desconocido")}</p>`,
+      });
+    } catch (adminErr) {
+      console.error("[RESEND WELCOME] No se pudo notificar al admin:", adminErr.message);
+    }
+  }
+  return { ok: false, error: lastError?.message || "Desconocido" };
 }
 
-app.get("/admin/inactive-users", requireRoleHtml(["superuser"]), async (req, res) => {
+app.get("/admin/inactive-users", requireRoleHtml(["admin"]), async (req, res) => {
   try {
     const msg = req.query.msg;
     const count = req.query.count || "";
     const failed = req.query.failed || "";
+    const errDetail = (req.query.err || "").trim();
     const msgHtml = msg === "deleted"
       ? '<div style="background:#dcfce7; border:1px solid #22c55e; border-radius:12px; padding:12px; margin-bottom:16px; color:#166534;">✓ Usuarios borrados correctamente.</div>'
       : msg === "resend_ok"
       ? `<div style="background:#dcfce7; border:1px solid #22c55e; border-radius:12px; padding:12px; margin-bottom:16px; color:#166534;">✓ Email de bienvenida reenviado correctamente${count ? ` (${count} enviados)` : ""}${failed ? `. ${failed} fallaron (revisa SMTP).` : ""}</div>`
       : msg === "resend_fail"
-      ? '<div style="background:#fef2f2; border:1px solid #ef4444; border-radius:12px; padding:12px; margin-bottom:16px; color:#991b1b;">Error al enviar el email. Revisa la configuración SMTP.</div>'
+      ? (errDetail
+        ? `<div style="background:#fef2f2; border:1px solid #ef4444; border-radius:12px; padding:12px; margin-bottom:16px; color:#991b1b;"><strong>Error Resend:</strong> ${escapeHtml(errDetail)}<br><br><strong>Solución:</strong> Verifica un dominio en <a href="https://resend.com/domains" target="_blank" rel="noopener">resend.com/domains</a> y configura <code>FROM_EMAIL</code> con ese dominio.</div>`
+        : '<div style="background:#fef2f2; border:1px solid #ef4444; border-radius:12px; padding:12px; margin-bottom:16px; color:#991b1b;">Error al enviar el email. Revisa Ajustes → Email. En Render Free usa BREVO_API_KEY (brevo.com) o RESEND_API_KEY (resend.com).</div>')
       : msg === "no_selection"
       ? '<div style="background:#fef2f2; border:1px solid #ef4444; border-radius:12px; padding:12px; margin-bottom:16px; color:#991b1b;">Selecciona al menos un usuario.</div>'
       : "";
@@ -5506,7 +6295,7 @@ app.get("/admin/inactive-users", requireRoleHtml(["superuser"]), async (req, res
                   <td><span class="badge ${u.auth_provider === "email" ? "info" : "warn"}">${escapeHtml(u.auth_provider || "email")}</span></td>
                   <td>${escapeHtml(u.family_name || "-")} (${u.family_id || "-"})</td>
                   <td style="font-size:11px;">${u.created_at ? new Date(u.created_at).toLocaleString("de-CH", { timeZone: "Europe/Zurich", day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}</td>
-                  <td>${canResend ? `<form method="POST" action="/admin/resend-welcome-email" style="display:inline;"><input type="hidden" name="user_id" value="${u.id}" /><button type="submit" class="btn outline" style="padding:6px 12px; font-size:12px;">Reenviar email</button></form>` : "-"}</td>
+                  <td>${canResend ? `<form method="POST" action="/admin/resend-welcome-email" style="display:inline;"><input type="hidden" name="user_id" value="${u.id}" /><button type="submit" class="btn outline" style="padding:6px 12px; font-size:12px;">📧 Reenviar</button></form>` : ""} <a href="/admin/show-password/${u.id}" class="btn outline" style="padding:6px 12px; font-size:12px; display:inline-block; margin-top:4px;" title="Obtener contraseña para copiar y enviar por WhatsApp">🔑</a></td>
                 </tr>`;
                   }).join("")}
               </tbody>
@@ -5531,7 +6320,7 @@ app.get("/admin/inactive-users", requireRoleHtml(["superuser"]), async (req, res
   }
 });
 
-app.post("/admin/delete-inactive-users", requireRoleHtml(["superuser"]), async (req, res) => {
+app.post("/admin/delete-inactive-users", requireRoleHtml(["admin"]), async (req, res) => {
   try {
     const ids = Array.isArray(req.body.user_ids) ? req.body.user_ids : req.body.user_ids ? [req.body.user_ids] : [];
     const numericIds = ids.map((x) => Number(x)).filter(Number.isFinite);
@@ -5560,7 +6349,7 @@ app.post("/admin/delete-inactive-users", requireRoleHtml(["superuser"]), async (
   }
 });
 
-app.post("/admin/resend-welcome-email", requireRoleHtml(["superuser"]), async (req, res) => {
+app.post("/admin/resend-welcome-email", requireRoleHtml(["admin"]), async (req, res) => {
   try {
     const userId = Number(req.body.user_id);
     if (!Number.isFinite(userId)) {
@@ -5582,15 +6371,17 @@ app.post("/admin/resend-welcome-email", requireRoleHtml(["superuser"]), async (r
     const tempPassword = Math.random().toString(36).slice(-8) + "A1!";
     const hashed = await bcrypt.hash(tempPassword, 10);
     await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hashed, userId]);
-    const sent = await sendWelcomeEmailToUser(u.name, u.email, u.family_id, tempPassword, "de-CH");
-    res.redirect("/admin/inactive-users?msg=" + (sent ? "resend_ok" : "resend_fail"));
+    const result = await sendWelcomeEmailToUser(u.name, u.email, u.family_id, tempPassword, "de-CH");
+    const errParam = !result?.ok && result?.error ? "&err=" + encodeURIComponent(String(result.error).slice(0, 250).replace(/[\r\n<>]/g, "")) : "";
+    res.redirect("/admin/inactive-users?msg=" + (result?.ok ? "resend_ok" : "resend_fail") + errParam);
   } catch (err) {
+    const errMsg = (err?.message || String(err)).slice(0, 250).replace(/[\r\n<>]/g, "");
     console.error("[ADMIN RESEND WELCOME]", err.message);
-    res.redirect("/admin/inactive-users?msg=resend_fail");
+    res.redirect("/admin/inactive-users?msg=resend_fail&err=" + encodeURIComponent(errMsg));
   }
 });
 
-app.post("/admin/resend-welcome-email-all", requireRoleHtml(["superuser"]), async (req, res) => {
+app.post("/admin/resend-welcome-email-all", requireRoleHtml(["admin"]), async (req, res) => {
   try {
     const users = await pool.query(
       `SELECT u.id, u.name, u.email, u.family_id FROM users u
@@ -5602,8 +6393,8 @@ app.post("/admin/resend-welcome-email-all", requireRoleHtml(["superuser"]), asyn
       const tempPassword = Math.random().toString(36).slice(-8) + "A1!";
       const hashed = await bcrypt.hash(tempPassword, 10);
       await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hashed, u.id]);
-      const ok = await sendWelcomeEmailToUser(u.name, u.email, u.family_id, tempPassword, "de-CH");
-      if (ok) sent++; else failed++;
+      const res = await sendWelcomeEmailToUser(u.name, u.email, u.family_id, tempPassword, "de-CH");
+      if (res?.ok) sent++; else failed++;
     }
     const msg = sent > 0 ? `resend_ok&count=${sent}` : "resend_fail";
     res.redirect("/admin/inactive-users?msg=" + msg + (failed > 0 ? `&failed=${failed}` : ""));
@@ -6100,7 +6891,7 @@ app.post("/api/daily-checkout", requireAuth, async (req, res) => {
 
     if (mailTransport && userEmail) {
       await mailTransport.sendMail({
-        from: process.env.SMTP_USER,
+        from: SMTP_USER,
         to: userEmail,
         subject,
         html,
@@ -6304,7 +7095,7 @@ async function checkMedicineEndDates() {
     if (med.user_email && mailTransport) {
       try {
         await mailTransport.sendMail({
-          from: process.env.SMTP_USER,
+          from: SMTP_USER,
           to: med.user_email,
           subject: `Tratamiento finalizado: ${med.name}`,
           html: `<p>Hola ${med.user_name || ""},</p>
@@ -6319,7 +7110,7 @@ async function checkMedicineEndDates() {
     if (ADMIN_EMAIL && mailTransport) {
       try {
         await mailTransport.sendMail({
-          from: process.env.SMTP_USER,
+          from: SMTP_USER,
           to: ADMIN_EMAIL,
           subject: `Tratamiento finalizado: ${med.name} (${med.user_name || "paciente"})`,
           html: `<p>El medicamento <strong>${med.name} (${med.dosage || ""})</strong> del paciente <strong>${med.user_name || ""}</strong> ha alcanzado su fecha límite (${med.end_date}).</p>`,
@@ -6818,9 +7609,20 @@ app.post("/admin/dose-requests/:id/reject", requireRoleHtml(["admin", "superuser
 app.get("/admin/settings", requireRoleHtml(["admin", "superuser"]), (req, res) => {
   const emergency = req.query?.emergency === "1";
   const settingsMsg = req.query?.msg || "";
+  const smtpCode = req.query?.code || "";
+  const isAdmin = req.user?.role === "admin";
+  const smtpOk = !!mailTransport;
+  const smtpFailHint = smtpCode === "EAUTH"
+    ? "Error de autenticación: usa contraseña de aplicación de Gmail (no la contraseña normal)."
+    : smtpCode === "ECONNECTION" || smtpCode === "ETIMEDOUT"
+    ? "Render Free bloquea SMTP. Añade BREVO_API_KEY (brevo.com, sin dominio) o RESEND_API_KEY (resend.com, con dominio) en Render → Environment."
+    : "Revisa SMTP_HOST, SMTP_USER, SMTP_PASS. O usa BREVO_API_KEY / RESEND_API_KEY.";
   const content = `
     ${settingsMsg === "snapshot_ok" ? '<div class="card" style="background:#dcfce7; border-color:#22c55e; margin-bottom:12px;"><p style="margin:0; font-size:14px;">✅ Snapshot creado correctamente.</p></div>' : ""}
     ${settingsMsg === "restored" ? '<div class="card" style="background:#dcfce7; border-color:#22c55e; margin-bottom:12px;"><p style="margin:0; font-size:14px;">✅ Base de datos restaurada correctamente desde backup.</p></div>' : ""}
+    ${settingsMsg === "smtp_ok" ? '<div class="card" style="background:#dcfce7; border-color:#22c55e; margin-bottom:12px;"><p style="margin:0; font-size:14px;">✅ Email de prueba enviado correctamente. Revisa la bandeja de ADMIN_EMAIL.</p></div>' : ""}
+    ${settingsMsg === "email_not_configured" ? '<div class="card" style="background:#fef3c7; border-color:#f59e0b; margin-bottom:12px;"><p style="margin:0; font-size:14px;"><strong>Email no configurado.</strong> Render Free bloquea SMTP. Opción 1 (sin dominio): <a href="https://www.brevo.com" target="_blank">Brevo.com</a> → API Key → <code>BREVO_API_KEY</code>. Opción 2: <a href="https://resend.com" target="_blank">Resend.com</a> → <code>RESEND_API_KEY</code> (requiere dominio).</p></div>' : ""}
+    ${settingsMsg === "smtp_fail" ? `<div class="card" style="background:#fef2f2; border-color:#ef4444; margin-bottom:12px;"><p style="margin:0; font-size:14px;">❌ Error SMTP${smtpCode ? " (" + escapeHtml(smtpCode) + ")" : ""}. ${smtpFailHint}</p></div>` : ""}
     <style>
       .link-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; margin-top:16px; }
       .link-card { display:flex; align-items:center; gap:12px; padding:14px 16px; border:1px solid var(--border); border-radius:14px; transition:all .15s; background:#fff; }
@@ -6832,32 +7634,116 @@ app.get("/admin/settings", requireRoleHtml(["admin", "superuser"]), (req, res) =
       .section-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:24px 0 8px; }
     </style>
 
+    ${isAdmin ? `
+    <div class="card" style="margin-bottom:24px;">
+      <h1>📧 Configuración de email</h1>
+      <p class="muted" style="font-size:13px; margin-top:6px;">Proveedor: ${RESEND_API_KEY ? "✅ Resend (API)" : BREVO_API_KEY ? "✅ Brevo (API)" : nodemailerTransport ? "SMTP" : "❌ No configurado"}</p>
+      ${smtpOk ? `
+      <form method="POST" action="/admin/smtp-test" style="margin-top:12px;">
+        <button type="submit" class="btn outline">Enviar email de prueba a ${escapeHtml(process.env.ADMIN_EMAIL || "ADMIN_EMAIL")}</button>
+      </form>
+      ${RESEND_API_KEY ? `
+      <p style="font-size:12px; color:var(--muted); margin-top:8px;">Resend: funciona en Render Free. FROM_EMAIL: dominio verificado en resend.com o onboarding@resend.dev (solo a tu email)</p>
+      ` : BREVO_API_KEY ? `
+      <p style="font-size:12px; color:var(--muted); margin-top:8px;">Brevo: 300 emails/día gratis. <strong>Sin dominio propio:</strong> verifica un email (ej. alertas.medicamentos@gmail.com) en brevo.com → Remitentes. FROM_EMAIL=MediControl &lt;tu-email-verificado@gmail.com&gt;</p>
+      ` : `
+      <p style="font-size:12px; color:var(--muted); margin-top:8px;"><strong>SMTP no funciona en Render Free</strong> (bloquea puertos 587/465).</p>
+      <p style="font-size:12px; color:var(--muted); margin-top:4px;"><strong>Recomendado (sin dominio):</strong> Añade <code>BREVO_API_KEY</code> en Render. Brevo: 300 emails/día gratis. Ver guía <code>BREVO_SETUP.md</code>.</p>
+      <p style="font-size:12px; color:var(--muted); margin-top:4px;"><strong>Alternativa:</strong> <code>RESEND_API_KEY</code> (requiere dominio verificado en resend.com).</p>
+      `}
+      ` : `
+      <p style="font-size:13px; margin-top:8px;"><strong>Opción 1 (sin dominio):</strong> <a href="https://www.brevo.com" target="_blank">Brevo.com</a> → Cuenta gratis → SMTP & API → API Key → Variable <code>BREVO_API_KEY</code>. Verifica tu email (ej. alertas.medicamentos@gmail.com) en Remitentes. <code>FROM_EMAIL=MediControl &lt;alertas.medicamentos@gmail.com&gt;</code></p>
+      <p style="font-size:13px; margin-top:4px;"><strong>Opción 2 (con dominio):</strong> Resend.com → API Key → <code>RESEND_API_KEY</code>. Verifica dominio en resend.com/domains.</p>
+      <p style="font-size:13px; margin-top:4px;"><strong>Opción 3:</strong> SMTP (Render Paid): SMTP_HOST, SMTP_USER, SMTP_PASS</p>
+      `}
+    </div>
+
+    <div class="card" style="margin-bottom:24px;">
+      <h1>💳 Stripe (pagos)</h1>
+      <p class="muted" style="font-size:13px; margin-top:6px;">
+        ${stripe ? `
+        Estado: <strong style="color:#059669;">Conectado</strong> (${(STRIPE_SECRET_KEY || "").startsWith("sk_test") ? "modo TEST" : "producción"})<br>
+        Webhook: ${STRIPE_WEBHOOK_SECRET ? "✅ Configurado" : "❌ Falta STRIPE_WEBHOOK_SECRET"}<br>
+        Precio mensual: ${STRIPE_PRICE_ID ? "✅ " + STRIPE_PRICE_ID : "❌ Falta STRIPE_PRICE_ID"}<br>
+        Precio anual: ${STRIPE_PRICE_ID_YEARLY ? "✅ " + STRIPE_PRICE_ID_YEARLY : "❌ Falta STRIPE_PRICE_ID_YEARLY"}
+        ` : 'Estado: <strong style="color:#dc2626;">No configurado</strong>. Añade STRIPE_SECRET_KEY en Render → Environment.'}
+      </p>
+      <a class="btn outline" href="https://dashboard.stripe.com" target="_blank" style="margin-top:10px;">Abrir Stripe Dashboard</a>
+    </div>
+    ` : ""}
+
     <!-- Links de Soporte y Plataformas -->
     <div class="card">
       <h1>🔗 Soporte y plataformas</h1>
       <p class="muted" style="font-size:13px; margin-top:6px;">Acceso rápido a todos los servicios del proyecto MediControl.</p>
 
-      <div class="section-title">🚀 Despliegue y hosting</div>
+      <div class="section-title">🌐 URLs principales</div>
       <div class="link-grid">
-        <a class="link-card" href="https://vercel.com/medicamentos-webs-projects" target="_blank">
-          <div class="link-icon" style="background:#000; color:#fff;">▲</div>
+        <a class="link-card" href="https://medicamentos-frontend.vercel.app" target="_blank">
+          <div class="link-icon" style="background:#10b981; color:#fff;">📱</div>
           <div class="link-meta">
-            <h3>Vercel Dashboard</h3>
-            <p>Frontend · Deployments · Logs · Analytics</p>
+            <h3>App (Frontend)</h3>
+            <p>medicamentos-frontend.vercel.app</p>
           </div>
         </a>
-        <a class="link-card" href="https://medicamentos-frontend.vercel.app" target="_blank">
-          <div class="link-icon" style="background:#10b981; color:#fff;">🌐</div>
+        <a class="link-card" href="https://medicamentos-backend.onrender.com" target="_blank">
+          <div class="link-icon" style="background:#2563eb; color:#fff;">⚙</div>
           <div class="link-meta">
-            <h3>App en producción</h3>
-            <p>medicamentos-frontend.vercel.app</p>
+            <h3>Backend API</h3>
+            <p>medicamentos-backend.onrender.com</p>
+          </div>
+        </a>
+        <a class="link-card" href="https://medicamentos-backend.onrender.com/dashboard" target="_blank">
+          <div class="link-icon" style="background:#34d399; color:#fff;">🏠</div>
+          <div class="link-meta">
+            <h3>Panel Admin</h3>
+            <p>Dashboard · Login admin</p>
           </div>
         </a>
         <a class="link-card" href="https://medicamentos-frontend.vercel.app/landing" target="_blank">
           <div class="link-icon" style="background:#6366f1; color:#fff;">📄</div>
           <div class="link-meta">
             <h3>Landing Page</h3>
-            <p>Página de presentación multiidioma</p>
+            <p>Presentación · Trial · Encuesta</p>
+          </div>
+        </a>
+      </div>
+
+      <div class="section-title">🚀 Despliegue y hosting</div>
+      <div class="link-grid">
+        <a class="link-card" href="https://vercel.com/dashboard" target="_blank">
+          <div class="link-icon" style="background:#000; color:#fff;">▲</div>
+          <div class="link-meta">
+            <h3>Vercel Dashboard</h3>
+            <p>Frontend · Deployments · Logs · Variables</p>
+          </div>
+        </a>
+        <a class="link-card" href="https://dashboard.render.com" target="_blank">
+          <div class="link-icon" style="background:#46e3b7; color:#0f172a;">R</div>
+          <div class="link-meta">
+            <h3>Render Dashboard</h3>
+            <p>Backend · Logs · Environment · Deploys</p>
+          </div>
+        </a>
+        <a class="link-card" href="https://resend.com/dashboard" target="_blank">
+          <div class="link-icon" style="background:#6366f1; color:#fff;">📧</div>
+          <div class="link-meta">
+            <h3>Resend</h3>
+            <p>Emails · API Keys · Dominios</p>
+          </div>
+        </a>
+        <a class="link-card" href="https://dashboard.stripe.com" target="_blank">
+          <div class="link-icon" style="background:#635bff; color:#fff;">💳</div>
+          <div class="link-meta">
+            <h3>Stripe</h3>
+            <p>${stripe ? (STRIPE_PRICE_ID && STRIPE_PRICE_ID_YEARLY ? "✅ Conectado · Precios OK" : "✅ Conectado · Falta STRIPE_PRICE_ID") : "❌ No configurado"}</p>
+          </div>
+        </a>
+        <a class="link-card" href="https://console.cloud.google.com/apis/credentials" target="_blank">
+          <div class="link-icon" style="background:#4285f4; color:#fff;">G</div>
+          <div class="link-meta">
+            <h3>Google Cloud</h3>
+            <p>OAuth · Credenciales · Proyecto MediControl</p>
           </div>
         </a>
       </div>
@@ -6880,6 +7766,13 @@ app.get("/admin/settings", requireRoleHtml(["admin", "superuser"]), (req, res) =
           <div class="link-meta">
             <h3>Panel Admin</h3>
             <p>Dashboard de administración del backend</p>
+          </div>
+        </a>
+        <a class="link-card" href="/admin/users">
+          <div class="link-icon" style="background:#34d399; color:#fff;">👤</div>
+          <div class="link-meta">
+            <h3>Usuarios</h3>
+            <p>Pacientes · Editar · Eliminar · Reenviar credenciales</p>
           </div>
         </a>
         <a class="link-card" href="/admin/import">
@@ -7067,7 +7960,8 @@ app.get("/admin/settings", requireRoleHtml(["admin", "superuser"]), (req, res) =
       </div>
     </div>
 
-    <!-- Backup / Snapshot / Restore -->
+    ${isAdmin ? `
+    <!-- Backup / Snapshot / Restore (solo admin) -->
     <div class="card" style="margin-top:16px;">
       <h1>💾 Backup y restauración</h1>
       <p class="muted" style="font-size:13px; margin-top:6px;">Exporta un backup completo de la base de datos o restaura desde un archivo JSON.</p>
@@ -7107,7 +8001,7 @@ app.get("/admin/settings", requireRoleHtml(["admin", "superuser"]), (req, res) =
       </div>
     </div>
 
-    <!-- Ajustes avanzados -->
+    <!-- Ajustes avanzados (solo admin) -->
     <div class="card" style="margin-top:16px;">
       <h1>⚙ Ajustes avanzados</h1>
       <p class="muted" style="font-size:13px; margin-top:6px;">Opciones avanzadas desactivadas por defecto.</p>
@@ -7123,8 +8017,32 @@ app.get("/admin/settings", requireRoleHtml(["admin", "superuser"]), (req, res) =
         <a class="btn ${emergency ? "primary" : "outline"} ${emergency ? "" : "disabled"}" href="/admin/logs">📜 Mirar logs</a>
       </div>
     </div>
+    ` : ""}
   `;
   res.send(renderShell(req, "Ajustes", "settings", content));
+});
+
+app.post("/admin/smtp-test", requireRoleHtml(["admin"]), async (req, res) => {
+  if (!mailTransport) {
+    return res.redirect("/admin/settings?msg=email_not_configured");
+  }
+  if (!ADMIN_EMAIL) {
+    return res.redirect("/admin/settings?msg=smtp_fail&code=NO_ADMIN_EMAIL");
+  }
+  try {
+    await mailTransport.verify();
+    await mailTransport.sendMail({
+      from: SMTP_USER,
+      to: ADMIN_EMAIL,
+      subject: "[MediControl] Prueba SMTP correcta",
+      html: `<p>Si recibes este email, la configuración SMTP está funcionando correctamente.</p><p>Enviado: ${new Date().toISOString()}</p>`,
+    });
+    res.redirect("/admin/settings?msg=smtp_ok");
+  } catch (err) {
+    console.error("[SMTP TEST] Error:", err.message, "Code:", err.code || "-");
+    const code = (err.code || "").toString();
+    res.redirect("/admin/settings?msg=smtp_fail" + (code ? "&code=" + encodeURIComponent(code) : ""));
+  }
 });
 
 // =============================================================================
@@ -7157,7 +8075,7 @@ async function exportTables(familyId, tableNames) {
 }
 
 // Full backup (JSON download)
-app.get("/admin/backup/full", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+app.get("/admin/backup/full", requireRoleHtml(["admin"]), async (req, res) => {
   try {
     const familyId = req.user.family_id;
     const data = await exportTables(familyId, BACKUP_TABLES);
@@ -7171,7 +8089,7 @@ app.get("/admin/backup/full", requireRoleHtml(["admin", "superuser"]), async (re
 });
 
 // Partial backups
-app.get("/admin/backup/medicines", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+app.get("/admin/backup/medicines", requireRoleHtml(["admin"]), async (req, res) => {
   try {
     const familyId = req.user.family_id;
     const data = await exportTables(familyId, ["medicines", "schedules", "dose_logs"]);
@@ -7184,7 +8102,7 @@ app.get("/admin/backup/medicines", requireRoleHtml(["admin", "superuser"]), asyn
   }
 });
 
-app.get("/admin/backup/schedules", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+app.get("/admin/backup/schedules", requireRoleHtml(["admin"]), async (req, res) => {
   try {
     const familyId = req.user.family_id;
     const data = await exportTables(familyId, ["schedules", "dose_logs"]);
@@ -7197,7 +8115,7 @@ app.get("/admin/backup/schedules", requireRoleHtml(["admin", "superuser"]), asyn
   }
 });
 
-app.get("/admin/backup/users", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+app.get("/admin/backup/users", requireRoleHtml(["admin"]), async (req, res) => {
   try {
     const familyId = req.user.family_id;
     const data = await exportTables(familyId, ["users", "doctors", "family_doctors"]);
@@ -7211,7 +8129,7 @@ app.get("/admin/backup/users", requireRoleHtml(["admin", "superuser"]), async (r
 });
 
 // Snapshot: save current state internally
-app.post("/admin/backup/snapshot", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+app.post("/admin/backup/snapshot", requireRoleHtml(["admin"]), async (req, res) => {
   try {
     const familyId = req.user.family_id;
     const description = (req.body?.description || "").trim() || "Snapshot manual";
@@ -7231,7 +8149,7 @@ app.post("/admin/backup/snapshot", requireRoleHtml(["admin", "superuser"]), asyn
 });
 
 // List snapshots
-app.get("/admin/backup/snapshots", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+app.get("/admin/backup/snapshots", requireRoleHtml(["admin"]), async (req, res) => {
   try {
     const familyId = req.user.family_id;
     await pool.query(`CREATE TABLE IF NOT EXISTS db_snapshots (
@@ -7277,7 +8195,7 @@ app.get("/admin/backup/snapshots", requireRoleHtml(["admin", "superuser"]), asyn
 });
 
 // Download a snapshot
-app.get("/admin/backup/snapshot-download/:id", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+app.get("/admin/backup/snapshot-download/:id", requireRoleHtml(["admin"]), async (req, res) => {
   try {
     const familyId = req.user.family_id;
     const snap = await pool.query(`SELECT snapshot, description FROM db_snapshots WHERE id = $1 AND family_id = $2`, [req.params.id, familyId]);
@@ -7292,7 +8210,7 @@ app.get("/admin/backup/snapshot-download/:id", requireRoleHtml(["admin", "superu
 });
 
 // Restore from snapshot
-app.post("/admin/backup/snapshot-restore/:id", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+app.post("/admin/backup/snapshot-restore/:id", requireRoleHtml(["admin"]), async (req, res) => {
   const client = await pool.connect();
   try {
     const familyId = req.user.family_id;
@@ -7309,7 +8227,7 @@ app.post("/admin/backup/snapshot-restore/:id", requireRoleHtml(["admin", "superu
 });
 
 // Restore from uploaded JSON file
-app.post("/admin/backup/restore", requireRoleHtml(["admin", "superuser"]), upload.single("file"), async (req, res) => {
+app.post("/admin/backup/restore", requireRoleHtml(["admin"]), upload.single("file"), async (req, res) => {
   const client = await pool.connect();
   try {
     if (req.body?.confirm !== "1") throw new Error("Debes confirmar la restauración.");
@@ -7394,7 +8312,7 @@ async function restoreFromBackup(client, familyId, data) {
   }
 }
 
-app.get("/admin/logs", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+app.get("/admin/logs", requireRoleHtml(["admin"]), async (req, res) => {
   const familyId = req.user.family_id;
   const userId = Number(req.query?.user_id || 0);
   const from = String(req.query?.from || "").trim();
@@ -7499,7 +8417,7 @@ app.get("/admin/logs", requireRoleHtml(["admin", "superuser"]), async (req, res)
   res.send(renderShell(req, "Logs de borrado", "settings", content));
 });
 
-app.post("/admin/logs/restore", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
+app.post("/admin/logs/restore", requireRoleHtml(["admin"]), async (req, res) => {
   const familyId = req.user.family_id;
   const logId = Number(req.body?.log_id);
   if (!Number.isFinite(logId)) {
@@ -8257,7 +9175,7 @@ async function checkTrialExpiry() {
       const FRONTEND = process.env.FRONTEND_URL || "https://medicamentos-frontend.vercel.app";
       try {
         await mailTransport.sendMail({
-          from: process.env.SMTP_USER,
+          from: SMTP_USER,
           to: row.email,
           subject: "Tu período de prueba ha finalizado – MediControl",
           html: `
@@ -8268,7 +9186,7 @@ async function checkTrialExpiry() {
   </div>
   <div style="background:white; padding:30px; border:1px solid #e2e8f0; border-top:none;">
     <p>Hola <strong>${row.first_name || row.name || "usuario"}</strong>,</p>
-    <p>Tu período de prueba gratuito de 7 días ha finalizado. Durante este tiempo, pudiste gestionar hasta 5 medicamentos.</p>
+    <p>Tu período de prueba gratuito de 30 días ha finalizado. Durante este tiempo, pudiste gestionar hasta 5 medicamentos.</p>
     <h2 style="color:#1e40af; font-size:18px;">Activa tu suscripción</h2>
     <p>Para continuar usando todas las funciones sin límites:</p>
     <ul style="color:#475569;">
@@ -8281,7 +9199,7 @@ async function checkTrialExpiry() {
     </ul>
     <div style="text-align:center; margin:24px 0;">
       <a href="${FRONTEND}/billing" style="display:inline-block; background:#2563eb; color:white; padding:14px 32px; border-radius:12px; text-decoration:none; font-weight:bold; font-size:16px;">
-        Activar suscripción – CHF 9.90/mes
+        Activar suscripción – CHF 4.99/mes
       </a>
     </div>
     <hr style="border:none; border-top:1px solid #e2e8f0; margin:24px 0;">
@@ -8321,7 +9239,7 @@ async function checkTrialExpiry() {
       if (ADMIN_EMAIL && mailTransport) {
         try {
           await mailTransport.sendMail({
-            from: process.env.SMTP_USER, to: ADMIN_EMAIL,
+            from: SMTP_USER, to: ADMIN_EMAIL,
             subject: `Trial expirado: Familia ${row.name || row.id}`,
             html: `<p>El trial de la familia <strong>${row.name || row.id}</strong> (${row.email}) ha expirado. Se envió email de oferta.</p>`,
           });
