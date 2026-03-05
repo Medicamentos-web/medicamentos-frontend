@@ -1,0 +1,42 @@
+# Render Blueprint - medicamentos-backend desde monorepo
+# Repo: Medicamentos-web/medicamentos-frontend
+# Root Directory debe ser "backend" en Render Dashboard si no usa este blueprint
+services:
+  - type: web
+    name: medicamentos-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile.render
+    region: frankfurt
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: "4000"
+      - key: NODE_ENV
+        value: production
+      - key: DEFAULT_TEMP_PASSWORD
+        value: "123456"
+      - key: BREVO_API_KEY
+        sync: false
+      - key: FROM_EMAIL
+        value: "MediControl <alertas.medicamentos@gmail.com>"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: LOW_STOCK_THRESHOLD
+        value: "10"
+      - key: DEFAULT_FAMILY_ID
+        value: "1"
+      - key: CORS_EXTRA_ORIGINS
+        sync: false
