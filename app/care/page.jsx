@@ -54,7 +54,20 @@ const T = {
     form_name: "Name",
     form_email: "E-Mail",
     form_phone: "Telefon (optional)",
+    form_phone_required: "Telefon (erforderlich)",
+    form_message: "Nachricht (optional)",
     form_submit: "Kostenlos starten",
+    step_continue: "Weiter",
+    step_back: "Zurück",
+    step_1_title: "Registrierung",
+    step_1_sub: "Ihre Kontaktdaten für den Start.",
+    step_2_title: "Abonnement wählen",
+    step_2_sub: "Wählen Sie den Plan, der zu Ihnen passt.",
+    step_3_title: "Zusätzliche Angaben",
+    step_3_sub: "Helfen Sie uns, den Service zu verbessern.",
+    step_3_trial_required: "Bei der Testversion sind diese Angaben erforderlich.",
+    step_3_optional: "Optional — Sie können auch überspringen.",
+    lead_success: "Vielen Dank! Wir melden uns bei Ihnen.",
     form_sending: "Wird gesendet...",
     form_success: "Konto erstellt! Überprüfen Sie Ihre E-Mail.",
     form_error: "Fehler. Bitte erneut versuchen.",
@@ -90,6 +103,19 @@ const T = {
     hero_sub: "Recordatorios, visión general y mejor organización — todo en un solo lugar.",
     cta: "Probar gratis",
     nav_feedback: "Tu opinión",
+    form_phone_required: "Teléfono (obligatorio)",
+    form_message: "Mensaje (opcional)",
+    step_continue: "Continuar",
+    step_back: "Atrás",
+    step_1_title: "Registro",
+    step_1_sub: "Tus datos de contacto para empezar.",
+    step_2_title: "Elegir abono",
+    step_2_sub: "Elige el plan que mejor te convenga.",
+    step_3_title: "Datos adicionales",
+    step_3_sub: "Ayúdanos a mejorar el servicio.",
+    step_3_trial_required: "Con la prueba gratuita estos datos son obligatorios.",
+    step_3_optional: "Opcional — puedes omitir.",
+    lead_success: "¡Gracias! Nos pondremos en contacto.",
     feedback_title: "¿Qué nuevas funciones serían útiles para usted?",
     feedback_sub: "Ayúdenos a mejorar la app. Elija las funciones que usaría.",
     feedback_1: "Avisos de interacciones (ej. combinación A + B arriesgada)",
@@ -107,6 +133,19 @@ const T = {
     hero_sub: "Reminders, overview and better organization — all in one place.",
     cta: "Try for free",
     nav_feedback: "Your opinion",
+    form_phone_required: "Phone (required)",
+    form_message: "Message (optional)",
+    step_continue: "Continue",
+    step_back: "Back",
+    step_1_title: "Registration",
+    step_1_sub: "Your contact details to get started.",
+    step_2_title: "Choose plan",
+    step_2_sub: "Select the plan that fits you best.",
+    step_3_title: "Additional details",
+    step_3_sub: "Help us improve the service.",
+    step_3_trial_required: "With the free trial these details are required.",
+    step_3_optional: "Optional — you can skip.",
+    lead_success: "Thank you! We will get in touch.",
     feedback_title: "Which new features would be useful for you?",
     feedback_sub: "Help us improve the app. Select the features you would use.",
     feedback_1: "Interaction warnings (e.g. combination A + B risky)",
@@ -122,9 +161,12 @@ const T = {
 
 export default function CarePage() {
   const [lang, setLang] = useState("de-CH");
-  const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
+  const [formData, setFormData] = useState({ name: "", email: "", phone: "", message: "" });
+  const [step, setStep] = useState(1);
+  const [plan, setPlan] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sentType, setSentType] = useState("trial");
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState({ features: [], email: "", comment: "" });
   const [feedbackSending, setFeedbackSending] = useState(false);
@@ -140,31 +182,57 @@ export default function CarePage() {
 
   const t = (key) => T[lang]?.[key] || T["de-CH"][key] || key;
 
-  const submitLead = async (e) => {
+  const submitStep3 = async (e) => {
     e.preventDefault();
-    if (!formData.email || !formData.name) return;
+    const isTrial = plan === "trial";
+    if (isTrial && !formData.phone?.trim()) return;
     setSending(true);
     setError("");
     try {
       const params = new URLSearchParams(window.location.search);
-      const source = params.get("utm_source") || "care";
+      const utmSource = params.get("utm_source") || "care";
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-      const res = await fetch("/api/register-trial", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({ name: formData.name, email: formData.email, phone: formData.phone, lang, source }),
-      });
-      clearTimeout(timeout);
-      const data = await res.json();
-      if (res.ok) {
+      const timeout = setTimeout(() => controller.abort(), 25000);
+
+      if (isTrial) {
+        const res = await fetch("/api/register-trial", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({ name: formData.name, email: formData.email, phone: formData.phone, lang, source: utmSource }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          clearTimeout(timeout);
+          if (data.error === "already_registered") setError(t("form_already"));
+          else setError(t("form_error"));
+          setSending(false);
+          return;
+        }
+        setSentType("trial");
         setSent(true);
-        setFormData({ name: "", email: "", phone: "" });
-      } else if (data.error === "already_registered") setError(t("form_already"));
-      else setError(t("form_error"));
+        setFormData({ name: "", email: "", phone: "", message: "" });
+      } else {
+        const leadSource = plan === "monthly" ? "monthly_care" : plan === "yearly" ? "yearly_care" : "care";
+        await fetch("/api/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            message: formData.message,
+            lang,
+            source: leadSource,
+          }),
+        });
+        setSentType("lead");
+        setSent(true);
+      }
+      clearTimeout(timeout);
     } catch (err) {
-      if (err?.name === "AbortError") setError("Zeitüberschreitung. Bitte erneut versuchen.");
+      if (err?.name === "AbortError") setError(lang === "de-CH" ? "Zeitüberschreitung. Bitte erneut versuchen." : lang === "es" ? "Tiempo de espera agotado. Intenta de nuevo." : "Timeout. Please try again.");
       else setError(t("form_error"));
     } finally {
       setSending(false);
@@ -403,25 +471,101 @@ export default function CarePage() {
           {sent ? (
             <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-8 text-center">
               <div className="text-4xl mb-3">✅</div>
-              <p className="text-lg font-bold text-emerald-400">{t("form_success")}</p>
+              <p className="text-lg font-bold text-emerald-400">{sentType === "trial" ? t("form_success") : t("lead_success")}</p>
             </div>
           ) : (
-            <form onSubmit={submitLead} className="space-y-4">
-              <input type="text" required placeholder={t("form_name")} value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
-              <input type="email" required placeholder={t("form_email")} value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
-              <input type="tel" placeholder={t("form_phone")} value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
-              {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-              <button type="submit" disabled={sending}
-                className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold py-4 rounded-xl text-base hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg disabled:opacity-50">
-                {sending ? t("form_sending") : t("form_submit")}
-              </button>
-            </form>
+            <div className="space-y-6">
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3].map((s) => (
+                  <div key={s} className={`w-2 h-2 rounded-full transition-colors ${step >= s ? "bg-emerald-500" : "bg-slate-600"}`} />
+                ))}
+              </div>
+
+              {step === 1 && (
+                <form onSubmit={(e) => { e.preventDefault(); if (formData.name?.trim() && formData.email?.trim()) setStep(2); }} className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">{t("step_1_title")}</h3>
+                  <p className="text-sm text-slate-400">{t("step_1_sub")}</p>
+                  <input type="text" required placeholder={t("form_name")} value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
+                  <input type="email" required placeholder={t("form_email")} value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
+                  <button type="submit"
+                    className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold py-4 rounded-xl text-base hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg">
+                    {t("step_continue")}
+                  </button>
+                </form>
+              )}
+
+              {step === 2 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">{t("step_2_title")}</h3>
+                  <p className="text-sm text-slate-400">{t("step_2_sub")}</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { id: "trial", label: t("trial_name"), price: t("trial_price"), desc: t("trial_period") },
+                      { id: "monthly", label: t("monthly_name"), price: t("monthly_price"), desc: t("monthly_period") },
+                      { id: "yearly", label: t("yearly_name"), price: t("yearly_price"), desc: t("yearly_period") },
+                    ].map((p) => (
+                      <button key={p.id} type="button"
+                        onClick={() => setPlan(p.id)}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          plan === p.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-700 bg-slate-800 hover:border-slate-600"
+                        }`}>
+                        <span className="block font-bold text-white text-sm">{p.label}</span>
+                        <span className="block text-emerald-400 text-xs mt-1">{p.price}</span>
+                        <span className="block text-slate-400 text-[10px] mt-0.5">{p.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setStep(1)}
+                      className="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl hover:bg-slate-600 transition-colors">
+                      {t("step_back")}
+                    </button>
+                    <button type="button" onClick={() => plan && setStep(3)}
+                      disabled={!plan}
+                      className="flex-1 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold py-3 rounded-xl hover:from-emerald-600 hover:to-cyan-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                      {t("step_continue")}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <form onSubmit={submitStep3} className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">{t("step_3_title")}</h3>
+                  <p className="text-sm text-slate-400">
+                    {plan === "trial" ? t("step_3_trial_required") : t("step_3_optional")}
+                  </p>
+                  <input type="text" readOnly value={formData.name}
+                    className="w-full bg-slate-800/50 text-slate-400 rounded-xl px-4 py-3.5 text-sm border border-slate-700 cursor-not-allowed" />
+                  <input type="email" readOnly value={formData.email}
+                    className="w-full bg-slate-800/50 text-slate-400 rounded-xl px-4 py-3.5 text-sm border border-slate-700 cursor-not-allowed" />
+                  <input type="tel"
+                    required={plan === "trial"}
+                    placeholder={plan === "trial" ? t("form_phone_required") : t("form_phone")}
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
+                  <textarea placeholder={t("form_message")} value={formData.message} rows={3}
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors resize-none" />
+                  {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setStep(2)}
+                      className="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl hover:bg-slate-600 transition-colors">
+                      {t("step_back")}
+                    </button>
+                    <button type="submit" disabled={sending}
+                      className="flex-1 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold py-3 rounded-xl hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg disabled:opacity-50">
+                      {sending ? t("form_sending") : t("form_submit")}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           )}
         </div>
       </section>
