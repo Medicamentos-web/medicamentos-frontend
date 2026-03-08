@@ -10,6 +10,9 @@ const STRINGS = {
     view_less: "Ver menos", refresh_alerts: "Actualizar", sos: "SOS",
     doctor_contact: "Contacto médico", no_stock_alerts: "Sin alertas de stock",
     scan_med: "Escanear medicamento", scan_subtitle: "Sube una foto de la etiqueta.",
+    scan_birth_label: "Validar por fecha de nacimiento (DD.MM.AAAA)",
+    scan_birth_hint: "Si el nombre no coincide, ingresa la fecha de nacimiento del paciente.",
+    scan_do_not_close: "No cierres la app hasta que termine el escaneo.",
     gallery: "Subir imagen", blocks_title: "Bloques de tiempo",
     blocks_subtitle: "Resumen por horario", pending: "pendientes", total: "total",
     day_doses: "tomas", stock: "Stock", confirm: "Confirmar", taken: "Tomado ✅",
@@ -73,12 +76,51 @@ const STRINGS = {
     expiry_label: "Caducidad",
     dose_unit: "comp.",
     dose_qty: "Cantidad por toma",
+    dose_per_block: "Cantidad por horario",
+    dose_per_block_hint: "Ej: 1/2, 1, 2. Vacío = no tomar.",
+    block_morning: "Mañana",
+    block_midday: "Mediodía",
+    block_afternoon: "Tarde",
+    block_night: "Noche",
+    stock_report: "Mi inventario",
+    stock_report_sub: "Lista detallada de medicamentos y stock",
+    download_pdf: "Descargar PDF",
+    send_report_email: "Enviar por email",
+    report_sent: "Reporte enviado a tu email",
+    report_error: "No se pudo enviar",
+    bp_title: "Medir presión",
+    bp_sub: "Registra tu presión arterial",
+    bp_systolic: "Sistólica (mmHg)",
+    bp_diastolic: "Diastólica (mmHg)",
+    bp_pulse: "Pulso (opcional)",
+    bp_save: "Guardar",
+    bp_saving: "Guardando...",
+    bp_saved: "Registro guardado",
+    bp_error: "No se pudo guardar",
+    bp_invalid: "Sistólica y diastólica deben ser válidas (ej: 120/80)",
+    bp_recent: "Registros recientes",
+    bp_empty: "Sin registros aún",
+    doctor_add: "Añadir médico de cabecera",
+    doctor_edit: "Editar datos",
+    doctor_first_name: "Nombre",
+    doctor_last_name: "Apellido",
+    doctor_email: "Email",
+    doctor_phone: "Teléfono",
+    doctor_save: "Guardar",
+    doctor_saving: "Guardando...",
+    doctor_saved: "Datos guardados",
+    doctor_error: "No se pudo guardar",
+    doctor_required: "Nombre y apellido son obligatorios",
+    doctor_sos_hint: "Nombre, apellido, email y teléfono para activar el SOS.",
   },
   "de-CH": {
     residents: "Bewohner", alerts: "Warnungen", view_alerts: "Anzeigen",
     view_less: "Weniger", refresh_alerts: "Aktualisieren", sos: "SOS",
     doctor_contact: "Arztkontakt", no_stock_alerts: "Keine Warnungen",
     scan_med: "Medikament scannen", scan_subtitle: "Foto der Etikette hochladen.",
+    scan_birth_label: "Mit Geburtsdatum validieren (TT.MM.JJJJ)",
+    scan_birth_hint: "Wenn der Name nicht übereinstimmt, Geburtsdatum eingeben.",
+    scan_do_not_close: "App nicht schliessen, bis der Scan fertig ist.",
     gallery: "Bild hochladen", blocks_title: "Zeitblöcke",
     blocks_subtitle: "Zusammenfassung", pending: "offen", total: "gesamt",
     day_doses: "Einnahmen", stock: "Bestand", confirm: "Bestätigen",
@@ -143,12 +185,51 @@ const STRINGS = {
     expiry_label: "Verfallsdatum",
     dose_unit: "Tbl.",
     dose_qty: "Menge pro Einnahme",
+    dose_per_block: "Menge pro Zeit",
+    dose_per_block_hint: "z.B. 1/2, 1, 2. Leer = nicht nehmen.",
+    block_morning: "Morgen",
+    block_midday: "Mittag",
+    block_afternoon: "Nachmittag",
+    block_night: "Nacht",
+    stock_report: "Mein Bestand",
+    stock_report_sub: "Detaillierte Medikamentenliste",
+    download_pdf: "PDF herunterladen",
+    send_report_email: "Per E-Mail senden",
+    report_sent: "Bericht an deine E-Mail gesendet",
+    report_error: "Konnte nicht senden",
+    bp_title: "Blutdruck messen",
+    bp_sub: "Blutdruck erfassen",
+    bp_systolic: "Systolisch (mmHg)",
+    bp_diastolic: "Diastolisch (mmHg)",
+    bp_pulse: "Puls (optional)",
+    bp_save: "Speichern",
+    bp_saving: "Speichern...",
+    bp_saved: "Eintrag gespeichert",
+    bp_error: "Konnte nicht speichern",
+    bp_invalid: "Systolisch und diastolisch müssen gültig sein (z.B. 120/80)",
+    bp_recent: "Letzte Einträge",
+    bp_empty: "Noch keine Einträge",
+    doctor_add: "Hausarzt hinzufügen",
+    doctor_edit: "Daten bearbeiten",
+    doctor_first_name: "Vorname",
+    doctor_last_name: "Nachname",
+    doctor_email: "E-Mail",
+    doctor_phone: "Telefon",
+    doctor_save: "Speichern",
+    doctor_saving: "Speichern...",
+    doctor_saved: "Daten gespeichert",
+    doctor_error: "Konnte nicht speichern",
+    doctor_required: "Vorname und Nachname sind erforderlich",
+    doctor_sos_hint: "Name, Nachname, E-Mail und Telefon für SOS.",
   },
   en: {
     residents: "Residents", alerts: "Alerts", view_alerts: "View",
     view_less: "Less", refresh_alerts: "Refresh", sos: "SOS",
     doctor_contact: "Doctor", no_stock_alerts: "No alerts",
     scan_med: "Scan medication", scan_subtitle: "Upload a photo of the label.",
+    scan_birth_label: "Validate by birth date (DD.MM.YYYY)",
+    scan_birth_hint: "If the name doesn't match, enter the patient's birth date.",
+    scan_do_not_close: "Do not close the app until the scan is complete.",
     gallery: "Upload image", blocks_title: "Time blocks",
     blocks_subtitle: "Summary by time", pending: "pending", total: "total",
     day_doses: "doses", stock: "Stock", confirm: "Confirm", taken: "Taken ✅",
@@ -211,7 +292,42 @@ const STRINGS = {
     expiry_label: "Expiry",
     dose_unit: "tab.",
     dose_qty: "Quantity per dose",
+    dose_per_block: "Quantity per time",
+    dose_per_block_hint: "e.g. 1/2, 1, 2. Empty = skip.",
+    block_morning: "Morning",
+    block_midday: "Midday",
+    block_afternoon: "Afternoon",
+    block_night: "Night",
     take_photo: "Take photo",
+    stock_report: "My inventory",
+    stock_report_sub: "Detailed medication list and stock",
+    download_pdf: "Download PDF",
+    send_report_email: "Send by email",
+    report_sent: "Report sent to your email",
+    report_error: "Could not send",
+    bp_title: "Measure blood pressure",
+    bp_sub: "Record your blood pressure",
+    bp_systolic: "Systolic (mmHg)",
+    bp_diastolic: "Diastolic (mmHg)",
+    bp_pulse: "Pulse (optional)",
+    bp_save: "Save",
+    bp_saving: "Saving...",
+    bp_saved: "Entry saved",
+    bp_error: "Could not save",
+    bp_invalid: "Systolic and diastolic must be valid (e.g. 120/80)",
+    bp_recent: "Recent entries",
+    bp_empty: "No entries yet",
+    doctor_add: "Add primary doctor",
+    doctor_edit: "Edit data",
+    doctor_first_name: "First name",
+    doctor_last_name: "Last name",
+    doctor_email: "Email",
+    doctor_phone: "Phone",
+    doctor_save: "Save",
+    doctor_saving: "Saving...",
+    doctor_saved: "Data saved",
+    doctor_error: "Could not save",
+    doctor_required: "First and last name are required",
   },
 };
 
@@ -252,6 +368,7 @@ export default function HomePage() {
   const [manualDosage, setManualDosage] = useState("");
   const [manualQty, setManualQty] = useState("");
   const [manualExpiry, setManualExpiry] = useState("");
+  const [manualDoses, setManualDoses] = useState({ morning: "1", midday: "", afternoon: "", night: "" });
   const [manualSaving, setManualSaving] = useState(false);
   const [manualMessage, setManualMessage] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
@@ -279,6 +396,28 @@ export default function HomePage() {
   const [fbAlreadySent, setFbAlreadySent] = useState(false);
   // Notifications
   const [notifPermission, setNotifPermission] = useState("default");
+  // Stock report
+  const [showStockReport, setShowStockReport] = useState(false);
+  const [stockReportData, setStockReportData] = useState(null);
+  const [stockReportLoading, setStockReportLoading] = useState(false);
+  const [reportSending, setReportSending] = useState(false);
+  const [reportMessage, setReportMessage] = useState("");
+  // Blood pressure
+  const [showBp, setShowBp] = useState(false);
+  const [bpReadings, setBpReadings] = useState([]);
+  const [bpSystolic, setBpSystolic] = useState("");
+  const [bpDiastolic, setBpDiastolic] = useState("");
+  const [bpPulse, setBpPulse] = useState("");
+  const [bpSaving, setBpSaving] = useState(false);
+  const [bpMessage, setBpMessage] = useState("");
+  // Doctor form (SOS)
+  const [showDoctorForm, setShowDoctorForm] = useState(false);
+  const [doctorFirstName, setDoctorFirstName] = useState("");
+  const [doctorLastName, setDoctorLastName] = useState("");
+  const [doctorEmail, setDoctorEmail] = useState("");
+  const [doctorPhone, setDoctorPhone] = useState("");
+  const [doctorSaving, setDoctorSaving] = useState(false);
+  const [doctorMessage, setDoctorMessage] = useState("");
   const carouselRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -293,6 +432,7 @@ export default function HomePage() {
     const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
     const oauthOk = params?.get("oauth") === "ok";
     const oauthError = params?.get("error") === "oauth_failed";
+    const oauthToken = params?.get("token");
 
     if (oauthOk || oauthError) {
       if (typeof window !== "undefined") {
@@ -301,7 +441,11 @@ export default function HomePage() {
     }
 
     if (oauthOk) {
-      fetch("/auth/me", { credentials: "include" })
+      const token = oauthToken || "";
+      fetch("/auth/me", {
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
         .then((r) => r.json())
         .then((data) => {
           if (data.user) {
@@ -311,7 +455,7 @@ export default function HomePage() {
               email: data.user.email,
               family_id: data.user.family_id,
               role: data.user.role,
-              token: "",
+              token: token || "",
             };
             localStorage.setItem("userSession", JSON.stringify(session));
             setUser(session);
@@ -563,8 +707,128 @@ export default function HomePage() {
     try {
       const res = await fetch(`/api/doctor?family_id=${user.family_id}&user_id=${user.id}`, { headers, credentials: "include" });
       const data = await res.json();
-      setDoctor(res.ok ? data : null);
+      if (res.ok) {
+        setDoctor(data);
+        setDoctorFirstName(data.first_name || "");
+        setDoctorLastName(data.last_name || "");
+        setDoctorEmail(data.email || "");
+        setDoctorPhone(data.phone || "");
+      } else {
+        setDoctor(null);
+        setDoctorFirstName("");
+        setDoctorLastName("");
+        setDoctorEmail("");
+        setDoctorPhone("");
+      }
     } catch { setDoctor(null); }
+  };
+
+  const loadBpReadings = useCallback(async () => {
+    if (!user?.id || !token) return;
+    try {
+      const res = await fetch(`/api/blood-pressure?user_id=${user.id}`, { headers, credentials: "include" });
+      const data = await res.json();
+      setBpReadings(Array.isArray(data) ? data : []);
+    } catch { setBpReadings([]); }
+  }, [user, token, headers]);
+
+  const saveDoctor = async (e) => {
+    e?.preventDefault();
+    if (!doctorFirstName?.trim() || !doctorLastName?.trim()) {
+      setDoctorMessage(t("doctor_required"));
+      return;
+    }
+    setDoctorSaving(true);
+    setDoctorMessage("");
+    try {
+      const res = await fetch("/api/doctor", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          first_name: doctorFirstName.trim(),
+          last_name: doctorLastName.trim(),
+          email: doctorEmail.trim() || null,
+          phone: doctorPhone.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDoctorMessage(t("doctor_saved"));
+        await loadDoctor();
+        setShowDoctorForm(false);
+      } else {
+        setDoctorMessage(data.error || t("doctor_error"));
+      }
+    } catch { setDoctorMessage(t("doctor_error")); }
+    finally { setDoctorSaving(false); }
+  };
+
+  const saveBp = async (e) => {
+    e?.preventDefault();
+    const s = Number(bpSystolic);
+    const d = Number(bpDiastolic);
+    if (!Number.isFinite(s) || s < 1 || s > 300 || !Number.isFinite(d) || d < 1 || d > 200) {
+      setBpMessage(t("bp_invalid"));
+      return;
+    }
+    setBpSaving(true);
+    setBpMessage("");
+    try {
+      const res = await fetch("/api/blood-pressure", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          systolic: s,
+          diastolic: d,
+          pulse: bpPulse.trim() ? Number(bpPulse) : null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBpMessage(t("bp_saved"));
+        setBpSystolic("");
+        setBpDiastolic("");
+        setBpPulse("");
+        loadBpReadings();
+      } else {
+        setBpMessage(data.error || t("bp_error"));
+      }
+    } catch { setBpMessage(t("bp_error")); }
+    finally { setBpSaving(false); }
+  };
+
+  const loadStockReport = useCallback(async () => {
+    if (!user?.id || !token) return;
+    setStockReportLoading(true);
+    setReportMessage("");
+    try {
+      const res = await fetch(`/api/stock-report?user_id=${user.id}`, { headers, credentials: "include" });
+      const data = await res.json();
+      if (res.ok) setStockReportData(data);
+      else setReportMessage(data.error || t("report_error"));
+    } catch { setReportMessage(t("report_error")); } finally { setStockReportLoading(false); }
+  }, [user, token, headers, t]);
+
+  const sendStockReportEmail = async () => {
+    if (!user?.id || !token) return;
+    setReportSending(true);
+    setReportMessage("");
+    try {
+      const res = await fetch("/api/stock-report/send", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ user_id: user.id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReportMessage(t("report_sent"));
+      } else {
+        setReportMessage(data.error || t("report_error"));
+      }
+    } catch { setReportMessage(t("report_error")); } finally { setReportSending(false); }
   };
 
   useEffect(() => {
@@ -573,6 +837,17 @@ export default function HomePage() {
       fetch(`/api/billing/status?family_id=${user.family_id}`, { headers, credentials: "include" })
         .then(r => r.json()).then(d => setBilling(d)).catch(() => {});
       const alertInterval = setInterval(loadAlerts, 5 * 60 * 1000);
+
+      // Auto-request notifications if not yet asked (alertas automáticas)
+      if (typeof Notification !== "undefined" && Notification.permission === "default") {
+        const asked = localStorage.getItem("notif_asked");
+        if (!asked) {
+          setTimeout(() => {
+            requestNotifications();
+            localStorage.setItem("notif_asked", new Date().toISOString());
+          }, 2000);
+        }
+      }
 
       // Auto re-subscribe push — always force fresh subscription with current VAPID key
       (async () => {
@@ -641,6 +916,7 @@ export default function HomePage() {
 
   const openManualEntry = () => {
     setManualName(""); setManualDosage(""); setManualQty(""); setManualExpiry("");
+    setManualDoses({ morning: "1", midday: "", afternoon: "", night: "" });
     setManualMessage(""); setManualSaving(false); setShowManual(true);
   };
   const submitManualMed = async () => {
@@ -660,6 +936,10 @@ export default function HomePage() {
           fd.append("manual_dosage", manualDosage.trim() || "N/A");
           fd.append("manual_qty", manualQty.trim() || "0");
           fd.append("manual_expiry", manualExpiry.trim() || "");
+          if (manualDoses.morning) fd.append("manual_morning", manualDoses.morning);
+          if (manualDoses.midday) fd.append("manual_midday", manualDoses.midday);
+          if (manualDoses.afternoon) fd.append("manual_afternoon", manualDoses.afternoon);
+          if (manualDoses.night) fd.append("manual_night", manualDoses.night);
           fd.append("file", new Blob(["manual"]), "manual.txt");
           return fd;
         })(),
@@ -1053,6 +1333,16 @@ export default function HomePage() {
           <p className="text-[9px] font-bold text-slate-800 uppercase">{t("sos")}</p>
           <p className="text-xs font-bold text-slate-800 mt-1">{t("doctor_contact")}</p>
         </button>
+        <button onClick={async () => { setShowStockReport(true); await loadStockReport(); }}
+          className="flex-none bg-teal-500 rounded-xl px-4 py-3 shadow-sm min-w-[80px] text-center">
+          <p className="text-[9px] font-bold text-white uppercase">{t("stock_report")}</p>
+          <p className="text-xs font-bold text-white mt-1">{t("stock")}</p>
+        </button>
+        <button onClick={async () => { setShowBp(true); await loadBpReadings(); }}
+          className="flex-none bg-rose-500 rounded-xl px-4 py-3 shadow-sm min-w-[80px] text-center">
+          <p className="text-[9px] font-bold text-white uppercase">{t("bp_title")}</p>
+          <p className="text-xs font-bold text-white mt-1">mmHg</p>
+        </button>
       </div>
 
       {/* ── Alerts Panel ── */}
@@ -1157,11 +1447,11 @@ export default function HomePage() {
       </div>
 
       {/* ── Week Carousel ── */}
-      <div ref={carouselRef} className="mx-4 mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <div ref={carouselRef} className="mx-4 mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-hide scroll-smooth">
         {daysArray.map((item, i) => (
           <button key={i} onClick={() => setSelectedDate(item.date)}
             className={`flex-none w-[60px] py-2.5 rounded-xl flex flex-col items-center transition-all
-              ${item.isSelected ? "bg-[#111827] text-white scale-105 shadow-lg" : item.isToday ? "bg-blue-50 border-2 border-blue-400 text-blue-600" : "bg-white text-slate-600 shadow-sm"}`}>
+              ${item.isSelected ? "bg-[#111827] text-white scale-110 shadow-lg" : item.isToday ? "bg-blue-50 border-2 border-blue-400 text-blue-600 scale-105" : "bg-white text-slate-600 shadow-sm"}`}>
             <span className="text-[9px] font-bold uppercase">{item.date.toLocaleDateString(locale, { weekday: "short" })}</span>
             <span className="text-lg font-bold">{item.date.getDate()}</span>
           </button>
@@ -1243,22 +1533,100 @@ export default function HomePage() {
 
       {/* ── Modals ── */}
       {showSos && (
-        <Modal onClose={() => setShowSos(false)} title={t("doctor_title")}>
-          {doctor ? (<>
+        <Modal onClose={() => { setShowSos(false); setShowDoctorForm(false); }} title={t("doctor_title")}>
+          {showDoctorForm ? (
+            <form onSubmit={saveDoctor} className="space-y-3">
+              <p className="text-xs text-slate-500">{t("doctor_add")}</p>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase">{t("doctor_first_name")} *</label>
+                <input value={doctorFirstName} onChange={(e) => setDoctorFirstName(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1" placeholder="Ej: Juan" required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase">{t("doctor_last_name")} *</label>
+                <input value={doctorLastName} onChange={(e) => setDoctorLastName(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1" placeholder="Ej: García" required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase">{t("doctor_email")}</label>
+                <input type="email" value={doctorEmail} onChange={(e) => setDoctorEmail(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1" placeholder="email@ejemplo.com" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase">{t("doctor_phone")}</label>
+                <input type="tel" value={doctorPhone} onChange={(e) => setDoctorPhone(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1" placeholder="+41 79 123 45 67" />
+              </div>
+              {doctorMessage && <p className={`text-xs ${doctorMessage.includes("obligatorios") ? "text-amber-600" : "text-emerald-600"}`}>{doctorMessage}</p>}
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setShowDoctorForm(false)}
+                  className="flex-1 bg-slate-200 text-slate-700 text-xs font-bold py-3 rounded-xl">{t("close")}</button>
+                <button type="submit" disabled={doctorSaving}
+                  className="flex-1 bg-amber-400 text-slate-900 text-xs font-bold py-3 rounded-xl disabled:opacity-50">{doctorSaving ? t("doctor_saving") : t("doctor_save")}</button>
+              </div>
+            </form>
+          ) : doctor ? (<>
             <p className="text-sm font-semibold text-slate-800">{doctor.first_name} {doctor.last_name}</p>
-            <p className="text-xs text-slate-500 mt-1">{doctor.street} {doctor.house_number}</p>
-            <p className="text-xs text-slate-500">{doctor.postal_code} {doctor.city}</p>
+            {(doctor.street || doctor.house_number) && <p className="text-xs text-slate-500 mt-1">{doctor.street} {doctor.house_number}</p>}
+            {(doctor.postal_code || doctor.city) && <p className="text-xs text-slate-500">{doctor.postal_code} {doctor.city}</p>}
             <p className="text-xs text-slate-500 mt-2">Email: {doctor.email || "-"}</p>
             <p className="text-xs text-slate-500">Tel: {doctor.phone || "-"}</p>
             <textarea className="w-full mt-3 border border-slate-200 rounded-xl p-3 text-sm min-h-[100px]"
+              placeholder={lang === "es" ? "Mensaje para el médico..." : lang === "de-CH" ? "Nachricht an den Arzt..." : "Message for doctor..."}
               value={sosMessage} onChange={(e) => setSosMessage(e.target.value)} />
-            <div className="flex gap-2 mt-3">
+            <div className="flex gap-2 mt-3 flex-wrap">
               {doctor.phone && <button onClick={() => window.location.href = `tel:${doctor.phone}`}
-                className="flex-1 bg-amber-400 text-slate-900 text-xs font-bold py-3 rounded-xl">{t("call")}</button>}
+                className="flex-1 min-w-[100px] bg-amber-400 text-slate-900 text-xs font-bold py-3 rounded-xl">{t("call")}</button>}
               {doctor.email && <button onClick={() => window.location.href = `mailto:${doctor.email}?subject=${encodeURIComponent("Consulta médica")}&body=${encodeURIComponent(sosMessage)}`}
-                className="flex-1 bg-[#111827] text-white text-xs font-bold py-3 rounded-xl">{t("send_email")}</button>}
+                className="flex-1 min-w-[100px] bg-[#111827] text-white text-xs font-bold py-3 rounded-xl">{t("send_email")}</button>}
+              <button onClick={() => setShowDoctorForm(true)}
+                className="flex-1 min-w-[100px] bg-slate-200 text-slate-700 text-xs font-bold py-3 rounded-xl">{t("doctor_edit")}</button>
             </div>
-          </>) : <p className="text-sm text-slate-500">{t("no_doctor")}</p>}
+          </>) : (<>
+            <p className="text-sm text-slate-500 mb-3">{t("no_doctor")}</p>
+            <p className="text-xs text-slate-600 mb-3">{t("doctor_add")} — {lang === "es" ? "nombre, apellido, email y teléfono para activar el SOS." : lang === "de-CH" ? "Name, Nachname, E-Mail und Telefon für SOS." : "Name, surname, email and phone to activate SOS."}</p>
+            <button onClick={() => setShowDoctorForm(true)}
+              className="w-full bg-amber-400 text-slate-900 text-xs font-bold py-3 rounded-xl">{t("doctor_add")}</button>
+          </>)}
+        </Modal>
+      )}
+
+      {showBp && (
+        <Modal onClose={() => setShowBp(false)} title={t("bp_title")}>
+          <p className="text-xs text-slate-500 mb-3">{t("bp_sub")}</p>
+          <form onSubmit={saveBp} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase">{t("bp_systolic")}</label>
+                <input type="number" min="1" max="300" value={bpSystolic} onChange={(e) => setBpSystolic(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1" placeholder="120" required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase">{t("bp_diastolic")}</label>
+                <input type="number" min="1" max="200" value={bpDiastolic} onChange={(e) => setBpDiastolic(e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1" placeholder="80" required />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase">{t("bp_pulse")}</label>
+              <input type="number" min="30" max="200" value={bpPulse} onChange={(e) => setBpPulse(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1" placeholder="72" />
+            </div>
+            {bpMessage && <p className={`text-xs ${bpMessage === t("bp_saved") ? "text-emerald-600" : "text-amber-600"}`}>{bpMessage}</p>}
+            <button type="submit" disabled={bpSaving}
+              className="w-full bg-rose-500 text-white text-xs font-bold py-3 rounded-xl disabled:opacity-50">{bpSaving ? t("bp_saving") : t("bp_save")}</button>
+          </form>
+          <p className="text-xs font-bold text-slate-500 uppercase mt-4">{t("bp_recent")}</p>
+          {bpReadings.length ? (
+            <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+              {bpReadings.map((r) => (
+                <div key={r.id} className="flex justify-between text-sm py-1.5 border-b border-slate-100 last:border-0">
+                  <span className="font-semibold text-slate-800">{r.systolic}/{r.diastolic}</span>
+                  <span className="text-slate-500">{r.pulse ? `${r.pulse} bpm · ` : ""}{new Date(r.recorded_at).toLocaleString(lang === "es" ? "es-ES" : lang === "de-CH" ? "de-CH" : "en", { dateStyle: "short", timeStyle: "short" })}</span>
+                </div>
+              ))}
+            </div>
+          ) : <p className="text-xs text-slate-400 mt-1">{t("bp_empty")}</p>}
         </Modal>
       )}
 
@@ -1276,11 +1644,13 @@ export default function HomePage() {
             <div className="mt-2">
               <p className="text-sm text-red-500 font-medium">{scanError}</p>
               <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <p className="text-xs font-bold text-amber-800 mb-1">Validar por fecha de nacimiento (YYYY-MM-DD)</p>
-                <p className="text-[10px] text-amber-600 mb-2">Si el nombre no coincide, ingresa la fecha de nacimiento del paciente.</p>
-                <input type="date"
+                <p className="text-xs font-bold text-amber-800 mb-1">{t("scan_birth_label")}</p>
+                <p className="text-[10px] text-amber-600 mb-2">{t("scan_birth_hint")}</p>
+                <input type="text"
+                  inputMode="numeric"
+                  placeholder="DD.MM.YYYY"
                   value={scanBirthDate}
-                  onChange={(e) => setScanBirthDate(e.target.value)}
+                  onChange={(e) => setScanBirthDate(e.target.value.replace(/[^\d.]/g, "").slice(0, 10))}
                   className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm bg-white" />
               </div>
             </div>
@@ -1302,7 +1672,13 @@ export default function HomePage() {
             </div>
           )}
           {scanPreview && (
-            <div className="flex gap-2 mt-3">
+            <div className="flex flex-col gap-2 mt-3">
+              {scanUploading && (
+                <p className="text-xs font-bold text-amber-700 bg-amber-100 rounded-lg px-3 py-2 text-center">
+                  ⏳ {t("scan_do_not_close")}
+                </p>
+              )}
+              <div className="flex gap-2">
               {!scanResult && (
                 <button type="button" onClick={uploadScan} disabled={scanUploading || !scanFile}
                   className="flex-1 bg-amber-400 text-slate-900 text-xs font-bold py-3 rounded-xl disabled:opacity-50">
@@ -1311,6 +1687,7 @@ export default function HomePage() {
               )}
               <button type="button" onClick={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); setScanBirthDate(""); setScanDetectedText(""); }}
                 className={`${scanResult ? "w-full" : "flex-1"} bg-[#111827] text-white text-xs font-bold py-3 rounded-xl`}>{t("close")}</button>
+              </div>
             </div>
           )}
         </Modal>
@@ -1331,6 +1708,22 @@ export default function HomePage() {
               <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1"
                 value={manualDosage} onChange={(e) => setManualDosage(e.target.value)}
                 placeholder="Ej: 60 mg, 500 mcg..." />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase">{t("dose_per_block")}</label>
+              <p className="text-[10px] text-slate-500 mt-0.5 mb-1">{t("dose_per_block_hint")}</p>
+              <div className="grid grid-cols-4 gap-2 mt-1">
+                {["morning","midday","afternoon","night"].map((block) => (
+                  <div key={block}>
+                    <label className="block text-[10px] text-slate-500">{t(`block_${block}`)}</label>
+                    <input type="text" placeholder="0"
+                      value={manualDoses[block]}
+                      onChange={(e) => setManualDoses({ ...manualDoses, [block]: e.target.value })}
+                      className="w-full border border-slate-200 rounded-lg px-2 py-2 text-sm"
+                      inputMode="decimal" />
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -1432,6 +1825,59 @@ export default function HomePage() {
             <button onClick={() => setShowDoseModal(false)}
               className="flex-1 bg-[#111827] text-white text-xs font-bold py-3 rounded-xl">{t("close")}</button>
           </div>
+        </Modal>
+      )}
+
+      {showStockReport && (
+        <Modal onClose={() => { setShowStockReport(false); setStockReportData(null); setReportMessage(""); }} title={t("stock_report")}>
+          <p className="text-xs text-slate-500 mb-3">{t("stock_report_sub")}</p>
+          {stockReportLoading ? (
+            <p className="text-sm text-slate-500 py-4">Cargando...</p>
+          ) : stockReportData ? (
+            <>
+              <div className="flex gap-2 mb-3">
+                <div className="flex-1 bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-center">
+                  <div className="text-lg font-bold text-emerald-700">{stockReportData.summary?.ok ?? 0}</div>
+                  <div className="text-[10px] text-emerald-600">OK</div>
+                </div>
+                <div className="flex-1 bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
+                  <div className="text-lg font-bold text-amber-700">{stockReportData.summary?.bajo ?? 0}</div>
+                  <div className="text-[10px] text-amber-600">Bajo</div>
+                </div>
+                <div className="flex-1 bg-red-50 border border-red-200 rounded-lg p-2 text-center">
+                  <div className="text-lg font-bold text-red-700">{stockReportData.summary?.faltante ?? 0}</div>
+                  <div className="text-[10px] text-red-600">Faltante</div>
+                </div>
+              </div>
+              <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-xl mb-3">
+                {stockReportData.items?.length ? stockReportData.items.map((m) => (
+                  <div key={m.id} className="flex justify-between items-center py-2 px-3 border-b border-slate-100 last:border-0 text-sm">
+                    <span className="font-medium text-slate-800">{m.name}</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${m.status === "faltante" ? "bg-red-100 text-red-700" : m.status === "bajo" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                      {m.current_stock} {m.status === "faltante" ? "⚠" : m.status === "bajo" ? "↓" : "✓"}
+                    </span>
+                  </div>
+                )) : <p className="p-3 text-sm text-slate-500">No hay medicamentos.</p>}
+              </div>
+              <div className="flex gap-2">
+                <a href={`/api/stock-report/pdf?user_id=${user?.id}`} target="_blank" rel="noopener noreferrer"
+                  className="flex-1 bg-slate-100 text-slate-700 text-xs font-bold py-3 rounded-xl text-center">
+                  {t("download_pdf")}
+                </a>
+                <button onClick={sendStockReportEmail} disabled={reportSending}
+                  className="flex-1 bg-teal-500 text-white text-xs font-bold py-3 rounded-xl disabled:opacity-50">
+                  {reportSending ? t("sending") : t("send_report_email")}
+                </button>
+              </div>
+              {reportMessage && (
+                <p className={`text-xs mt-2 font-medium ${reportMessage === t("report_sent") ? "text-emerald-600" : "text-red-500"}`}>
+                  {reportMessage}
+                </p>
+              )}
+            </>
+          ) : reportMessage ? (
+            <p className="text-sm text-red-500 py-2">{reportMessage}</p>
+          ) : null}
         </Modal>
       )}
     </div>

@@ -96,6 +96,15 @@ const T = {
     feedback_sending: "Wird gesendet...",
     feedback_done: "Vielen Dank für Ihr Feedback!",
     feedback_error: "Fehler. Bitte erneut versuchen.",
+    survey_sub: "Helfen Sie uns, die App zu verbessern. 4 kurze Fragen, weniger als 30 Sekunden.",
+    survey_q1: "Wie viele Medikamente nehmen Sie täglich ein?",
+    survey_q1_a: "1–2", survey_q1_b: "3–5", survey_q1_c: "6–10", survey_q1_d: "Mehr als 10",
+    survey_q2: "Wer verwaltet Ihre Medikamente?",
+    survey_q2_a: "Ich selbst", survey_q2_b: "Ein Familienmitglied", survey_q2_c: "Pflegepersonal", survey_q2_d: "Arzt / Apotheke",
+    survey_q3: "Was ist Ihr grösstes Problem bei der Medikamentenverwaltung?",
+    survey_q3_a: "Dosen vergessen", survey_q3_b: "Bestand kontrollieren", survey_q3_c: "Arzt informieren", survey_q3_d: "Organisation für die Familie",
+    survey_q4: "Würden Sie für eine solche App bezahlen?",
+    survey_q4_a: "Ja, sofort", survey_q4_b: "Vielleicht, wenn es gut ist", survey_q4_c: "Nur wenn kostenlos", survey_q4_d: "Nein",
   },
   es: {
     hero_title: "Día a día mejor organizado.",
@@ -126,6 +135,15 @@ const T = {
     feedback_6: "Informe PDF para médico o familia",
     feedback_7: "Asistente IA para preguntas simples",
     feedback_done: "¡Gracias por su feedback!",
+    survey_sub: "Ayúdanos a mejorar la app. 4 preguntas, menos de 30 segundos.",
+    survey_q1: "¿Cuántos medicamentos tomas al día?",
+    survey_q1_a: "1–2", survey_q1_b: "3–5", survey_q1_c: "6–10", survey_q1_d: "Más de 10",
+    survey_q2: "¿Quién gestiona tus medicamentos?",
+    survey_q2_a: "Yo mismo/a", survey_q2_b: "Un familiar", survey_q2_c: "Cuidador profesional", survey_q2_d: "Médico / Farmacia",
+    survey_q3: "¿Cuál es tu mayor problema con los medicamentos?",
+    survey_q3_a: "Olvidar tomas", survey_q3_b: "Controlar el stock", survey_q3_c: "Informar al médico", survey_q3_d: "Organizar para la familia",
+    survey_q4: "¿Pagarías por una app así?",
+    survey_q4_a: "Sí, ahora mismo", survey_q4_b: "Quizás, si es buena", survey_q4_c: "Solo si es gratis", survey_q4_d: "No",
   },
   en: {
     hero_title: "Daily life better organized.",
@@ -156,12 +174,22 @@ const T = {
     feedback_6: "PDF report for doctor or family",
     feedback_7: "AI assistant for simple questions",
     feedback_done: "Thank you for your feedback!",
+    survey_sub: "Help us improve the app. 4 questions, under 30 seconds.",
+    survey_q1: "How many medications do you take daily?",
+    survey_q1_a: "1–2", survey_q1_b: "3–5", survey_q1_c: "6–10", survey_q1_d: "More than 10",
+    survey_q2: "Who manages your medications?",
+    survey_q2_a: "Myself", survey_q2_b: "A family member", survey_q2_c: "Professional caregiver", survey_q2_d: "Doctor / Pharmacy",
+    survey_q3: "What's your biggest challenge with medications?",
+    survey_q3_a: "Forgetting doses", survey_q3_b: "Stock management", survey_q3_c: "Informing the doctor", survey_q3_d: "Organizing for the family",
+    survey_q4: "Would you pay for an app like this?",
+    survey_q4_a: "Yes, right away", survey_q4_b: "Maybe, if it's good", survey_q4_c: "Only if free", survey_q4_d: "No",
   },
 };
 
 export default function CarePage() {
   const [lang, setLang] = useState("de-CH");
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", message: "" });
+  const [survey, setSurvey] = useState({ q1: "", q2: "", q3: "", q4: "", email: "", comment: "" });
   const [step, setStep] = useState(1);
   const [plan, setPlan] = useState("");
   const [sending, setSending] = useState(false);
@@ -209,9 +237,17 @@ export default function CarePage() {
           setSending(false);
           return;
         }
+        if (survey.q1 && survey.q2 && survey.q3 && survey.q4) {
+          await fetch("/api/survey", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...survey, email: formData.email, lang, source: `trial_${utmSource}` }),
+          }).catch(() => {});
+        }
         setSentType("trial");
         setSent(true);
         setFormData({ name: "", email: "", phone: "", message: "" });
+        setSurvey({ q1: "", q2: "", q3: "", q4: "", email: "", comment: "" });
       } else {
         const leadSource = plan === "monthly" ? "monthly_care" : plan === "yearly" ? "yearly_care" : "care";
         await fetch("/api/leads", {
@@ -227,6 +263,13 @@ export default function CarePage() {
             source: leadSource,
           }),
         });
+        if (survey.q1 && survey.q2 && survey.q3 && survey.q4) {
+          await fetch("/api/survey", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...survey, email: formData.email, lang, source: `lead_${utmSource}` }),
+          }).catch(() => {});
+        }
         setSentType("lead");
         setSent(true);
       }
@@ -536,22 +579,31 @@ export default function CarePage() {
               {step === 3 && (
                 <form onSubmit={submitStep3} className="space-y-4">
                   <h3 className="text-lg font-bold text-white">{t("step_3_title")}</h3>
-                  <p className="text-sm text-slate-400">
-                    {plan === "trial" ? t("step_3_trial_required") : t("step_3_optional")}
-                  </p>
-                  <input type="text" readOnly value={formData.name}
-                    className="w-full bg-slate-800/50 text-slate-400 rounded-xl px-4 py-3.5 text-sm border border-slate-700 cursor-not-allowed" />
-                  <input type="email" readOnly value={formData.email}
-                    className="w-full bg-slate-800/50 text-slate-400 rounded-xl px-4 py-3.5 text-sm border border-slate-700 cursor-not-allowed" />
-                  <input type="tel"
-                    required={plan === "trial"}
-                    placeholder={plan === "trial" ? t("form_phone_required") : t("form_phone")}
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
-                  <textarea placeholder={t("form_message")} value={formData.message} rows={3}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors resize-none" />
+                  <p className="text-sm text-slate-400">{t("survey_sub")}</p>
+                  {plan === "trial" && (
+                    <input type="tel" required placeholder={t("form_phone_required")}
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
+                  )}
+                  {(plan === "monthly" || plan === "yearly") && (
+                    <textarea placeholder={t("form_message")} value={formData.message} rows={2}
+                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors resize-none" />
+                  )}
+                  {["q1","q2","q3","q4"].map((q) => (
+                    <div key={q} className="space-y-2">
+                      <p className="text-xs font-bold text-slate-300">{t(`survey_${q}`)}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {["a","b","c","d"].map((k) => (
+                          <button key={k} type="button" onClick={() => setSurvey({ ...survey, [q]: k })}
+                            className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${survey[q] === k ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}>
+                            {t(`survey_${q}_${k}`)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                   {error && <p className="text-red-400 text-sm text-center">{error}</p>}
                   <div className="flex gap-3">
                     <button type="button" onClick={() => setStep(2)}

@@ -795,6 +795,26 @@ ensureDoctorTables().catch((error) => {
   console.error("ERROR: No se pudo crear doctors:", error.message);
 });
 
+async function ensureBloodPressureTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS blood_pressure_readings (
+      id SERIAL PRIMARY KEY,
+      family_id INTEGER NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      systolic INTEGER NOT NULL,
+      diastolic INTEGER NOT NULL,
+      pulse INTEGER,
+      notes TEXT,
+      recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(
+    "CREATE INDEX IF NOT EXISTS idx_bp_family_user ON blood_pressure_readings(family_id, user_id)"
+  );
+}
+ensureBloodPressureTable().catch((e) => console.error("ERROR blood_pressure:", e.message));
+
 // ── Billing / Stripe columns en families ──
 async function ensureBillingColumns() {
   const cols = [
@@ -2741,8 +2761,19 @@ app.get("/admin/users", requireRoleHtml(["admin", "superuser"]), async (req, res
   );
   let familiesForFilter = [];
   if (isAdmin) {
-    const famRes = await pool.query(`SELECT id, name FROM families ORDER BY name ASC`);
-    familiesForFilter = famRes.rows;
+    const famRes = await pool.query(
+      `SELECT id, name FROM families ORDER BY COALESCE(NULLIF(TRIM(name),''), 'zzz'), id ASC`
+    );
+    const nameCount = {};
+    famRes.rows.forEach((f) => {
+      const key = (f.name || "").trim() || `Familia ${f.id}`;
+      nameCount[key] = (nameCount[key] || 0) + 1;
+    });
+    familiesForFilter = famRes.rows.map((f) => {
+      const key = (f.name || "").trim() || `Familia ${f.id}`;
+      const displayName = nameCount[key] > 1 ? `${key} (#${f.id})` : key;
+      return { id: f.id, name: key, displayName };
+    });
   }
   let rows = users.rows;
   if (q) {
@@ -2779,62 +2810,66 @@ app.get("/admin/users", requireRoleHtml(["admin", "superuser"]), async (req, res
     : "";
   const content = `
     <style>
-      .users-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:24px; }
-      .users-header h1 { margin:0; font-size:24px; font-weight:700; }
-      .users-filters { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
-      .users-filters input, .users-filters select { padding:10px 14px; border:1px solid var(--border); border-radius:12px; font-size:14px; }
-      .users-filters input { min-width:220px; }
-      .users-table-wrap { margin-top:24px; border:1px solid var(--border); border-radius:12px; overflow:hidden; max-width:100%; }
-      .users-table { width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed; }
-      .users-table th, .users-table td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--border); vertical-align:middle; word-break:break-word; }
-      .users-table th { background:var(--bg); font-weight:600; color:var(--muted); font-size:12px; }
+      .users-page-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
+      .users-page-title { margin:0; font-size:18px; font-weight:700; color:var(--ink); display:flex; align-items:center; gap:8px; }
+      .users-page-actions { display:flex; gap:8px; align-items:center; }
+      .users-page-actions .btn { padding:8px 14px; font-size:13px; border-radius:8px; }
+      .users-page-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+      .users-page-toolbar input, .users-page-toolbar select { padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:13px; }
+      .users-page-toolbar input { min-width:200px; flex:1; max-width:280px; }
+      .users-page-toolbar select { min-width:130px; }
+      .users-page-toolbar .btn { padding:8px 14px; font-size:13px; border-radius:8px; }
+      .users-page-toolbar { margin-bottom:16px; }
+      .users-table-wrap { border:1px solid var(--border); border-radius:10px; overflow-x:auto; }
+      .users-table { width:100%; border-collapse:collapse; font-size:12px; }
+      .users-table th, .users-table td { padding:4px 6px; text-align:left; border-bottom:1px solid var(--border); vertical-align:middle; }
+      .users-table th { background:var(--bg); font-weight:600; color:var(--muted); font-size:11px; white-space:nowrap; }
       .users-table tr:last-child td { border-bottom:none; }
       .users-table tr:hover td { background:rgba(0,0,0,.02); }
-      .users-table .col-avatar { width:40px; }
-      .users-table .col-name { width:14%; }
-      .users-table .col-email { width:18%; }
-      .users-table .col-family { width:14%; }
-      .users-table .col-role { width:10%; }
-      .users-table .col-meds { width:6%; }
-      .users-table .col-hor { width:6%; }
-      .users-table .col-login { width:12%; }
-      .users-table .col-email-status { width:4%; text-align:center; }
-      .users-table .col-actions { width:18%; }
-      .user-avatar-sm { width:28px; height:28px; border-radius:6px; background:linear-gradient(135deg,#34d399,#06b6d4); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:12px; flex-shrink:0; }
-      .user-name-cell { font-weight:600; }
-      .user-email-cell { color:var(--muted); font-size:12px; }
-      .user-badge { font-size:10px; padding:3px 6px; border-radius:999px; font-weight:600; }
+      .users-table .col-avatar { width:28px; }
+      .users-table .col-name { min-width:90px; }
+      .users-table .col-email { min-width:120px; }
+      .users-table .col-family { min-width:80px; }
+      .users-table .col-role { width:1%; white-space:nowrap; }
+      .users-table .col-meds, .users-table .col-hor { width:28px; text-align:center; }
+      .users-table .col-login { min-width:85px; font-size:11px; }
+      .users-table .col-email-status { width:28px; text-align:center; }
+      .users-table .col-actions { width:1%; min-width:120px; white-space:nowrap; }
+      .user-avatar-sm { width:22px; height:22px; border-radius:4px; background:linear-gradient(135deg,#34d399,#06b6d4); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:10px; flex-shrink:0; }
+      .user-name-cell { font-weight:600; font-size:12px; }
+      .user-email-cell { color:var(--muted); font-size:11px; }
+      .user-badge { font-size:10px; padding:2px 4px; border-radius:999px; font-weight:600; }
       .user-badge.role-admin { background:#DBEAFE; color:#1E3A8A; }
       .user-badge.role-user { background:#E7F7ED; color:#166534; }
       .user-badge.role-superuser { background:#FEF3C7; color:#92400E; }
       .user-badge.auth { background:#F1F5F9; color:#475569; }
-      .user-actions-cell { white-space:normal; }
-      .user-actions-cell .act-wrap { display:flex; flex-wrap:wrap; gap:4px; }
-      .user-actions-cell a, .user-actions-cell button { font-size:11px; padding:4px 8px; border-radius:6px; font-weight:600; text-decoration:none; display:inline-block; }
+      .user-actions-cell .act-wrap { display:inline-flex; flex-wrap:nowrap; gap:2px; align-items:center; }
+      .user-actions-cell a, .user-actions-cell button { font-size:11px; padding:2px 4px; border-radius:3px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; }
       .user-actions-cell .btn-edit { background:var(--accent); color:#fff; border:none; }
       .user-actions-cell .btn-outline { border:1px solid var(--border); color:var(--ink); background:#fff; }
       .user-actions-cell .btn-danger { background:#dc2626; color:#fff; border:none; }
       .user-actions-cell a:hover, .user-actions-cell button:hover { opacity:.9; }
       .user-actions-cell form { display:inline; margin:0; }
       .user-actions-cell button { cursor:pointer; font-family:inherit; }
-      .users-empty { text-align:center; padding:48px 24px; color:var(--muted); }
-      .users-empty p { margin:0 0 16px; font-size:16px; }
+      .users-empty { text-align:center; padding:24px 12px; color:var(--muted); }
+      .users-empty p { margin:0 0 10px; font-size:13px; }
+      .users-page.card { padding:20px 24px; }
     </style>
-    <div class="card">
+    <div class="card users-page">
       ${msgHtml}
-      <div class="users-header">
-        <h1>👤 Pacientes y usuarios</h1>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <header class="users-page-header">
+        <h1 class="users-page-title">👤 Pacientes y usuarios</h1>
+        <div class="users-page-actions">
           ${isAdmin ? '<a class="btn outline" href="/admin/merge-users">🔀 Fusionar usuarios</a>' : ""}
           <a class="btn primary" href="/admin/user-new">➕ Nuevo usuario</a>
         </div>
-      </div>
-      <form method="GET" action="/admin/users" class="users-filters">
+      </header>
+      <form method="GET" action="/admin/users" class="users-page-toolbar">
         <input name="q" type="search" placeholder="Buscar por nombre, email${isAdmin ? " o familia" : ""}..." value="${escapeHtml(q)}" />
         ${isAdmin && familiesForFilter.length ? `
         <select name="family_id">
           <option value="">Todas las familias</option>
-          ${familiesForFilter.map((f) => `<option value="${f.id}" ${familyFilter === String(f.id) ? "selected" : ""}>${escapeHtml(f.name || `Familia ${f.id}`)}</option>`).join("")}
+          ${familiesForFilter.map((f) => `<option value="${f.id}" ${familyFilter === String(f.id) ? "selected" : ""}>${escapeHtml(f.displayName || f.name || `Familia ${f.id}`)}</option>`).join("")}
         </select>` : ""}
         <select name="role">
           <option value="">Todos los roles</option>
@@ -2847,7 +2882,7 @@ app.get("/admin/users", requireRoleHtml(["admin", "superuser"]), async (req, res
       ${
         rows.length === 0
           ? `
-      <div class="users-empty" style="margin-top:24px;">
+      <div class="users-empty" style="margin-top:16px;">
         <p>${q || roleFilter || familyFilter ? "No hay usuarios que coincidan con el filtro." : "Aún no hay usuarios. Añade el primero."}</p>
         ${!q && !roleFilter && !familyFilter ? '<a class="btn primary" href="/admin/user-new">➕ Crear primer usuario</a>' : '<a class="btn outline" href="/admin/users">Limpiar filtros</a>'}
       </div>`
@@ -2929,7 +2964,7 @@ app.get("/admin/users", requireRoleHtml(["admin", "superuser"]), async (req, res
           </tbody>
         </table>
       </div>
-      <p class="muted" style="font-size:11px; margin-top:8px;">📧 <strong>✓</strong> = inició sesión (recibió credenciales) · <strong>✗</strong> = sin login · ✏️ Editar · 💊 Medicamentos · 📧 Reenviar email · 🔑 Crear contraseña · 🗑 Eliminar</p>`
+      <p class="muted" style="font-size:11px; margin-top:6px;">📧 <strong>✓</strong> = inició sesión (recibió credenciales) · <strong>✗</strong> = sin login · ✏️ Editar · 💊 Medicamentos · 📧 Reenviar email · 🔑 Crear contraseña · 🗑 Eliminar</p>`
       }
     </div>
   `;
@@ -4922,6 +4957,79 @@ app.get("/api/doctor", requireAuth, async (req, res) => {
     return res.status(404).json({ error: "médico no encontrado" });
   }
   res.json(result.rows[0]);
+});
+
+app.post("/api/doctor", requireAuth, async (req, res) => {
+  const familyId = getFamilyId(req);
+  const userId = Number(req.user?.sub);
+  if (!familyId || !Number.isFinite(userId)) {
+    return res.status(400).json({ error: "family_id y user_id son requeridos" });
+  }
+  const { first_name, last_name, email, phone } = req.body || {};
+  if (!first_name?.trim() || !last_name?.trim()) {
+    return res.status(400).json({ error: "Nombre y apellido son obligatorios" });
+  }
+  try {
+    await pool.query(
+      `INSERT INTO doctors (family_id, user_id, first_name, last_name, email, phone)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (family_id, user_id) DO UPDATE SET
+         first_name = EXCLUDED.first_name,
+         last_name = EXCLUDED.last_name,
+         email = EXCLUDED.email,
+         phone = EXCLUDED.phone`,
+      [familyId, userId, first_name.trim(), last_name.trim(), email?.trim() || null, phone?.trim() || null]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("[API doctor POST]", e.message);
+    res.status(500).json({ error: "No se pudo guardar" });
+  }
+});
+
+// Blood pressure
+app.get("/api/blood-pressure", requireAuth, async (req, res) => {
+  const familyId = getFamilyId(req);
+  const userId = Number(req.query.user_id || req.user?.sub);
+  if (!familyId || !Number.isFinite(userId)) {
+    return res.status(400).json({ error: "family_id y user_id son requeridos" });
+  }
+  const limit = Math.min(Number(req.query.limit) || 30, 100);
+  const result = await pool.query(
+    `SELECT id, systolic, diastolic, pulse, notes, recorded_at
+     FROM blood_pressure_readings
+     WHERE family_id = $1 AND user_id = $2
+     ORDER BY recorded_at DESC
+     LIMIT $3`,
+    [familyId, userId, limit]
+  );
+  res.json(result.rows);
+});
+
+app.post("/api/blood-pressure", requireAuth, async (req, res) => {
+  const familyId = getFamilyId(req);
+  const userId = Number(req.user?.sub);
+  if (!familyId || !Number.isFinite(userId)) {
+    return res.status(400).json({ error: "family_id y user_id son requeridos" });
+  }
+  const { systolic, diastolic, pulse, notes } = req.body || {};
+  const s = Number(systolic);
+  const d = Number(diastolic);
+  if (!Number.isFinite(s) || s < 1 || s > 300 || !Number.isFinite(d) || d < 1 || d > 200) {
+    return res.status(400).json({ error: "Sistólica y diastólica deben ser valores válidos" });
+  }
+  try {
+    const r = await pool.query(
+      `INSERT INTO blood_pressure_readings (family_id, user_id, systolic, diastolic, pulse, notes)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, systolic, diastolic, pulse, notes, recorded_at`,
+      [familyId, userId, s, d, Number.isFinite(Number(pulse)) ? Number(pulse) : null, notes?.trim() || null]
+    );
+    res.json(r.rows[0]);
+  } catch (e) {
+    console.error("[API blood-pressure POST]", e.message);
+    res.status(500).json({ error: "No se pudo guardar" });
+  }
 });
 
 // =============================================================================
@@ -7725,6 +7833,13 @@ app.get("/admin/settings", requireRoleHtml(["admin", "superuser"]), (req, res) =
 
       <div class="section-title">🚀 Despliegue y hosting</div>
       <div class="link-grid">
+        <a class="link-card" href="https://dashboard.render.com" target="_blank">
+          <div class="link-icon" style="background:#46e3b7; color:#0f172a;">R</div>
+          <div class="link-meta">
+            <h3>Render Dashboard</h3>
+            <p>Backend · Environment (BREVO_API_KEY, etc.) · Root Directory = vacío</p>
+          </div>
+        </a>
         <a class="link-card" href="https://vercel.com/dashboard" target="_blank">
           <div class="link-icon" style="background:#000; color:#fff;">▲</div>
           <div class="link-meta">
@@ -7732,18 +7847,18 @@ app.get("/admin/settings", requireRoleHtml(["admin", "superuser"]), (req, res) =
             <p>Frontend · Deployments · Logs · Variables</p>
           </div>
         </a>
-        <a class="link-card" href="https://dashboard.render.com" target="_blank">
-          <div class="link-icon" style="background:#46e3b7; color:#0f172a;">R</div>
+        <a class="link-card" href="https://app.brevo.com/settings/keys/api" target="_blank">
+          <div class="link-icon" style="background:#0696d7; color:#fff;">📧</div>
           <div class="link-meta">
-            <h3>Render Dashboard</h3>
-            <p>Backend · Logs · Environment · Deploys</p>
+            <h3>Brevo</h3>
+            <p>API Keys · Emails · Remitentes (BREVO_API_KEY)</p>
           </div>
         </a>
         <a class="link-card" href="https://resend.com/dashboard" target="_blank">
           <div class="link-icon" style="background:#6366f1; color:#fff;">📧</div>
           <div class="link-meta">
             <h3>Resend</h3>
-            <p>Emails · API Keys · Dominios</p>
+            <p>Emails · API Keys · Dominios (alternativa a Brevo)</p>
           </div>
         </a>
         <a class="link-card" href="https://dashboard.stripe.com" target="_blank">
@@ -7764,11 +7879,18 @@ app.get("/admin/settings", requireRoleHtml(["admin", "superuser"]), (req, res) =
 
       <div class="section-title">💻 Código fuente</div>
       <div class="link-grid">
+        <a class="link-card" href="https://github.com/Medicamentos-web/medicamentos-backend" target="_blank">
+          <div class="link-icon" style="background:#24292e; color:#fff;">🐙</div>
+          <div class="link-meta">
+            <h3>GitHub — Backend</h3>
+            <p>Repo que Render despliega · Root Directory vacío</p>
+          </div>
+        </a>
         <a class="link-card" href="https://github.com/Medicamentos-web/medicamentos-frontend" target="_blank">
           <div class="link-icon" style="background:#24292e; color:#fff;">🐙</div>
           <div class="link-meta">
             <h3>GitHub — Frontend</h3>
-            <p>Repositorio Next.js · Commits · PRs · Issues</p>
+            <p>Repositorio Next.js · Vercel despliega</p>
           </div>
         </a>
       </div>

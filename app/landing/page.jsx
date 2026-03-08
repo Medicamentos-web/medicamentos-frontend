@@ -59,6 +59,18 @@ const T = {
     form_success: "Konto erstellt! Überprüfen Sie Ihre E-Mail für die Zugangsdaten.",
     form_error: "Fehler. Bitte versuchen Sie es erneut.",
     form_already: "Diese E-Mail ist bereits registriert. Bitte melden Sie sich an.",
+    step_continue: "Weiter",
+    step_back: "Zurück",
+    step_1_title: "Registrierung",
+    step_1_sub: "Ihre Kontaktdaten für den Start.",
+    step_2_title: "Abonnement wählen",
+    step_2_sub: "Wählen Sie den Plan, der zu Ihnen passt.",
+    step_3_title: "Kurze Umfrage",
+    step_3_sub: "Helfen Sie uns, den Service zu verbessern.",
+    step_3_trial_required: "Bei der Testversion sind diese Angaben erforderlich.",
+    step_3_optional: "Optional — Sie können auch überspringen.",
+    form_phone_required: "Telefon (erforderlich)",
+    lead_success: "Vielen Dank! Wir melden uns bei Ihnen.",
     footer_legal: "SaaS-Dienst nach Schweizer Recht. Kein Ersatz für professionelle medizinische Beratung.",
     footer_copy: "MediControl. Alle Rechte vorbehalten.",
     stats_patients: "Patienten",
@@ -156,6 +168,18 @@ const T = {
     form_success: "¡Cuenta creada! Revisa tu email para los datos de acceso.",
     form_error: "Error. Inténtalo de nuevo.",
     form_already: "Este email ya está registrado. Usa el login.",
+    step_continue: "Continuar",
+    step_back: "Atrás",
+    step_1_title: "Registro",
+    step_1_sub: "Tus datos de contacto para empezar.",
+    step_2_title: "Elegir abono",
+    step_2_sub: "Elige el plan que mejor te convenga.",
+    step_3_title: "Encuesta rápida",
+    step_3_sub: "Ayúdanos a mejorar el servicio.",
+    step_3_trial_required: "Con la prueba gratuita estos datos son obligatorios.",
+    step_3_optional: "Opcional — puedes omitir.",
+    form_phone_required: "Teléfono (obligatorio)",
+    lead_success: "¡Gracias! Nos pondremos en contacto contigo.",
     footer_legal: "Servicio SaaS sujeto al derecho suizo. No sustituye el consejo médico profesional.",
     footer_copy: "MediControl. Todos los derechos reservados.",
     stats_patients: "Pacientes",
@@ -253,6 +277,18 @@ const T = {
     form_success: "Account created! Check your email for login details.",
     form_error: "Error. Please try again.",
     form_already: "This email is already registered. Please sign in.",
+    step_continue: "Continue",
+    step_back: "Back",
+    step_1_title: "Registration",
+    step_1_sub: "Your contact details to get started.",
+    step_2_title: "Choose plan",
+    step_2_sub: "Select the plan that fits you best.",
+    step_3_title: "Quick survey",
+    step_3_sub: "Help us improve the service.",
+    step_3_trial_required: "With the free trial these details are required.",
+    step_3_optional: "Optional — you can skip.",
+    form_phone_required: "Phone (required)",
+    lead_success: "Thank you! We'll get in touch with you.",
     footer_legal: "SaaS service under Swiss law. Does not replace professional medical advice.",
     footer_copy: "MediControl. All rights reserved.",
     stats_patients: "Patients",
@@ -301,8 +337,11 @@ const FEATURES_ICONS = ["🔔", "📸", "📦", "👨‍👩‍👧‍👦", "�
 export default function LandingPage() {
   const [lang, setLang] = useState("de-CH");
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", message: "" });
+  const [step, setStep] = useState(1);
+  const [plan, setPlan] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sentType, setSentType] = useState("trial"); // "trial" | "lead"
   const [error, setError] = useState("");
   const [survey, setSurvey] = useState({ q1: "", q2: "", q3: "", q4: "", email: "", comment: "" });
   const [surveySending, setSurveySending] = useState(false);
@@ -319,37 +358,76 @@ export default function LandingPage() {
   const t = (key) => T[lang]?.[key] || T["de-CH"][key] || key;
   const GOOGLE_ADS_CONVERSION_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL || "";
 
-  const submitLead = async (e) => {
+  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const utmSource = params?.get("utm_source") || "landing";
+
+  const submitStep3 = async (e) => {
     e.preventDefault();
-    if (!formData.email || !formData.name) return;
+    const isTrial = plan === "trial";
+    if (isTrial && !formData.phone?.trim()) return;
     setSending(true);
     setError("");
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-      const params = new URLSearchParams(window.location.search);
-      const source = params.get("utm_source") || "landing";
-      const res = await fetch("/api/register-trial", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({ name: formData.name, email: formData.email, phone: formData.phone, lang, source }),
-      });
-      clearTimeout(timeout);
-      const data = await res.json();
-      if (res.ok) {
+      const timeout = setTimeout(() => controller.abort(), 25000);
+
+      if (isTrial) {
+        const res = await fetch("/api/register-trial", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({ name: formData.name, email: formData.email, phone: formData.phone, lang, source: utmSource }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          clearTimeout(timeout);
+          if (data.error === "already_registered") setError(t("form_already"));
+          else setError(t("form_error"));
+          setSending(false);
+          return;
+        }
+        if (survey.q1 && survey.q2 && survey.q3 && survey.q4) {
+          await fetch("/api/survey", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...survey, email: formData.email, lang, source: `trial_${utmSource}` }),
+          }).catch(() => {});
+        }
+        setSentType("trial");
         setSent(true);
         setFormData({ name: "", email: "", phone: "", message: "" });
+        setSurvey({ q1: "", q2: "", q3: "", q4: "", email: "", comment: "" });
         if (typeof window !== "undefined" && typeof window.gtag === "function" && GOOGLE_ADS_CONVERSION_LABEL) {
-          window.gtag("event", "conversion", {
-            send_to: `AW-17971521405/${GOOGLE_ADS_CONVERSION_LABEL}`,
-          });
+          window.gtag("event", "conversion", { send_to: `AW-17971521405/${GOOGLE_ADS_CONVERSION_LABEL}` });
         }
+      } else {
+        const leadSource = plan === "monthly" ? "monthly_landing" : plan === "yearly" ? "yearly_landing" : "landing";
+        await fetch("/api/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            message: formData.message,
+            lang,
+            source: leadSource,
+          }),
+        });
+        if (survey.q1 && survey.q2 && survey.q3 && survey.q4) {
+          await fetch("/api/survey", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...survey, email: formData.email, lang, source: `lead_${utmSource}` }),
+          }).catch(() => {});
+        }
+        setSentType("lead");
+        setSent(true);
       }
-      else if (data.error === "already_registered") setError(t("form_already"));
-      else setError(t("form_error"));
+      clearTimeout(timeout);
     } catch (err) {
-      if (err?.name === "AbortError") setError("Tiempo de espera agotado. Intenta de nuevo en 10 segundos.");
+      if (err?.name === "AbortError") setError("Tiempo de espera agotado. Intenta de nuevo.");
       else setError(t("form_error"));
     }
     finally { setSending(false); }
@@ -567,7 +645,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Contact / Lead form */}
+      {/* Contact / Lead form - 3 pasos */}
       <section id="contact" className="py-20 sm:py-28 px-4 bg-slate-900">
         <div className="max-w-lg mx-auto">
           <div className="text-center mb-10">
@@ -577,28 +655,142 @@ export default function LandingPage() {
           {sent ? (
             <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-8 text-center">
               <div className="text-4xl mb-3">✅</div>
-              <p className="text-lg font-bold text-emerald-400">{t("form_success")}</p>
+              <p className="text-lg font-bold text-emerald-400">{sentType === "trial" ? t("form_success") : t("lead_success")}</p>
             </div>
           ) : (
-            <form onSubmit={submitLead} className="space-y-4">
-              <input type="text" required placeholder={t("form_name")} value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
-              <input type="email" required placeholder={t("form_email")} value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
-              <input type="tel" placeholder={t("form_phone")} value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
-              <textarea placeholder={t("form_message")} value={formData.message} rows={3}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors resize-none" />
-              {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-              <button type="submit" disabled={sending}
-                className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold py-4 rounded-xl text-base hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50">
-                {sending ? t("form_sending") : t("form_submit")}
-              </button>
-            </form>
+            <div className="space-y-6">
+              {/* Indicador de pasos */}
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3].map((s) => (
+                  <div key={s} className={`w-2 h-2 rounded-full transition-colors ${step >= s ? "bg-emerald-500" : "bg-slate-600"}`} />
+                ))}
+              </div>
+
+              {step === 1 && (
+                <form onSubmit={(e) => { e.preventDefault(); if (formData.name?.trim() && formData.email?.trim()) setStep(2); }} className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">{t("step_1_title")}</h3>
+                  <p className="text-sm text-slate-400">{t("step_1_sub")}</p>
+                  <input type="text" required placeholder={t("form_name")} value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
+                  <input type="email" required placeholder={t("form_email")} value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
+                  <button type="submit"
+                    className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold py-4 rounded-xl text-base hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/25">
+                    {t("step_continue")}
+                  </button>
+                </form>
+              )}
+
+              {step === 2 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">{t("step_2_title")}</h3>
+                  <p className="text-sm text-slate-400">{t("step_2_sub")}</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { id: "trial", label: t("trial_name"), price: t("trial_price"), desc: t("trial_period") },
+                      { id: "monthly", label: t("monthly_name"), price: t("monthly_price"), desc: t("monthly_period") },
+                      { id: "yearly", label: t("yearly_name"), price: t("yearly_price"), desc: t("yearly_period") },
+                    ].map((p) => (
+                      <button key={p.id} type="button"
+                        onClick={() => setPlan(p.id)}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          plan === p.id ? "border-emerald-500 bg-emerald-500/10" : "border-slate-700 bg-slate-800 hover:border-slate-600"
+                        }`}>
+                        <span className="block font-bold text-white text-sm">{p.label}</span>
+                        <span className="block text-emerald-400 text-xs mt-1">{p.price}</span>
+                        <span className="block text-slate-400 text-[10px] mt-0.5">{p.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setStep(1)}
+                      className="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl hover:bg-slate-600 transition-colors">
+                      {t("step_back")}
+                    </button>
+                    <button type="button" onClick={() => plan && setStep(3)}
+                      disabled={!plan}
+                      className="flex-1 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold py-3 rounded-xl hover:from-emerald-600 hover:to-cyan-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                      {t("step_continue")}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <form onSubmit={submitStep3} className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">{t("step_3_title")}</h3>
+                  <p className="text-sm text-slate-400">{t("survey_sub")}</p>
+                  {plan === "trial" && (
+                    <input type="tel" required placeholder={t("form_phone_required")}
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors" />
+                  )}
+                  {(plan === "monthly" || plan === "yearly") && (
+                    <textarea placeholder={t("form_message")} value={formData.message} rows={2}
+                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      className="w-full bg-slate-800 text-white placeholder-slate-500 rounded-xl px-4 py-3.5 text-sm border border-slate-700 focus:border-emerald-500 focus:outline-none transition-colors resize-none" />
+                  )}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-300">{t("survey_q1")}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {["a","b","c","d"].map((k) => (
+                        <button key={k} type="button" onClick={() => setSurvey({ ...survey, q1: k })}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${survey.q1 === k ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}>
+                          {t(`survey_q1_${k}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-300">{t("survey_q2")}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {["a","b","c","d"].map((k) => (
+                        <button key={k} type="button" onClick={() => setSurvey({ ...survey, q2: k })}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${survey.q2 === k ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}>
+                          {t(`survey_q2_${k}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-300">{t("survey_q3")}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {["a","b","c","d"].map((k) => (
+                        <button key={k} type="button" onClick={() => setSurvey({ ...survey, q3: k })}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${survey.q3 === k ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}>
+                          {t(`survey_q3_${k}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-300">{t("survey_q4")}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {["a","b","c","d"].map((k) => (
+                        <button key={k} type="button" onClick={() => setSurvey({ ...survey, q4: k })}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${survey.q4 === k ? "bg-emerald-500 text-white" : "bg-slate-700 text-slate-300 hover:bg-slate-600"}`}>
+                          {t(`survey_q4_${k}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setStep(2)}
+                      className="flex-1 bg-slate-700 text-white font-bold py-3 rounded-xl hover:bg-slate-600 transition-colors">
+                      {t("step_back")}
+                    </button>
+                    <button type="submit" disabled={sending}
+                      className="flex-1 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold py-3 rounded-xl hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50">
+                      {sending ? t("form_sending") : t("form_submit")}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           )}
         </div>
       </section>
