@@ -1,11 +1,10 @@
-# Render Blueprint - medicamentos-backend desde monorepo
-# Repo: Medicamentos-web/medicamentos-frontend
-# Root Directory debe ser "backend" en Render Dashboard si no usa este blueprint
+# Render Blueprint - medicamentos-backend
+# Si usas medicamentos-frontend (monorepo): Root Directory = backend
+# Si usas medicamentos-backend (solo backend): Root Directory = vacío
 services:
   - type: web
     name: medicamentos-backend
     runtime: docker
-    rootDir: backend
     dockerfilePath: ./Dockerfile.render
     region: frankfurt
     plan: free
@@ -39,4 +38,7 @@ services:
       - key: DEFAULT_FAMILY_ID
         value: "1"
       - key: CORS_EXTRA_ORIGINS
+        sync: false
+      # Opcional: API DrugBank para interacciones medicamentosas (sin clave = fallback local)
+      - key: DRUGBANK_API_KEY
         sync: false

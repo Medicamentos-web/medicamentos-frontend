@@ -33,8 +33,9 @@ FRONTEND_URL=https://tu-app.vercel.app
 2. Crea un proyecto o selecciona uno existente
 3. **APIs y servicios** → **Credenciales** → **Crear credenciales** → **ID de cliente OAuth**
 4. Tipo: **Aplicación web**
-5. URIs de redirección autorizados: `https://tu-backend.com/auth/google/callback`
-6. Copia el Client ID y Client Secret
+5. **URIs de redirección autorizados:** `https://medicamentos-backend.onrender.com/auth/google/callback`
+6. **Orígenes JavaScript autorizados:** `https://medicamentos-frontend.vercel.app` (y tu dominio si tienes)
+7. Copia el Client ID y Client Secret
 
 ### Facebook
 1. Ve a [Facebook for Developers](https://developers.facebook.com/)

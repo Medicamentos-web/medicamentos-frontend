@@ -1,29 +1,25 @@
 # Configuración Render — medicamentos-backend
 
-## Repositorio
+## Dos repos posibles
 
-- **Repo:** `Medicamentos-web/medicamentos-frontend` (monorepo con frontend + backend)
-- **Backend:** carpeta `backend/`
+### Opción A: medicamentos-backend (repo solo backend)
+- **Root Directory:** vacío (dejar en blanco)
+- El código del backend está en la raíz del repo
 
-## Configuración necesaria en Render Dashboard
+### Opción B: medicamentos-frontend (monorepo)
+- **Root Directory:** `backend`
+- El backend está en la carpeta `backend/`
 
-Para que Render despliegue el backend con el código actualizado:
+## Error "Root directory backend does not exist"
 
-1. **Render** → **medicamentos-backend** → **Settings**
-2. En **Build & Deploy**:
-   - **Repository:** `Medicamentos-web/medicamentos-frontend`
-   - **Branch:** `main`
-   - **Root Directory:** `backend` ← **Importante:** debe ser `backend` para que use la carpeta correcta
-3. Guarda
+Significa que Render usa un repo que **no tiene** carpeta `backend/` (probablemente medicamentos-backend).
 
-## Si Root Directory está vacío o incorrecto
+**Solución:** En Render → Settings → Build & Deploy → **Root Directory**: borra el valor y déjalo vacío.
 
-Si Root Directory está vacío, Render usa la raíz del repo y no encuentra `backend/src/index.js`. El código con Brevo está en `backend/src/index.js`.
+## Sincronizar código entre repos
 
-**Solución:** Pon **Root Directory** = `backend` en Render → Settings → Build & Deploy.
+**Render usa medicamentos-backend** (repo separado). Los cambios en `medicamentos_v3/backend/` NO se despliegan automáticamente.
 
-## Verificar deploy
-
-Tras cambiar Root Directory, haz **Manual Deploy** → **Clear build cache & deploy**.
-
-Cuando termine, en Admin → Ajustes debería aparecer **Proveedor: Brevo (API)** (si `BREVO_API_KEY` está configurada).
+**Para que los cambios se vean en producción:**
+1. Copia los cambios de `medicamentos_v3/backend/src/index.js` a `medicamentos-backend/src/index.js` (o a la carpeta local que tengas clonada de medicamentos-backend).
+2. Haz commit y push en el repo medicamentos-backend.
