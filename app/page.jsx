@@ -112,6 +112,19 @@ const STRINGS = {
     doctor_error: "No se pudo guardar",
     doctor_required: "Nombre y apellido son obligatorios",
     doctor_sos_hint: "Nombre, apellido, email y teléfono para activar el SOS.",
+    interactions_title: "Interacciones",
+    interactions_sub: "Posibles interacciones entre tus medicamentos",
+    interactions_check: "Verificar interacciones",
+    interactions_loading: "Verificando...",
+    interactions_none: "No se detectaron interacciones conocidas.",
+    interactions_few_meds: "Añade al menos 2 medicamentos para verificar interacciones.",
+    interactions_consult: "Si hay coincidencias, consulte a su médico o farmacéutico.",
+    interactions_severity_major: "Mayor",
+    interactions_severity_moderate: "Moderada",
+    interactions_severity_minor: "Menor",
+    more_title: "Más",
+    optional_features: "Funciones opcionales",
+    optional_features_sub: "Herramientas adicionales para tu salud",
   },
   "de-CH": {
     residents: "Bewohner", alerts: "Warnungen", view_alerts: "Anzeigen",
@@ -221,6 +234,19 @@ const STRINGS = {
     doctor_error: "Konnte nicht speichern",
     doctor_required: "Vorname und Nachname sind erforderlich",
     doctor_sos_hint: "Name, Nachname, E-Mail und Telefon für SOS.",
+    interactions_title: "Wechselwirkungen",
+    interactions_sub: "Mögliche Wechselwirkungen zwischen Ihren Medikamenten",
+    interactions_check: "Wechselwirkungen prüfen",
+    interactions_loading: "Prüfen...",
+    interactions_none: "Keine bekannten Wechselwirkungen erkannt.",
+    interactions_few_meds: "Fügen Sie mindestens 2 Medikamente hinzu, um Wechselwirkungen zu prüfen.",
+    interactions_consult: "Bei Übereinstimmungen: Arzt oder Apotheker konsultieren.",
+    interactions_severity_major: "Schwer",
+    interactions_severity_moderate: "Mässig",
+    interactions_severity_minor: "Gering",
+    more_title: "Mehr",
+    optional_features: "Optionale Funktionen",
+    optional_features_sub: "Zusätzliche Tools für Ihre Gesundheit",
   },
   en: {
     residents: "Residents", alerts: "Alerts", view_alerts: "View",
@@ -328,6 +354,20 @@ const STRINGS = {
     doctor_saved: "Data saved",
     doctor_error: "Could not save",
     doctor_required: "First and last name are required",
+    doctor_sos_hint: "Name, surname, email and phone to activate SOS.",
+    interactions_title: "Interactions",
+    interactions_sub: "Possible interactions between your medications",
+    interactions_check: "Check interactions",
+    interactions_loading: "Checking...",
+    interactions_none: "No known interactions detected.",
+    interactions_few_meds: "Add at least 2 medications to check for interactions.",
+    interactions_consult: "If there are matches, consult your doctor or pharmacist.",
+    interactions_severity_major: "Major",
+    interactions_severity_moderate: "Moderate",
+    interactions_severity_minor: "Minor",
+    more_title: "More",
+    optional_features: "Optional features",
+    optional_features_sub: "Additional tools for your health",
   },
 };
 
@@ -418,6 +458,9 @@ export default function HomePage() {
   const [doctorPhone, setDoctorPhone] = useState("");
   const [doctorSaving, setDoctorSaving] = useState(false);
   const [doctorMessage, setDoctorMessage] = useState("");
+  const [showInteractions, setShowInteractions] = useState(false);
+  const [interactionsData, setInteractionsData] = useState(null);
+  const [interactionsLoading, setInteractionsLoading] = useState(false);
   const carouselRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -722,6 +765,18 @@ export default function HomePage() {
       }
     } catch { setDoctor(null); }
   };
+
+  const loadInteractions = useCallback(async () => {
+    if (!user?.id || !token) return;
+    setInteractionsLoading(true);
+    setInteractionsData(null);
+    try {
+      const res = await fetch(`/api/drug-interactions?user_id=${user.id}`, { headers, credentials: "include" });
+      const data = await res.json();
+      setInteractionsData(res.ok ? data : { interactions: [], error: data.error });
+    } catch { setInteractionsData({ interactions: [], error: "network" }); }
+    finally { setInteractionsLoading(false); }
+  }, [user, token, headers]);
 
   const loadBpReadings = useCallback(async () => {
     if (!user?.id || !token) return;
@@ -1106,8 +1161,19 @@ export default function HomePage() {
     if (!carouselRef.current) return;
     const idx = daysArray.findIndex((d) => d.isSelected);
     if (idx < 0) return;
-    carouselRef.current.scrollTo({ left: idx * 68 - carouselRef.current.clientWidth / 2 + 34, behavior: "smooth" });
+    const itemWidth = 60 + 8;
+    const scrollX = idx * itemWidth + 30 - carouselRef.current.clientWidth / 2;
+    carouselRef.current.scrollTo({ left: Math.max(0, scrollX), behavior: "smooth" });
   }, [selectedDate, daysArray]);
+
+  useEffect(() => {
+    if (!carouselRef.current) return;
+    const todayIdx = daysArray.findIndex((d) => d.isToday);
+    if (todayIdx < 0) return;
+    const itemWidth = 60 + 8;
+    const scrollX = todayIdx * itemWidth + 30 - carouselRef.current.clientWidth / 2;
+    carouselRef.current.scrollTo({ left: Math.max(0, scrollX), behavior: "auto" });
+  }, []);
 
   useEffect(() => {
     const name = user?.nombre || "Paciente";
@@ -1307,14 +1373,10 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ── Status Cards ── */}
-      <div className="px-4 flex gap-2 overflow-x-auto pb-2 pt-3">
-        <div className="flex-none bg-white rounded-xl px-4 py-3 shadow-sm min-w-[70px] text-center">
-          <p className="text-[9px] font-bold text-slate-400 uppercase">{t("residents")}</p>
-          <p className="text-xl font-bold text-slate-800 mt-1">1</p>
-        </div>
+      {/* ── Status: Alertas (principal) ── */}
+      <div className="px-4 flex gap-2 pb-2 pt-3">
         <button onClick={() => { setShowAlerts((p) => !p); if (!showAlerts) loadAlerts(); }}
-          className="flex-none bg-[#111827] rounded-xl px-4 py-3 shadow-sm min-w-[80px] text-center relative">
+          className="flex-1 bg-[#111827] rounded-xl px-4 py-3 shadow-sm text-center relative">
           <p className="text-[9px] font-bold text-blue-300 uppercase">{t("alerts")}</p>
           <p className="text-xs font-bold text-white mt-1">{showAlerts ? t("view_less") : t("view_alerts")}</p>
           {alerts.length > 0 && (
@@ -1324,24 +1386,9 @@ export default function HomePage() {
           )}
         </button>
         <button onClick={loadAlerts}
-          className="flex-none bg-[#111827] rounded-xl px-4 py-3 shadow-sm min-w-[70px] text-center">
-          <p className="text-[9px] font-bold text-blue-300 uppercase">{t("refresh_alerts")}</p>
+          className="flex-none bg-slate-700 rounded-xl px-4 py-3 shadow-sm min-w-[60px] text-center">
+          <p className="text-[9px] font-bold text-slate-300 uppercase">{t("refresh_alerts")}</p>
           <p className="text-xs font-bold text-white mt-1">{alertsLoading ? "..." : "🔄"}</p>
-        </button>
-        <button onClick={async () => { await loadDoctor(); setShowSos(true); }}
-          className="flex-none bg-yellow-400 rounded-xl px-4 py-3 shadow-sm min-w-[80px] text-center">
-          <p className="text-[9px] font-bold text-slate-800 uppercase">{t("sos")}</p>
-          <p className="text-xs font-bold text-slate-800 mt-1">{t("doctor_contact")}</p>
-        </button>
-        <button onClick={async () => { setShowStockReport(true); await loadStockReport(); }}
-          className="flex-none bg-teal-500 rounded-xl px-4 py-3 shadow-sm min-w-[80px] text-center">
-          <p className="text-[9px] font-bold text-white uppercase">{t("stock_report")}</p>
-          <p className="text-xs font-bold text-white mt-1">{t("stock")}</p>
-        </button>
-        <button onClick={async () => { setShowBp(true); await loadBpReadings(); }}
-          className="flex-none bg-rose-500 rounded-xl px-4 py-3 shadow-sm min-w-[80px] text-center">
-          <p className="text-[9px] font-bold text-white uppercase">{t("bp_title")}</p>
-          <p className="text-xs font-bold text-white mt-1">mmHg</p>
         </button>
       </div>
 
@@ -1446,12 +1493,14 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* ── Week Carousel ── */}
-      <div ref={carouselRef} className="mx-4 mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-hide scroll-smooth">
+      {/* ── Week Carousel (hoy siempre centrado, color distinto) ── */}
+      <div ref={carouselRef} className="mx-4 mt-3 flex gap-2 overflow-x-auto pb-2 scrollbar-hide scroll-smooth snap-x snap-mandatory">
         {daysArray.map((item, i) => (
           <button key={i} onClick={() => setSelectedDate(item.date)}
-            className={`flex-none w-[60px] py-2.5 rounded-xl flex flex-col items-center transition-all
-              ${item.isSelected ? "bg-[#111827] text-white scale-110 shadow-lg" : item.isToday ? "bg-blue-50 border-2 border-blue-400 text-blue-600 scale-105" : "bg-white text-slate-600 shadow-sm"}`}>
+            className={`flex-none w-[60px] py-2.5 rounded-xl flex flex-col items-center transition-all snap-center
+              ${item.isToday
+                ? (item.isSelected ? "bg-blue-500 text-white scale-110 shadow-lg ring-2 ring-blue-300" : "bg-blue-100 border-2 border-blue-500 text-blue-700 scale-105")
+                : (item.isSelected ? "bg-[#111827] text-white scale-110 shadow-lg" : "bg-white text-slate-600 shadow-sm")}`}>
             <span className="text-[9px] font-bold uppercase">{item.date.toLocaleDateString(locale, { weekday: "short" })}</span>
             <span className="text-lg font-bold">{item.date.getDate()}</span>
           </button>
@@ -1510,11 +1559,11 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ── Bottom Nav ── */}
+      {/* ── Bottom Nav: 112 | Alertas | Escanear | Más ── */}
       <nav className="fixed bottom-4 left-0 right-0 px-4 z-50">
         <div className="max-w-md mx-auto flex justify-around items-center bg-[#0f172a]/95 backdrop-blur-xl py-4 rounded-2xl shadow-2xl border border-white/10">
           <button onClick={() => window.location.href = "tel:112"}
-            className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center text-white text-lg active:scale-90 transition-transform">📞</button>
+            className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center text-white text-lg active:scale-90 transition-transform" title="Emergencia 112">📞</button>
           <button onClick={() => { setShowAlerts((p) => !p); if (!showAlerts) loadAlerts(); }}
             className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-white text-lg active:scale-90 transition-transform relative">
             🔔
@@ -1524,12 +1573,61 @@ export default function HomePage() {
               </span>
             )}
           </button>
-          <button onClick={async () => { await loadDoctor(); setShowSos(true); }}
-            className="w-12 h-12 bg-yellow-400 rounded-xl flex items-center justify-center text-lg active:scale-90 transition-transform">🏥</button>
           <button onClick={() => fileInputRef.current?.click()}
             className="w-12 h-12 bg-sky-500 rounded-xl flex items-center justify-center text-white text-lg active:scale-90 transition-transform">📷</button>
+          <button onClick={() => setShowMoreDrawer(true)}
+            className="w-12 h-12 bg-slate-600 rounded-xl flex items-center justify-center text-white text-lg active:scale-90 transition-transform">⋯</button>
         </div>
       </nav>
+
+      {/* ── Drawer: Funciones opcionales ── */}
+      {showMoreDrawer && (
+        <div className="fixed inset-0 z-[90] bg-black/50 flex items-end justify-center" onClick={() => setShowMoreDrawer(false)}>
+          <div className="bg-white rounded-t-3xl w-full max-w-md max-h-[70vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-800">{t("optional_features")}</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{t("optional_features_sub")}</p>
+              </div>
+              <button onClick={() => setShowMoreDrawer(false)} className="text-slate-400 text-xl leading-none p-2">✕</button>
+            </div>
+            <div className="p-4 space-y-2 overflow-y-auto max-h-[55vh]">
+              <button onClick={async () => { setShowMoreDrawer(false); await loadDoctor(); setShowSos(true); }}
+                className="w-full flex items-center gap-4 p-4 bg-amber-50 hover:bg-amber-100 rounded-xl text-left transition-colors">
+                <div className="w-12 h-12 bg-amber-400 rounded-xl flex items-center justify-center text-2xl">🏥</div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-800">{t("sos")} — {t("doctor_contact")}</p>
+                  <p className="text-xs text-slate-500">{t("doctor_title")}</p>
+                </div>
+              </button>
+              <button onClick={async () => { setShowMoreDrawer(false); setShowStockReport(true); await loadStockReport(); }}
+                className="w-full flex items-center gap-4 p-4 bg-teal-50 hover:bg-teal-100 rounded-xl text-left transition-colors">
+                <div className="w-12 h-12 bg-teal-500 rounded-xl flex items-center justify-center text-2xl">📦</div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-800">{t("stock_report")}</p>
+                  <p className="text-xs text-slate-500">{t("stock_report_sub")}</p>
+                </div>
+              </button>
+              <button onClick={async () => { setShowMoreDrawer(false); setShowBp(true); await loadBpReadings(); }}
+                className="w-full flex items-center gap-4 p-4 bg-rose-50 hover:bg-rose-100 rounded-xl text-left transition-colors">
+                <div className="w-12 h-12 bg-rose-500 rounded-xl flex items-center justify-center text-2xl">💉</div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-800">{t("bp_title")}</p>
+                  <p className="text-xs text-slate-500">{t("bp_sub")}</p>
+                </div>
+              </button>
+              <button onClick={async () => { setShowMoreDrawer(false); setShowInteractions(true); await loadInteractions(); }}
+                className="w-full flex items-center gap-4 p-4 bg-amber-50 hover:bg-amber-100 rounded-xl text-left transition-colors">
+                <div className="w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center text-2xl">⚠️</div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-800">{t("interactions_title")}</p>
+                  <p className="text-xs text-slate-500">{t("interactions_sub")}</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modals ── */}
       {showSos && (
@@ -1627,6 +1725,47 @@ export default function HomePage() {
               ))}
             </div>
           ) : <p className="text-xs text-slate-400 mt-1">{t("bp_empty")}</p>}
+        </Modal>
+      )}
+
+      {showInteractions && (
+        <Modal onClose={() => setShowInteractions(false)} title={t("interactions_title")}>
+          <p className="text-xs text-slate-500 mb-3">{t("interactions_sub")}</p>
+          {interactionsLoading ? (
+            <p className="text-sm text-slate-500 py-4 text-center">{t("interactions_loading")}</p>
+          ) : interactionsData ? (
+            <>
+              {interactionsData.interactions?.length > 0 ? (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {interactionsData.interactions.map((i, idx) => (
+                    <div key={idx} className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                      <p className="text-sm font-bold text-slate-800">{i.drug_a} + {i.drug_b}</p>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        i.severity === "major" ? "bg-red-200 text-red-800" :
+                        i.severity === "moderate" ? "bg-amber-200 text-amber-800" : "bg-slate-200 text-slate-600"
+                      }`}>
+                        {i.severity === "major" ? t("interactions_severity_major") :
+                         i.severity === "moderate" ? t("interactions_severity_moderate") : t("interactions_severity_minor")}
+                      </span>
+                      <p className="text-xs text-slate-600 mt-2">{i.description}</p>
+                      {i.management && <p className="text-xs text-amber-700 mt-1 font-medium">{i.management}</p>}
+                    </div>
+                  ))}
+                </div>
+              ) : interactionsData.drugNames?.length < 2 ? (
+                <p className="text-sm text-slate-500 py-4">{t("interactions_few_meds")}</p>
+              ) : (
+                <p className="text-sm text-emerald-600 font-medium py-4">{t("interactions_none")}</p>
+              )}
+              <div className="mt-4 bg-slate-100 rounded-xl p-3">
+                <p className="text-xs font-bold text-slate-700">⚠️ {t("interactions_consult")}</p>
+              </div>
+              <button onClick={loadInteractions} disabled={interactionsLoading}
+                className="w-full mt-3 bg-amber-600 text-white text-xs font-bold py-3 rounded-xl disabled:opacity-50">
+                {interactionsLoading ? t("interactions_loading") : t("interactions_check")}
+              </button>
+            </>
+          ) : null}
         </Modal>
       )}
 
