@@ -513,20 +513,22 @@ export default function HomePage() {
       const saved = localStorage.getItem("userSession");
       if (saved) {
         const s = JSON.parse(saved);
-        setUser(s);
-        setToken(s.token || "");
-        const accepted = localStorage.getItem(`disclaimer_accepted_${s.id}`);
-        if (!accepted) setShowDisclaimer(true);
-        // Feedback: solo una vez por usuario
-        if (accepted) {
-          const alreadySent = localStorage.getItem(`feedback_sent_${s.id}`);
-          if (alreadySent) {
-            setFbAlreadySent(true);
-          } else {
-            const lastFb = localStorage.getItem(`feedback_asked_${s.id}`);
-            const daysSinceAsk = lastFb ? (Date.now() - new Date(lastFb).getTime()) / 86400000 : 999;
-            if (daysSinceAsk >= 7) {
-              setTimeout(() => setShowFeedback(true), 5000);
+        if (s && typeof s === "object") {
+          setUser(s);
+          setToken(s.token || "");
+          const accepted = localStorage.getItem(`disclaimer_accepted_${s.id}`);
+          if (!accepted) setShowDisclaimer(true);
+          // Feedback: solo una vez por usuario
+          if (accepted) {
+            const alreadySent = localStorage.getItem(`feedback_sent_${s.id}`);
+            if (alreadySent) {
+              setFbAlreadySent(true);
+            } else {
+              const lastFb = localStorage.getItem(`feedback_asked_${s.id}`);
+              const daysSinceAsk = lastFb ? (Date.now() - new Date(lastFb).getTime()) / 86400000 : 999;
+              if (daysSinceAsk >= 7) {
+                setTimeout(() => setShowFeedback(true), 5000);
+              }
             }
           }
         }

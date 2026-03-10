@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Error({ error, reset }) {
+  const [showDetail, setShowDetail] = useState(false);
+  const msg = error?.message || String(error);
+
   useEffect(() => {
     console.error("[App Error]", error);
   }, [error]);
@@ -14,6 +17,17 @@ export default function Error({ error, reset }) {
       <p className="text-slate-400 text-sm mb-6 max-w-sm">
         Se ha producido un error al cargar la aplicación. Prueba a recargar la página.
       </p>
+      <button
+        onClick={() => setShowDetail((d) => !d)}
+        className="text-xs text-slate-500 mb-2 underline"
+      >
+        {showDetail ? "Ocultar detalle" : "Ver detalle del error"}
+      </button>
+      {showDetail && (
+        <pre className="mb-4 p-3 bg-slate-900 rounded text-left text-[10px] text-red-300 overflow-auto max-w-full max-h-32">
+          {msg}
+        </pre>
+      )}
       <button
         onClick={() => reset()}
         className="px-6 py-3 rounded-xl bg-[#007AFF] text-white font-bold text-sm active:scale-95 transition-transform"
