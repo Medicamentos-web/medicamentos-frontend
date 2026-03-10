@@ -461,6 +461,7 @@ export default function HomePage() {
   const [showInteractions, setShowInteractions] = useState(false);
   const [interactionsData, setInteractionsData] = useState(null);
   const [interactionsLoading, setInteractionsLoading] = useState(false);
+  const [showMoreDrawer, setShowMoreDrawer] = useState(false);
   const carouselRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
