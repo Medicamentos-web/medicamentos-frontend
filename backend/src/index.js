@@ -2058,7 +2058,7 @@ async function findOrCreateOAuthUser(profile, provider) {
   const familyId = famResult.rows[0].id;
   const userResult = await pool.query(
     `INSERT INTO users (family_id, name, email, password_hash, role, auth_provider, must_change_password)
-     VALUES ($1, $2, $3, $4, 'superuser', $5, false)
+     VALUES ($1, $2, $3, $4, 'user', $5, false)
      RETURNING id, family_id, name, email, role`,
     [familyId, name, cleanEmail, oauthPlaceholder, provider]
   );
@@ -5033,6 +5033,146 @@ app.post("/api/blood-pressure", requireAuth, async (req, res) => {
 });
 
 // =============================================================================
+// DRUG INTERACTIONS — Check interactions between user's medications
+// Uses DrugBank API when DRUGBANK_API_KEY is set. Data from web; patient must consult doctor/pharmacist.
+// =============================================================================
+const DRUGBANK_API_KEY = process.env.DRUGBANK_API_KEY || "";
+
+// Fallback: interacciones conocidas cuando no hay API DrugBank (fuente: literatura médica)
+// a/b = variantes de cada medicamento; match si el usuario tiene uno de cada grupo
+const FALLBACK_INTERACTIONS = [
+  { a: ["warfarin", "coumadin", "marcumar"], b: ["aspirin", "aspirina", "ácido acetilsalicílico"], severity: "major", desc: "Riesgo de sangrado aumentado." },
+  { a: ["warfarin", "coumadin", "marcumar"], b: ["ibuprofeno", "ibuprofene"], severity: "major", desc: "Riesgo de sangrado aumentado." },
+  { a: ["aspirin", "aspirina", "ácido acetilsalicílico"], b: ["ibuprofeno", "ibuprofene"], severity: "moderate", desc: "Ibuprofeno puede reducir el efecto cardioprotector de la aspirina." },
+  { a: ["omeprazol", "pantoprazol", "esomeprazol"], b: ["clopidogrel", "plavix"], severity: "moderate", desc: "Omeprazol puede reducir el efecto antiagregante de clopidogrel." },
+];
+
+function normalizeForMatch(str) {
+  return (str || "").toLowerCase().replace(/[áàäâ]/g, "a").replace(/[éèëê]/g, "e").replace(/[íìïî]/g, "i").replace(/[óòöô]/g, "o").replace(/[úùüû]/g, "u").trim();
+}
+
+function checkFallbackInteractions(drugNames) {
+  const normalized = drugNames.map((n) => normalizeForMatch(n));
+  const found = [];
+  for (const rule of FALLBACK_INTERACTIONS) {
+    const hasA = rule.a.some((d) => normalized.some((n) => n.includes(normalizeForMatch(d)) || normalizeForMatch(d).includes(n)));
+    const hasB = rule.b.some((d) => normalized.some((n) => n.includes(normalizeForMatch(d)) || normalizeForMatch(d).includes(n)));
+    if (hasA && hasB) {
+      const matchA = rule.a.find((d) => normalized.some((n) => n.includes(normalizeForMatch(d)) || normalizeForMatch(d).includes(n)));
+      const matchB = rule.b.find((d) => normalized.some((n) => n.includes(normalizeForMatch(d)) || normalizeForMatch(d).includes(n)));
+      const userA = drugNames.find((n) => normalizeForMatch(n).includes(normalizeForMatch(matchA)) || normalizeForMatch(matchA).includes(normalizeForMatch(n)));
+      const userB = drugNames.find((n) => normalizeForMatch(n).includes(normalizeForMatch(matchB)) || normalizeForMatch(matchB).includes(normalizeForMatch(n)));
+      found.push({
+        drug_a: userA || matchA,
+        drug_b: userB || matchB,
+        severity: rule.severity,
+        description: rule.desc,
+        management: "Consulte a su médico o farmacéutico.",
+      });
+    }
+  }
+  return found;
+}
+
+async function drugBankIngredientSearch(drugName) {
+  if (!DRUGBANK_API_KEY) return null;
+  try {
+    const res = await fetch(
+      `https://api.drugbank.com/v1/ingredient_names?q=${encodeURIComponent(drugName)}&fuzzy=true`,
+      { headers: { Authorization: DRUGBANK_API_KEY } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const hits = data?.ingredient_names || data?.results || [];
+    const first = hits[0];
+    return first?.drugbank_id || first?.id || null;
+  } catch (e) {
+    console.warn("[DrugBank ingredient search]", e.message);
+    return null;
+  }
+}
+
+async function drugBankDdiCheck(drugbankIds) {
+  if (!DRUGBANK_API_KEY || !drugbankIds?.length) return [];
+  const ids = [...new Set(drugbankIds)].filter(Boolean).slice(0, 40);
+  if (ids.length < 2) return [];
+  try {
+    const res = await fetch(
+      `https://api.drugbank.com/v1/ddi?drugbank_id=${ids.join(",")}`,
+      { headers: { Authorization: DRUGBANK_API_KEY } }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data?.interactions || [];
+  } catch (e) {
+    console.warn("[DrugBank DDI]", e.message);
+    return [];
+  }
+}
+
+app.get("/api/drug-interactions", requireAuth, async (req, res) => {
+  const familyId = getFamilyId(req);
+  const userId = Number(req.query.user_id || req.user?.sub);
+  if (!familyId || !Number.isFinite(userId)) {
+    return res.status(400).json({ error: "family_id y user_id son requeridos" });
+  }
+  if (req.user.role === "user" && req.user.sub !== userId) {
+    return res.status(403).json({ error: "solo puedes consultar tus propios medicamentos" });
+  }
+
+  try {
+    const medsResult = await pool.query(
+      `SELECT DISTINCT m.name FROM medicines m
+       WHERE m.family_id = $1 AND m.user_id = $2 AND m.name IS NOT NULL AND TRIM(m.name) != ''
+       ORDER BY m.name`,
+      [familyId, userId]
+    );
+    const drugNames = medsResult.rows.map((r) => (r.name || "").trim()).filter(Boolean);
+    if (drugNames.length < 2) {
+      return res.json({ interactions: [], drugNames, configured: !!DRUGBANK_API_KEY, disclaimer: "consult_doctor" });
+    }
+
+    let interactions = [];
+    if (DRUGBANK_API_KEY) {
+      const drugbankIds = [];
+      const idToName = {};
+      for (const name of drugNames) {
+        const id = await drugBankIngredientSearch(name);
+        if (id) {
+          drugbankIds.push(id);
+          idToName[id] = name;
+        }
+      }
+      const rawInteractions = await drugBankDdiCheck(drugbankIds);
+      interactions = rawInteractions.map((i) => {
+        const ingA = i.ingredient || i.product_ingredient;
+        const ingB = i.affected_ingredient || i.affected_product_ingredient;
+        return {
+          drug_a: (typeof ingA === "object" ? ingA?.name : ingA) || idToName[i.drugbank_id] || i.drugbank_id,
+          drug_b: (typeof ingB === "object" ? ingB?.name : ingB) || idToName[i.affected_drugbank_id] || i.affected_drugbank_id,
+          severity: i.severity || "unknown",
+          description: i.description || i.extended_description || "",
+          management: i.management || "",
+        };
+      });
+    }
+    if (interactions.length === 0) {
+      interactions = checkFallbackInteractions(drugNames);
+    }
+
+    res.json({
+      interactions,
+      drugNames,
+      configured: !!DRUGBANK_API_KEY,
+      disclaimer: "consult_doctor",
+    });
+  } catch (e) {
+    console.error("[API drug-interactions]", e.message);
+    res.status(500).json({ error: "No se pudo verificar interacciones" });
+  }
+});
+
+// =============================================================================
 // PDF CRÍTICOS
 // =============================================================================
 app.get("/admin/meds-critical/pdf", requireRoleHtml(["admin", "superuser"]), async (req, res) => {
@@ -5503,7 +5643,7 @@ app.post("/api/register-trial", async (req, res) => {
 
     const userResult = await pool.query(
       `INSERT INTO users (family_id, name, email, password_hash, role, must_change_password, auth_provider)
-       VALUES ($1, $2, $3, $4, 'superuser', true, 'email')
+       VALUES ($1, $2, $3, $4, 'user', true, 'email')
        RETURNING id, family_id, name, email, role`,
       [familyId, cleanName, cleanEmail, hashed]
     );
