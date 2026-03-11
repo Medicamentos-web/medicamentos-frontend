@@ -654,11 +654,12 @@ export default function HomePage() {
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(publicKey),
               });
+              const subJson = sub.toJSON();
               await fetch("/api/push/subscribe", {
                 method: "POST",
                 headers: { ...headers, "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify(sub.toJSON()),
+                body: JSON.stringify({ ...subJson, lang }),
               });
             }
           } catch (pushErr) {
@@ -922,11 +923,12 @@ export default function HomePage() {
                   userVisibleOnly: true,
                   applicationServerKey: urlBase64ToUint8Array(publicKey),
                 });
+                const subJson = sub.toJSON();
                 await fetch("/api/push/subscribe", {
                   method: "POST",
                   headers: { ...headers, "Content-Type": "application/json" },
                   credentials: "include",
-                  body: JSON.stringify(sub.toJSON()),
+                  body: JSON.stringify({ ...subJson, lang }),
                 });
                 console.log("[PUSH] Subscription refreshed successfully");
               }
@@ -1170,13 +1172,18 @@ export default function HomePage() {
   }, [selectedDate, daysArray]);
 
   useEffect(() => {
-    if (!carouselRef.current) return;
+    if (!user || !carouselRef.current) return;
     const todayIdx = daysArray.findIndex((d) => d.isToday);
     if (todayIdx < 0) return;
     const itemWidth = 60 + 8;
     const scrollX = todayIdx * itemWidth + 30 - carouselRef.current.clientWidth / 2;
-    carouselRef.current.scrollTo({ left: Math.max(0, scrollX), behavior: "auto" });
-  }, []);
+    const timer = setTimeout(() => {
+      if (carouselRef.current) {
+        carouselRef.current.scrollTo({ left: Math.max(0, scrollX), behavior: "auto" });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [user, daysArray]);
 
   useEffect(() => {
     const name = user?.nombre || "Paciente";
