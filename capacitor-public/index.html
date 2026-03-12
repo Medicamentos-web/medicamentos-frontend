@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>MediControl</title>
+  <style>
+    body { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0f172a; color: #94a3b8; font-family: system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <p>Cargando MediControl...</p>
+  <script>
+    // Fallback: si Capacitor no carga la URL remota, redirigir
+    if (window.location.href.includes('capacitor://') || window.location.protocol === 'file:') {
+      window.location.href = 'https://medicamentos-frontend.vercel.app';
+    }
+  </script>
+</body>
+</html>
