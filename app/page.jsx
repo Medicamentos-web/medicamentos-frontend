@@ -627,12 +627,19 @@ export default function HomePage() {
   const requestNotifications = async () => {
     if (typeof Notification === "undefined") {
       const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      const isCapacitor = typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.();
       const isPwa = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|Edge/.test(navigator.userAgent);
       const msg = isIos && !isPwa
         ? "📱 Para activar notificaciones en iOS:\n\n1. Abre esta página en Safari\n2. Toca el botón Compartir (↑)\n3. Selecciona \"Añadir a pantalla de inicio\"\n4. Abre MediControl desde el icono nuevo\n5. Activa las notificaciones desde ahí"
         : isIos && isPwa
         ? "📱 Ve a Ajustes del iPhone → Mitteilungen → MediControl → Activa las notificaciones."
-        : "Tu navegador no soporta notificaciones. Intenta instalar la app desde el menú del navegador.";
+        : (isAndroid || isCapacitor)
+        ? "📱 Para activar notificaciones en la app:\n\nAjustes del teléfono → Aplicaciones → MediControl → Notificaciones → Activar"
+        : isSafari
+        ? "📱 Safari: Abre en Chrome o Edge para notificaciones push, o instala la app desde el menú Compartir → Añadir a pantalla de inicio."
+        : "📱 Para notificaciones: usa Chrome, Edge o Firefox. O instala la app desde el menú del navegador (⋮ → Instalar aplicación).";
       alert(msg);
       return;
     }
