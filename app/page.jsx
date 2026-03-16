@@ -125,6 +125,21 @@ const STRINGS = {
     more_title: "Más",
     optional_features: "Funciones opcionales",
     optional_features_sub: "Herramientas adicionales para tu salud",
+    premium_required: "Función Premium",
+    premium_required_sub: "Actualiza a Premium para desbloquear: médico SOS, inventario, presión arterial e interacciones.",
+    upgrade_premium: "Ver planes Premium",
+    onboarding_welcome: "Bienvenido a MediControl",
+    onboarding_step1: "Activa las notificaciones",
+    onboarding_step1_sub: "Toca la campana 🔔 para recibir recordatorios de tus tomas.",
+    onboarding_step2_ios: "Añade a pantalla de inicio",
+    onboarding_step2_ios_sub: "Safari → Compartir (↑) → Añadir a pantalla de inicio.",
+    onboarding_step2_android: "Instala la app",
+    onboarding_step2_android_sub: "Descarga MediControl desde Google Play para mejores notificaciones.",
+    onboarding_step3: "Confirma tus tomas",
+    onboarding_step3_sub: "Marca cada medicamento cuando lo tomes para llevar el control.",
+    onboarding_skip: "Omitir",
+    onboarding_next: "Siguiente",
+    onboarding_done: "¡Empezar!",
   },
   "de-CH": {
     residents: "Bewohner", alerts: "Warnungen", view_alerts: "Anzeigen",
@@ -247,6 +262,21 @@ const STRINGS = {
     more_title: "Mehr",
     optional_features: "Optionale Funktionen",
     optional_features_sub: "Zusätzliche Tools für Ihre Gesundheit",
+    premium_required: "Premium-Funktion",
+    premium_required_sub: "Upgrade auf Premium für: Arzt-SOS, Inventar, Blutdruck und Wechselwirkungen.",
+    upgrade_premium: "Premium-Pläne ansehen",
+    onboarding_welcome: "Willkommen bei MediControl",
+    onboarding_step1: "Benachrichtigungen aktivieren",
+    onboarding_step1_sub: "Tippen Sie auf die Glocke 🔔 für Erinnerungen.",
+    onboarding_step2_ios: "Zum Startbildschirm hinzufügen",
+    onboarding_step2_ios_sub: "Safari → Teilen (↑) → Zum Home-Bildschirm.",
+    onboarding_step2_android: "App installieren",
+    onboarding_step2_android_sub: "Laden Sie MediControl aus dem Google Play Store.",
+    onboarding_step3: "Einnahmen bestätigen",
+    onboarding_step3_sub: "Markieren Sie jede Einnahme, um den Überblick zu behalten.",
+    onboarding_skip: "Überspringen",
+    onboarding_next: "Weiter",
+    onboarding_done: "Los geht's!",
   },
   en: {
     residents: "Residents", alerts: "Alerts", view_alerts: "View",
@@ -368,6 +398,21 @@ const STRINGS = {
     more_title: "More",
     optional_features: "Optional features",
     optional_features_sub: "Additional tools for your health",
+    premium_required: "Premium feature",
+    premium_required_sub: "Upgrade to Premium for: doctor SOS, inventory, blood pressure and interactions.",
+    upgrade_premium: "View Premium plans",
+    onboarding_welcome: "Welcome to MediControl",
+    onboarding_step1: "Enable notifications",
+    onboarding_step1_sub: "Tap the bell 🔔 to get dose reminders.",
+    onboarding_step2_ios: "Add to home screen",
+    onboarding_step2_ios_sub: "Safari → Share (↑) → Add to Home Screen.",
+    onboarding_step2_android: "Install the app",
+    onboarding_step2_android_sub: "Download MediControl from Google Play for better notifications.",
+    onboarding_step3: "Confirm your doses",
+    onboarding_step3_sub: "Mark each medicine when you take it to stay on track.",
+    onboarding_skip: "Skip",
+    onboarding_next: "Next",
+    onboarding_done: "Get started!",
   },
 };
 
@@ -462,6 +507,8 @@ export default function HomePage() {
   const [interactionsData, setInteractionsData] = useState(null);
   const [interactionsLoading, setInteractionsLoading] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
   const carouselRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -903,6 +950,13 @@ export default function HomePage() {
       fetch(`/api/billing/status?family_id=${user.family_id}`, { headers, credentials: "include" })
         .then(r => r.json()).then(d => setBilling(d)).catch(() => {});
       const alertInterval = setInterval(loadAlerts, 5 * 60 * 1000);
+
+      // Onboarding: mostrar una vez por usuario
+      const onboardingKey = `onboarding_done_${user.id}`;
+      if (!localStorage.getItem(onboardingKey)) {
+        setShowOnboarding(true);
+        setOnboardingStep(0);
+      }
 
       // Auto-request notifications if not yet asked (alertas automáticas)
       if (typeof Notification !== "undefined" && Notification.permission === "default") {
@@ -1597,7 +1651,7 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* ── Drawer: Funciones opcionales ── */}
+      {/* ── Drawer: Funciones opcionales (Premium) ── */}
       {showMoreDrawer && (
         <div className="fixed inset-0 z-[90] bg-black/50 flex items-end justify-center" onClick={() => setShowMoreDrawer(false)}>
           <div className="bg-white rounded-t-3xl w-full max-w-md max-h-[70vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
@@ -1608,38 +1662,84 @@ export default function HomePage() {
               </div>
               <button onClick={() => setShowMoreDrawer(false)} className="text-slate-400 text-xl leading-none p-2">✕</button>
             </div>
+            {!billing?.active && (
+              <div className="mx-4 mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-sm font-bold text-amber-800">{t("premium_required")}</p>
+                <p className="text-xs text-amber-700 mt-1">{t("premium_required_sub")}</p>
+                <a href="/billing" className="mt-3 inline-block bg-amber-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl">{t("upgrade_premium")}</a>
+              </div>
+            )}
             <div className="p-4 space-y-2 overflow-y-auto max-h-[55vh]">
-              <button onClick={async () => { setShowMoreDrawer(false); await loadDoctor(); setShowSos(true); }}
-                className="w-full flex items-center gap-4 p-4 bg-amber-50 hover:bg-amber-100 rounded-xl text-left transition-colors">
+              <button onClick={async () => { setShowMoreDrawer(false); if (billing?.active) { await loadDoctor(); setShowSos(true); } else window.location.href = "/billing"; }}
+                className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-colors ${billing?.active ? "bg-amber-50 hover:bg-amber-100" : "bg-slate-50 opacity-75"}`}>
                 <div className="w-12 h-12 bg-amber-400 rounded-xl flex items-center justify-center text-2xl">🏥</div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-slate-800">{t("sos")} — {t("doctor_contact")}</p>
                   <p className="text-xs text-slate-500">{t("doctor_title")}</p>
                 </div>
+                {!billing?.active && <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded">Premium</span>}
               </button>
-              <button onClick={async () => { setShowMoreDrawer(false); setShowStockReport(true); await loadStockReport(); }}
-                className="w-full flex items-center gap-4 p-4 bg-teal-50 hover:bg-teal-100 rounded-xl text-left transition-colors">
+              <button onClick={async () => { setShowMoreDrawer(false); if (billing?.active) { setShowStockReport(true); await loadStockReport(); } else window.location.href = "/billing"; }}
+                className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-colors ${billing?.active ? "bg-teal-50 hover:bg-teal-100" : "bg-slate-50 opacity-75"}`}>
                 <div className="w-12 h-12 bg-teal-500 rounded-xl flex items-center justify-center text-2xl">📦</div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-slate-800">{t("stock_report")}</p>
                   <p className="text-xs text-slate-500">{t("stock_report_sub")}</p>
                 </div>
+                {!billing?.active && <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded">Premium</span>}
               </button>
-              <button onClick={async () => { setShowMoreDrawer(false); setShowBp(true); await loadBpReadings(); }}
-                className="w-full flex items-center gap-4 p-4 bg-rose-50 hover:bg-rose-100 rounded-xl text-left transition-colors">
+              <button onClick={async () => { setShowMoreDrawer(false); if (billing?.active) { setShowBp(true); await loadBpReadings(); } else window.location.href = "/billing"; }}
+                className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-colors ${billing?.active ? "bg-rose-50 hover:bg-rose-100" : "bg-slate-50 opacity-75"}`}>
                 <div className="w-12 h-12 bg-rose-500 rounded-xl flex items-center justify-center text-2xl">💉</div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-slate-800">{t("bp_title")}</p>
                   <p className="text-xs text-slate-500">{t("bp_sub")}</p>
                 </div>
+                {!billing?.active && <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded">Premium</span>}
               </button>
-              <button onClick={async () => { setShowMoreDrawer(false); setShowInteractions(true); await loadInteractions(); }}
-                className="w-full flex items-center gap-4 p-4 bg-amber-50 hover:bg-amber-100 rounded-xl text-left transition-colors">
+              <button onClick={async () => { setShowMoreDrawer(false); if (billing?.active) { setShowInteractions(true); await loadInteractions(); } else window.location.href = "/billing"; }}
+                className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-colors ${billing?.active ? "bg-amber-50 hover:bg-amber-100" : "bg-slate-50 opacity-75"}`}>
                 <div className="w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center text-2xl">⚠️</div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-slate-800">{t("interactions_title")}</p>
                   <p className="text-xs text-slate-500">{t("interactions_sub")}</p>
                 </div>
+                {!billing?.active && <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded">Premium</span>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Onboarding: pasos con sugerencias (iOS/Android) ── */}
+      {showOnboarding && user && (
+        <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div className="p-6 text-center">
+              <h2 className="text-xl font-bold text-slate-800 mb-1">
+                {onboardingStep === 0 ? t("onboarding_welcome") : `Paso ${onboardingStep + 1}`}
+              </h2>
+              <div className="w-16 h-16 mx-auto mt-4 mb-4 rounded-2xl flex items-center justify-center text-3xl bg-blue-100">
+                {onboardingStep === 0 ? "👋" : onboardingStep === 1 ? "🔔" : onboardingStep === 2 ? (/Android/.test(navigator.userAgent) ? "📱" : "📲") : "✅"}
+              </div>
+              <p className="text-sm font-bold text-slate-700">
+                {onboardingStep === 0 ? t("onboarding_step1") : onboardingStep === 1 ? (/iPad|iPhone|iPod/.test(navigator.userAgent) ? t("onboarding_step2_ios") : t("onboarding_step2_android")) : t("onboarding_step3")}
+              </p>
+              <p className="text-xs text-slate-500 mt-2">
+                {onboardingStep === 0 ? t("onboarding_step1_sub") : onboardingStep === 1 ? (/iPad|iPhone|iPod/.test(navigator.userAgent) ? t("onboarding_step2_ios_sub") : t("onboarding_step2_android_sub")) : t("onboarding_step3_sub")}
+              </p>
+            </div>
+            <div className="p-4 flex gap-2">
+              <button onClick={() => { setShowOnboarding(false); try { localStorage.setItem(`onboarding_done_${user.id}`, "1"); } catch {} }}
+                className="flex-1 py-3 text-slate-500 text-sm font-bold rounded-xl">{t("onboarding_skip")}</button>
+              <button onClick={() => {
+                if (onboardingStep >= 2) {
+                  setShowOnboarding(false);
+                  try { localStorage.setItem(`onboarding_done_${user.id}`, "1"); } catch {};
+                } else setOnboardingStep(s => s + 1);
+              }}
+                className="flex-1 py-3 bg-blue-500 text-white text-sm font-bold rounded-xl">
+                {onboardingStep >= 2 ? t("onboarding_done") : t("onboarding_next")}
               </button>
             </div>
           </div>
