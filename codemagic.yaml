@@ -1,0 +1,45 @@
+# MediControl iOS — Codemagic
+# Configura en Codemagic UI: certificados, provisioning profile y App Store Connect API key.
+# Team → codemagic.yaml settings → Code signing identities
+# Añade tu email en recipients para recibir el IPA por correo.
+
+workflows:
+  medicontrol-ios:
+    name: MediControl iOS
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.medicontrol.app
+      vars:
+        BUNDLE_ID: "com.medicontrol.app"
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+      xcode: latest
+      node: 20
+    scripts:
+      - name: Instalar dependencias
+        script: |
+          npm ci
+      - name: Sincronizar Capacitor
+        script: |
+          npx cap sync ios
+      - name: Configurar perfiles de firma
+        script: |
+          xcode-project use-profiles
+      - name: Generar IPA
+        script: |
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - alertas.medicamentos@gmail.com
+        notify:
+          success: true
+          failure: true
