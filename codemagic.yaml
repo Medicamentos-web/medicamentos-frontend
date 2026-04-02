@@ -31,12 +31,19 @@ workflows:
         BUNDLE_ID: "com.medicontrol.app"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
+        # (Playwright no está en package.json; se deja por si se vuelve a añadir como devDependency.)
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
       xcode: latest
       node: 20
     scripts:
       - name: Instalar dependencias
         script: |
-          npm ci
+          set -euo pipefail
+          cd "${CM_BUILD_DIR:-.}"
+          node -v && npm -v
+          export CI=true
+          export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+          npm ci --no-audit --no-fund
       - name: Sincronizar Capacitor (iOS)
         script: |
           npx cap sync ios
