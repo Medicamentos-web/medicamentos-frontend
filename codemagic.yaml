@@ -15,6 +15,7 @@
 #   Si no existe el perfil: developer.apple.com → Profiles → + → App Store → App ID anterior
 #
 # La app carga la web desde Vercel (capacitor.config.ts → server.url).
+# Capacitor CLI 8.x exige Node >= 22 (mantener node: 22 aquí).
 
 workflows:
   medicontrol-ios:
@@ -34,7 +35,7 @@ workflows:
         # (Playwright no está en package.json; se deja por si se vuelve a añadir como devDependency.)
         PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
       xcode: latest
-      node: 20
+      node: 22
     scripts:
       - name: Instalar dependencias
         script: |
