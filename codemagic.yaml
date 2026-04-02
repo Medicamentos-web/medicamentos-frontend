@@ -1,13 +1,20 @@
 # MediControl iOS — Codemagic
-# Configura en Codemagic UI: certificados, provisioning profile y App Store Connect API key.
-# Team → codemagic.yaml settings → Code signing identities
-# Añade tu email en recipients para recibir el IPA por correo.
+#
+# Antes del primer build:
+# 1. App Store Connect → Users → Integrations → API Key (rol App Manager o superior)
+# 2. Codemagic → Team → Integrations → conectar la misma key (nombre único, ej. MediControl_ASC)
+# 3. Sustituye abajo TU_APP_STORE_CONNECT_KEY por ese nombre EXACTO (sin comillas extra)
+# 4. App Store Connect → My Apps: app creada con Bundle ID com.medicontrol.app
+#
+# La app carga la web desde Vercel (capacitor.config.ts → server.url). Tras npm ci solo hace cap sync.
 
 workflows:
   medicontrol-ios:
     name: MediControl iOS
-    max_build_duration: 60
+    max_build_duration: 90
     instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: TU_APP_STORE_CONNECT_KEY
     environment:
       ios_signing:
         distribution_type: app_store
@@ -22,7 +29,7 @@ workflows:
       - name: Instalar dependencias
         script: |
           npm ci
-      - name: Sincronizar Capacitor
+      - name: Sincronizar Capacitor (iOS)
         script: |
           npx cap sync ios
       - name: Configurar perfiles de firma
@@ -43,3 +50,9 @@ workflows:
         notify:
           success: true
           failure: true
+      # Sube el IPA a App Store Connect con la misma API key que integrations (auth: integration).
+      # Cuando Apple termine de procesar el build, aparecerá en TestFlight / el selector de builds.
+      app_store_connect:
+        auth: integration
+        # Pon true si quieres que Codemagic envíe también a revisión beta de TestFlight (opcional).
+        submit_to_testflight: false
