@@ -2,6 +2,11 @@
   "framework": "nextjs",
   "buildCommand": "rm -rf .next && npm run build",
   "installCommand": "npm install",
+  "build": {
+    "env": {
+      "BACKEND_INTERNAL_URL": "https://medicamentos-backend.onrender.com"
+    }
+  },
   "headers": [
     {
       "source": "/sw.js",
