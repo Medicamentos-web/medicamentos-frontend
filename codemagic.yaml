@@ -50,9 +50,8 @@ workflows:
         notify:
           success: true
           failure: true
-      # Sube el IPA a App Store Connect con la misma API key que integrations (auth: integration).
-      # Cuando Apple termine de procesar el build, aparecerá en TestFlight / el selector de builds.
+      # Sube el IPA y, tras procesarlo Apple, envía a revisión beta de TestFlight (sin beta_groups:
+      # puedes usar testers internos de tu equipo en App Store Connect).
       app_store_connect:
         auth: integration
-        # Pon true si quieres que Codemagic envíe también a revisión beta de TestFlight (opcional).
-        submit_to_testflight: false
+        submit_to_testflight: true
