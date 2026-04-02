@@ -5,9 +5,14 @@ node_modules/
 .env.supabase
 *.log
 backups/
-scripts/
+scripts/*
+!scripts/fix-ios-spm-package.js
 mobile/
 docker-compose*.yml
 .env.*.example
 database/
 docs/
+
+# Claves Apple / App Store Connect (nunca en el repo)
+*.p8
+AuthKey_*.p8
