@@ -10,7 +10,7 @@
     "healthcheck": "node healthcheck.js",
     "test-system": "node test-system.js",
     "cap:sync": "npx cap sync",
-    "ci:ios": "npm ci && npx cap sync ios",
+    "ci:ios": "npm ci && node scripts/fix-ios-spm-package.js && npx cap sync ios && node scripts/fix-ios-spm-package.js",
     "cap:open:ios": "npx cap open ios",
     "cap:open:android": "npx cap open android",
     "cap:verify": "node verify-capacitor.js",

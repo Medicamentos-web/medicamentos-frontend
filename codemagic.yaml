@@ -46,7 +46,12 @@ workflows:
           npm ci --no-audit --no-fund
       - name: Sincronizar Capacitor (iOS)
         script: |
+          set -euo pipefail
+          cd "${CM_BUILD_DIR:-.}"
+          # Capacitor en Windows genera rutas con \ en Package.swift; en Swift eso rompe SPM en macOS.
+          node scripts/fix-ios-spm-package.js
           npx cap sync ios
+          node scripts/fix-ios-spm-package.js
       - name: Configurar perfiles de firma
         script: |
           xcode-project use-profiles
