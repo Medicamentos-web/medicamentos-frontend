@@ -53,7 +53,10 @@ const nextConfig = {
 
   // Proxy: reenvía peticiones del backend a través de Next.js
   async rewrites() {
-    const backendUrl = process.env.BACKEND_INTERNAL_URL || "http://localhost:4000";
+    // En Vercel, sin BACKEND_INTERNAL_URL el fallback era localhost → el proxy fallaba y la app no cargaba datos.
+    const backendUrl =
+      process.env.BACKEND_INTERNAL_URL ||
+      (process.env.VERCEL ? "https://medicamentos-backend.onrender.com" : "http://localhost:4000");
     return [
       { source: "/api/:path*", destination: `${backendUrl}/api/:path*` },
       { source: "/auth/:path*", destination: `${backendUrl}/auth/:path*` },
