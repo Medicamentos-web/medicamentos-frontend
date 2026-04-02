@@ -3,7 +3,7 @@
 # Antes del primer build:
 # 1. App Store Connect → Users → Integrations → API Key (rol App Manager o superior)
 # 2. Codemagic → Team → Integrations → Developer Portal → misma API key (.p8 + Issuer ID + Key ID)
-# 3. Sustituye abajo TU_APP_STORE_CONNECT_KEY por ese nombre EXACTO (o edita en la app en Codemagic)
+# 3. app_store_connect debe coincidir con el nombre de la key en Codemagic → Integrations (si renombraste la key, cámbialo aquí)
 # 4. developer.apple.com → Identifiers → App ID com.medicontrol.app (tipo App)
 # 5. App Store Connect → My Apps → app con el mismo Bundle ID
 #
@@ -22,7 +22,7 @@ workflows:
     max_build_duration: 90
     instance_type: mac_mini_m2
     integrations:
-      app_store_connect: TU_APP_STORE_CONNECT_KEY
+      app_store_connect: "App Store Connect"
     environment:
       ios_signing:
         distribution_type: app_store
