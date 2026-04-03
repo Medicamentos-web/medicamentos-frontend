@@ -547,11 +547,17 @@ export default function HomePage() {
     const appleReason = params?.get("reason") || "";
     const oauthToken = params?.get("token");
 
-    if (appleOAuthErr && appleReason) {
-      try {
-        setOauthAppleMsg(decodeURIComponent(appleReason));
-      } catch {
-        setOauthAppleMsg(appleReason);
+    if (appleOAuthErr) {
+      if (appleReason) {
+        try {
+          setOauthAppleMsg(decodeURIComponent(appleReason));
+        } catch {
+          setOauthAppleMsg(appleReason);
+        }
+      } else {
+        setOauthAppleMsg(
+          "No se pudo completar el inicio con Apple. Revisa la configuración o inténtalo de nuevo."
+        );
       }
     }
 
