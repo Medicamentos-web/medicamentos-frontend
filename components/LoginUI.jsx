@@ -4,7 +4,7 @@ import { useState } from "react";
 
 // MediControl Login – v2.0 (cache-bust 2026-02-17)
 
-export default function LoginUI({ setUser }) {
+export default function LoginUI({ setUser, oauthAppleMessage = "" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -116,6 +116,12 @@ export default function LoginUI({ setUser }) {
         <h1 className="text-2xl font-bold text-white">MediControl</h1>
         <p className="mt-1 text-sm text-slate-400">Ihre Medikamente. Unter Kontrolle.</p>
       </div>
+
+      {oauthAppleMessage ? (
+        <div className="w-full max-w-sm mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          {oauthAppleMessage}
+        </div>
+      ) : null}
 
       {/* Login Form */}
       <form

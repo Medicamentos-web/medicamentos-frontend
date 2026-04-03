@@ -122,11 +122,17 @@ const STRINGS = {
     interactions_severity_major: "Mayor",
     interactions_severity_moderate: "Moderada",
     interactions_severity_minor: "Menor",
+    wellness_title: "Consejos de bienestar (IA)",
+    wellness_sub: "Orientación general; no sustituye a médico ni farmacéutico.",
+    wellness_coming_soon:
+      "Esta función se implementará en próximas versiones de MediControl. Gracias por tu paciencia.",
+    wellness_ok: "Entendido",
     more_title: "Más",
     optional_features: "Funciones opcionales",
     optional_features_sub: "Herramientas adicionales para tu salud",
     premium_required: "Función Premium",
-    premium_required_sub: "Actualiza a Premium para desbloquear: médico SOS, inventario, presión arterial e interacciones.",
+    premium_required_sub:
+      "Actualiza a Premium para desbloquear: médico SOS, inventario, presión arterial, interacciones y consejos de bienestar (IA).",
     upgrade_premium: "Ver planes Premium",
     onboarding_welcome: "Bienvenido a MediControl",
     onboarding_step1: "Activa las notificaciones",
@@ -259,11 +265,17 @@ const STRINGS = {
     interactions_severity_major: "Schwer",
     interactions_severity_moderate: "Mässig",
     interactions_severity_minor: "Gering",
+    wellness_title: "Wellness-Tipps (KI)",
+    wellness_sub: "Allgemeine Orientierung; ersetzt nicht Arzt oder Apotheker.",
+    wellness_coming_soon:
+      "Diese Funktion wird in einer künftigen Version von MediControl verfügbar sein. Vielen Dank für Ihre Geduld.",
+    wellness_ok: "Verstanden",
     more_title: "Mehr",
     optional_features: "Optionale Funktionen",
     optional_features_sub: "Zusätzliche Tools für Ihre Gesundheit",
     premium_required: "Premium-Funktion",
-    premium_required_sub: "Upgrade auf Premium für: Arzt-SOS, Inventar, Blutdruck und Wechselwirkungen.",
+    premium_required_sub:
+      "Upgrade auf Premium für: Arzt-SOS, Inventar, Blutdruck, Wechselwirkungen und Wellness-Tipps (KI).",
     upgrade_premium: "Premium-Pläne ansehen",
     onboarding_welcome: "Willkommen bei MediControl",
     onboarding_step1: "Benachrichtigungen aktivieren",
@@ -395,11 +407,17 @@ const STRINGS = {
     interactions_severity_major: "Major",
     interactions_severity_moderate: "Moderate",
     interactions_severity_minor: "Minor",
+    wellness_title: "Wellness tips (AI)",
+    wellness_sub: "General guidance only; not a substitute for a clinician.",
+    wellness_coming_soon:
+      "This feature will be available in a future version of MediControl. Thank you for your patience.",
+    wellness_ok: "OK",
     more_title: "More",
     optional_features: "Optional features",
     optional_features_sub: "Additional tools for your health",
     premium_required: "Premium feature",
-    premium_required_sub: "Upgrade to Premium for: doctor SOS, inventory, blood pressure and interactions.",
+    premium_required_sub:
+      "Upgrade to Premium for: doctor SOS, inventory, blood pressure, interactions and AI wellness tips.",
     upgrade_premium: "View Premium plans",
     onboarding_welcome: "Welcome to MediControl",
     onboarding_step1: "Enable notifications",
@@ -506,9 +524,11 @@ export default function HomePage() {
   const [showInteractions, setShowInteractions] = useState(false);
   const [interactionsData, setInteractionsData] = useState(null);
   const [interactionsLoading, setInteractionsLoading] = useState(false);
+  const [showWellnessAi, setShowWellnessAi] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
+  const [oauthAppleMsg, setOauthAppleMsg] = useState("");
   const carouselRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -523,9 +543,19 @@ export default function HomePage() {
     const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
     const oauthOk = params?.get("oauth") === "ok";
     const oauthError = params?.get("error") === "oauth_failed";
+    const appleOAuthErr = params?.get("error") === "apple_oauth";
+    const appleReason = params?.get("reason") || "";
     const oauthToken = params?.get("token");
 
-    if (oauthOk || oauthError) {
+    if (appleOAuthErr && appleReason) {
+      try {
+        setOauthAppleMsg(decodeURIComponent(appleReason));
+      } catch {
+        setOauthAppleMsg(appleReason);
+      }
+    }
+
+    if (oauthOk || oauthError || appleOAuthErr) {
       if (typeof window !== "undefined") {
         window.history.replaceState({}, "", window.location.pathname);
       }
@@ -1259,7 +1289,7 @@ export default function HomePage() {
     </div>
   );
 
-  if (!user) return <LoginUI setUser={handleSetUser} />;
+  if (!user) return <LoginUI setUser={handleSetUser} oauthAppleMessage={oauthAppleMsg} />;
 
   const locale = lang === "de-CH" ? "de-CH" : lang === "en" ? "en-US" : "es-ES";
 
@@ -1706,6 +1736,19 @@ export default function HomePage() {
                 </div>
                 {!billing?.active && <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded">Premium</span>}
               </button>
+              <button onClick={() => {
+                setShowMoreDrawer(false);
+                if (billing?.active) setShowWellnessAi(true);
+                else window.location.href = "/billing";
+              }}
+                className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-colors ${billing?.active ? "bg-violet-50 hover:bg-violet-100" : "bg-slate-50 opacity-75"}`}>
+                <div className="w-12 h-12 bg-violet-500 rounded-xl flex items-center justify-center text-2xl">💬</div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-800">{t("wellness_title")}</p>
+                  <p className="text-xs text-slate-500">{t("wellness_sub")}</p>
+                </div>
+                {!billing?.active && <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded">Premium</span>}
+              </button>
             </div>
           </div>
         </div>
@@ -1883,6 +1926,21 @@ export default function HomePage() {
               </button>
             </>
           ) : null}
+        </Modal>
+      )}
+
+      {showWellnessAi && (
+        <Modal onClose={() => setShowWellnessAi(false)} title={t("wellness_title")}>
+          <p className="text-xs text-slate-500 mb-3">{t("wellness_sub")}</p>
+          <div className="bg-violet-50 border border-violet-200 rounded-xl p-4 mb-4">
+            <p className="text-sm text-violet-950 leading-relaxed">{t("wellness_coming_soon")}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowWellnessAi(false)}
+            className="w-full bg-violet-600 text-white text-xs font-bold py-3 rounded-xl">
+            {t("wellness_ok")}
+          </button>
         </Modal>
       )}
 
