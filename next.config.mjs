@@ -62,6 +62,7 @@ const nextConfig = {
         : "http://localhost:4000");
     return [
       { source: "/api/:path*", destination: `${backendUrl}/api/:path*` },
+      { source: "/debug/apple-oauth", destination: `${backendUrl}/debug/apple-oauth` },
       { source: "/auth/:path*", destination: `${backendUrl}/auth/:path*` },
       { source: "/admin/:path*", destination: `${backendUrl}/admin/:path*` },
       { source: "/dashboard", destination: `${backendUrl}/dashboard` },
