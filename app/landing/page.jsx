@@ -74,6 +74,10 @@ const T = {
     lead_success: "Vielen Dank! Wir melden uns bei Ihnen.",
     footer_legal: "SaaS-Dienst nach Schweizer Recht. Kein Ersatz für professionelle medizinische Beratung.",
     footer_copy: "MediControl. Alle Rechte vorbehalten.",
+    footer_privacy: "Datenschutz",
+    footer_terms: "Nutzungsbedingungen",
+    footer_cookies: "Cookies",
+    footer_delete: "Konto löschen",
     stats_patients: "Patienten",
     stats_meds: "Medikamente verwaltet",
     stats_reminders: "Erinnerungen gesendet",
@@ -183,6 +187,10 @@ const T = {
     lead_success: "¡Gracias! Nos pondremos en contacto contigo.",
     footer_legal: "Servicio SaaS sujeto al derecho suizo. No sustituye el consejo médico profesional.",
     footer_copy: "MediControl. Todos los derechos reservados.",
+    footer_privacy: "Privacidad",
+    footer_terms: "Términos",
+    footer_cookies: "Cookies",
+    footer_delete: "Eliminar cuenta",
     stats_patients: "Pacientes",
     stats_meds: "Medicamentos gestionados",
     stats_reminders: "Recordatorios enviados",
@@ -292,6 +300,10 @@ const T = {
     lead_success: "Thank you! We'll get in touch with you.",
     footer_legal: "SaaS service under Swiss law. Does not replace professional medical advice.",
     footer_copy: "MediControl. All rights reserved.",
+    footer_privacy: "Privacy",
+    footer_terms: "Terms",
+    footer_cookies: "Cookies",
+    footer_delete: "Delete account",
     stats_patients: "Patients",
     stats_meds: "Medicines managed",
     stats_reminders: "Reminders sent",
@@ -880,9 +892,13 @@ export default function LandingPage() {
           </div>
           <p className="text-xs text-slate-500 max-w-md mx-auto">{t("footer_legal")}</p>
           <p className="text-xs text-slate-600 mt-4">© {new Date().getFullYear()} {t("footer_copy")}</p>
-          <div className="mt-4 flex justify-center gap-4">
+          <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2">
             <a href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">{t("nav_login")}</a>
             <a href="/billing" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">{t("nav_pricing")}</a>
+            <a href="/privacy" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">{t("footer_privacy")}</a>
+            <a href="/terms" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">{t("footer_terms")}</a>
+            <a href="/cookies" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">{t("footer_cookies")}</a>
+            <a href="/delete-account" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">{t("footer_delete")}</a>
           </div>
         </div>
       </footer>

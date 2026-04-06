@@ -112,6 +112,10 @@ export default function CookieConsentManager() {
               ·{" "}
               <Link href="/cookies" className="font-semibold text-emerald-700 hover:underline">
                 Cookie-Richtlinie
+              </Link>{" "}
+              ·{" "}
+              <Link href="/terms" className="font-semibold text-emerald-700 hover:underline">
+                Nutzungsbedingungen
               </Link>
             </p>
 

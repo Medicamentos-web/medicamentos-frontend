@@ -11,8 +11,10 @@ const STRINGS = {
     view_less: "Ver menos", refresh_alerts: "Actualizar", sos: "SOS",
     doctor_contact: "Contacto médico", no_stock_alerts: "Sin alertas de stock",
     scan_med: "Escanear medicamento", scan_subtitle: "Sube una foto de la etiqueta.",
-    scan_birth_label: "Validar por fecha de nacimiento (DD.MM.AAAA)",
-    scan_birth_hint: "Si el nombre no coincide, ingresa la fecha de nacimiento del paciente.",
+    scan_birth_label: "Fecha de nacimiento del paciente",
+    scan_birth_hint:
+      "Toca el campo para abrir el calendario. Formato europeo: día.mes.año (p. ej. 01.01.1900). Así validamos que la receta es tuya.",
+    scan_birth_preview: "Fecha elegida",
     scan_do_not_close: "No cierres la app hasta que termine el escaneo.",
     gallery: "Subir imagen", blocks_title: "Bloques de tiempo",
     blocks_subtitle: "Resumen por horario", pending: "pendientes", total: "total",
@@ -153,8 +155,10 @@ const STRINGS = {
     view_less: "Weniger", refresh_alerts: "Aktualisieren", sos: "SOS",
     doctor_contact: "Arztkontakt", no_stock_alerts: "Keine Warnungen",
     scan_med: "Medikament scannen", scan_subtitle: "Foto der Etikette hochladen.",
-    scan_birth_label: "Mit Geburtsdatum validieren (TT.MM.JJJJ)",
-    scan_birth_hint: "Wenn der Name nicht übereinstimmt, Geburtsdatum eingeben.",
+    scan_birth_label: "Geburtsdatum des Patienten",
+    scan_birth_hint:
+      "Tippen Sie auf das Feld für den Kalender. Europäisches Format: TT.MM.JJJJ (z. B. 01.01.1900).",
+    scan_birth_preview: "Gewählt",
     scan_do_not_close: "App nicht schliessen, bis der Scan fertig ist.",
     gallery: "Bild hochladen", blocks_title: "Zeitblöcke",
     blocks_subtitle: "Zusammenfassung", pending: "offen", total: "gesamt",
@@ -296,8 +300,10 @@ const STRINGS = {
     view_less: "Less", refresh_alerts: "Refresh", sos: "SOS",
     doctor_contact: "Doctor", no_stock_alerts: "No alerts",
     scan_med: "Scan medication", scan_subtitle: "Upload a photo of the label.",
-    scan_birth_label: "Validate by birth date (DD.MM.YYYY)",
-    scan_birth_hint: "If the name doesn't match, enter the patient's birth date.",
+    scan_birth_label: "Patient's date of birth",
+    scan_birth_hint:
+      "Tap the field to open the calendar. European format: day.month.year (e.g. 01.01.1900).",
+    scan_birth_preview: "Selected date",
     scan_do_not_close: "Do not close the app until the scan is complete.",
     gallery: "Upload image", blocks_title: "Time blocks",
     blocks_subtitle: "Summary by time", pending: "pending", total: "total",
@@ -1343,6 +1349,7 @@ export default function HomePage() {
   if (!user) return <LoginUI setUser={handleSetUser} oauthAppleMessage={oauthAppleMsg} />;
 
   const locale = lang === "de-CH" ? "de-CH" : lang === "en" ? "en-US" : "es-ES";
+  const dateInputLang = lang === "de-CH" ? "de-CH" : lang === "en" ? "en-GB" : "es-ES";
 
   return (
     <div className="min-h-dvh bg-[#F2F4F8] pb-28">
@@ -2014,14 +2021,32 @@ export default function HomePage() {
             <div className="mt-2">
               <p className="text-sm text-red-500 font-medium">{scanError}</p>
               <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <p className="text-xs font-bold text-amber-800 mb-1">{t("scan_birth_label")}</p>
+                <label htmlFor="scan-birth-date" className="text-xs font-bold text-amber-800 block mb-1">
+                  {t("scan_birth_label")}
+                </label>
                 <p className="text-[10px] text-amber-600 mb-2">{t("scan_birth_hint")}</p>
-                <input type="text"
-                  inputMode="numeric"
-                  placeholder="DD.MM.YYYY"
+                <input
+                  id="scan-birth-date"
+                  type="date"
+                  lang={dateInputLang}
                   value={scanBirthDate}
-                  onChange={(e) => setScanBirthDate(e.target.value.replace(/[^\d.]/g, "").slice(0, 10))}
-                  className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm bg-white" />
+                  onChange={(e) => setScanBirthDate(e.target.value)}
+                  min="1900-01-01"
+                  max={new Date().toISOString().slice(0, 10)}
+                  className="w-full border border-amber-300 rounded-xl px-3 py-3 text-base bg-white min-h-[48px] text-slate-900
+                    [color-scheme:light] cursor-pointer"
+                  autoComplete="bday"
+                />
+                {scanBirthDate ? (
+                  <p className="text-[10px] text-amber-800 font-medium mt-1.5" aria-live="polite">
+                    {t("scan_birth_preview")}:{" "}
+                    {new Date(`${scanBirthDate}T12:00:00`).toLocaleDateString("de-CH", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                  </p>
+                ) : null}
               </div>
             </div>
           )}
