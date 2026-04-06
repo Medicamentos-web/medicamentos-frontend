@@ -26,22 +26,39 @@ npm run build | Out-Null
 Write-Host "[2/3] Syncing Capacitor..." -ForegroundColor Yellow
 npx cap sync android | Out-Null
 
-# Generar AAB
-Write-Host "[3/3] Generating AAB..." -ForegroundColor Yellow
+# Generar AAB (solo modulo :app — clean fuerza nuevo archivo; sin esto Gradle puede dejar UP-TO-DATE y la hora no cambia)
+Write-Host "[3/3] Generating AAB (clean + :app:bundleRelease)..." -ForegroundColor Yellow
 Set-Location "$projectRoot\android"
-.\gradlew.bat bundleRelease
+.\gradlew.bat :app:clean :app:bundleRelease --no-configuration-cache
 
 $aabPath = "$projectRoot\android\app\build\outputs\bundle\release\app-release.aab"
 if (Test-Path $aabPath) {
-    # Marca de modificacion = hora local actual (Gradle a veces deja un timestamp que no coincide con el reloj del PC)
     $nowLocal = Get-Date
-    (Get-Item -LiteralPath $aabPath).LastWriteTime = $nowLocal
+    # API .NET: mas fiable que solo la propiedad PowerShell en algunos discos/Explorador
+    [System.IO.File]::SetLastWriteTime($aabPath, $nowLocal)
+    try {
+        [System.IO.File]::SetCreationTime($aabPath, $nowLocal)
+    } catch {
+        # CreationTime a veces no se puede cambiar; no es critico
+    }
+
+    # Copia con fecha/hora en el nombre (nuevo archivo = Explorador muestra hora clara; mismo contenido que app-release.aab)
+    $verLine = Select-String -Path "$projectRoot\android\app\build.gradle" -Pattern "versionCode\s+(\d+)" | Select-Object -First 1
+    $vCode = if ($verLine) { $verLine.Matches.Groups[1].Value } else { "0" }
+    $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $outDir = Split-Path -Parent $aabPath
+    $stampedPath = Join-Path $outDir "MediControl-v${vCode}-${stamp}.aab"
+    Copy-Item -LiteralPath $aabPath -Destination $stampedPath -Force
+    [System.IO.File]::SetLastWriteTime($stampedPath, $nowLocal)
 
     $size = (Get-Item $aabPath).Length / 1MB
     Write-Host "`nOK AAB generado: $aabPath" -ForegroundColor Green
     Write-Host "  Tamano MB: $([math]::Round($size, 2))" -ForegroundColor Gray
-    Write-Host "  Fecha/hora local (Explorador): $($nowLocal.ToString('dd.MM.yyyy HH:mm:ss'))" -ForegroundColor Gray
-    Write-Host "`nSiguiente paso: subir a Play Console (play.google.com/console)" -ForegroundColor Cyan
+    Write-Host "  Fecha/hora aplicada al archivo: $($nowLocal.ToString('dd.MM.yyyy HH:mm:ss'))" -ForegroundColor Gray
+    Write-Host "  Copia con hora en el nombre (recomendada para subir a Play):" -ForegroundColor Gray
+    Write-Host "    $stampedPath" -ForegroundColor White
+    Write-Host "`nSi el Explorador sigue mostrando hora vieja: F5 o cerrar y abrir la carpeta." -ForegroundColor DarkYellow
+    Write-Host "Siguiente paso: subir a Play Console (play.google.com/console)" -ForegroundColor Cyan
 } else {
     Write-Host "`nERROR: No se encontró el AAB. Revisa los logs." -ForegroundColor Red
     exit 1
