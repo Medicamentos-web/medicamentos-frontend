@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { parseJsonResponse } from "@/lib/parseJsonSafe";
 
 // MediControl Login – v2.0 (cache-bust 2026-02-17)
 
@@ -20,13 +21,14 @@ export default function LoginUI({ setUser, oauthAppleMessage = "" }) {
     event.preventDefault();
     setError("");
     const body = { email, password };
+    try {
     const res = await fetch(`/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    const data = await parseJsonResponse(res);
     if (!res.ok) {
       setError(data.error || "No se pudo iniciar sesión.");
       return;
@@ -43,11 +45,15 @@ export default function LoginUI({ setUser, oauthAppleMessage = "" }) {
     localStorage.setItem("userSession", JSON.stringify(session));
     setUser(session);
     setMustChange(!!data.user.must_change_password);
+    } catch (e) {
+      setError(e.message || "Error de conexión.");
+    }
   };
 
   const handleFirstChange = async (event) => {
     event.preventDefault();
     setError("");
+    try {
     const res = await fetch(`/auth/change-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -57,25 +63,29 @@ export default function LoginUI({ setUser, oauthAppleMessage = "" }) {
         new_password: newPassword,
       }),
     });
-    const data = await res.json();
+    const data = await parseJsonResponse(res);
     if (!res.ok) {
       setError(data.error || "No se pudo cambiar la contraseña.");
       return;
     }
     setMustChange(false);
+    } catch (e) {
+      setError(e.message || "Error de conexión.");
+    }
   };
 
   const handleForgot = async (event) => {
     event.preventDefault();
     setResetMessage("");
     const forgotBody = { email };
+    try {
     const res = await fetch(`/auth/forgot`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify(forgotBody),
     });
-    const data = await res.json();
+    const data = await parseJsonResponse(res);
     if (!res.ok) {
       setResetMessage(data.error || "No se pudo solicitar el cambio.");
       return;
@@ -84,11 +94,15 @@ export default function LoginUI({ setUser, oauthAppleMessage = "" }) {
       setResetToken(data.reset_token);
     }
     setResetMessage("Revisa tu correo o usa el token de recuperación.");
+    } catch (e) {
+      setResetMessage(e.message || "Error de conexión.");
+    }
   };
 
   const handleReset = async (event) => {
     event.preventDefault();
     setResetMessage("");
+    try {
     const res = await fetch(`/auth/reset`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -98,12 +112,15 @@ export default function LoginUI({ setUser, oauthAppleMessage = "" }) {
         new_password: resetNewPassword,
       }),
     });
-    const data = await res.json();
+    const data = await parseJsonResponse(res);
     if (!res.ok) {
       setResetMessage(data.error || "No se pudo cambiar la contraseña.");
       return;
     }
     setResetMessage("Contraseña actualizada. Ya puedes iniciar sesión.");
+    } catch (e) {
+      setResetMessage(e.message || "Error de conexión.");
+    }
   };
 
   return (

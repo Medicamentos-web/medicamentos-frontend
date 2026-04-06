@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { parseJsonResponse } from "@/lib/parseJsonSafe";
 
 const T = {
   "de-CH": {
@@ -378,7 +379,7 @@ export default function LandingPage() {
           signal: controller.signal,
           body: JSON.stringify({ name: formData.name, email: formData.email, phone: formData.phone, lang, source: utmSource }),
         });
-        const data = await res.json();
+        const data = await parseJsonResponse(res);
         if (!res.ok) {
           clearTimeout(timeout);
           if (data.error === "already_registered") setError(t("form_already"));

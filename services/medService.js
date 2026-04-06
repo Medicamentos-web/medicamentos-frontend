@@ -1,3 +1,5 @@
+import { parseJsonResponse } from "@/lib/parseJsonSafe";
+
 export async function getMedicinesByDate(userId, selectedDate, familyId) {
   const date = selectedDate.toISOString().slice(0, 10);
   const url = `/api/meds-by-date?user_id=${userId}&family_id=${familyId}&date=${date}`;
@@ -5,5 +7,10 @@ export async function getMedicinesByDate(userId, selectedDate, familyId) {
   if (!res.ok) {
     return [];
   }
-  return res.json();
+  try {
+    const data = await parseJsonResponse(res);
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
 }

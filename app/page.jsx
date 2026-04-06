@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import LoginUI from "../components/LoginUI";
+import { parseJsonResponse } from "@/lib/parseJsonSafe";
 
 // ── Traducciones ────────────────────────────────────────────────────────
 const STRINGS = {
@@ -573,9 +574,9 @@ export default function HomePage() {
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
-        .then((r) => r.json())
+        .then(async (r) => parseJsonResponse(r))
         .then((data) => {
-          if (data.user) {
+          if (data && data.user) {
             const session = {
               id: data.user.sub || data.user.id,
               nombre: data.user.name,
@@ -738,7 +739,8 @@ export default function HomePage() {
         if (registration?.pushManager && token) {
           try {
             const vapidRes = await fetch("/api/push/vapid");
-            const { publicKey } = await vapidRes.json();
+            const vapidData = await parseJsonResponse(vapidRes).catch(() => ({}));
+            const { publicKey } = vapidData || {};
             if (publicKey) {
               const sub = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
@@ -800,8 +802,8 @@ export default function HomePage() {
     const cacheK = `meds:${user.family_id}:${user.id}:${date}`;
     try {
       const res = await fetch(`/api/meds-by-date?user_id=${user.id}&family_id=${user.family_id}&date=${date}`, { headers, credentials: "include" });
-      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || `HTTP ${res.status}`); }
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
+      if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
       setIsOffline(false);
       const stamp = new Date().toISOString();
       setLastSync(stamp);
@@ -834,7 +836,12 @@ export default function HomePage() {
     setAlertsLoading(true);
     try {
       const res = await fetch(`/api/alerts?family_id=${user.family_id}`, { headers, credentials: "include" });
-      const data = await res.json();
+      let data = null;
+      try {
+        data = await parseJsonResponse(res);
+      } catch {
+        data = null;
+      }
       if (res.ok) setAlerts(Array.isArray(data) ? data : []);
     } catch {} finally { setAlertsLoading(false); }
   }, [user, token, headers]);
@@ -843,7 +850,12 @@ export default function HomePage() {
     if (!user?.id || !token) return;
     try {
       const res = await fetch(`/api/doctor?family_id=${user.family_id}&user_id=${user.id}`, { headers, credentials: "include" });
-      const data = await res.json();
+      let data = null;
+      try {
+        data = await parseJsonResponse(res);
+      } catch {
+        data = null;
+      }
       if (res.ok) {
         setDoctor(data);
         setDoctorFirstName(data.first_name || "");
@@ -866,7 +878,12 @@ export default function HomePage() {
     setInteractionsData(null);
     try {
       const res = await fetch(`/api/drug-interactions?user_id=${user.id}`, { headers, credentials: "include" });
-      const data = await res.json();
+      let data = null;
+      try {
+        data = await parseJsonResponse(res);
+      } catch {
+        data = { error: "parse" };
+      }
       setInteractionsData(res.ok ? data : { interactions: [], error: data.error });
     } catch { setInteractionsData({ interactions: [], error: "network" }); }
     finally { setInteractionsLoading(false); }
@@ -876,7 +893,12 @@ export default function HomePage() {
     if (!user?.id || !token) return;
     try {
       const res = await fetch(`/api/blood-pressure?user_id=${user.id}`, { headers, credentials: "include" });
-      const data = await res.json();
+      let data = [];
+      try {
+        data = await parseJsonResponse(res);
+      } catch {
+        data = [];
+      }
       setBpReadings(Array.isArray(data) ? data : []);
     } catch { setBpReadings([]); }
   }, [user, token, headers]);
@@ -901,13 +923,13 @@ export default function HomePage() {
           phone: doctorPhone.trim() || null,
         }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (res.ok) {
         setDoctorMessage(t("doctor_saved"));
         await loadDoctor();
         setShowDoctorForm(false);
       } else {
-        setDoctorMessage(data.error || t("doctor_error"));
+        setDoctorMessage((data && data.error) || t("doctor_error"));
       }
     } catch { setDoctorMessage(t("doctor_error")); }
     finally { setDoctorSaving(false); }
@@ -934,7 +956,7 @@ export default function HomePage() {
           pulse: bpPulse.trim() ? Number(bpPulse) : null,
         }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (res.ok) {
         setBpMessage(t("bp_saved"));
         setBpSystolic("");
@@ -942,7 +964,7 @@ export default function HomePage() {
         setBpPulse("");
         loadBpReadings();
       } else {
-        setBpMessage(data.error || t("bp_error"));
+        setBpMessage((data && data.error) || t("bp_error"));
       }
     } catch { setBpMessage(t("bp_error")); }
     finally { setBpSaving(false); }
@@ -954,9 +976,9 @@ export default function HomePage() {
     setReportMessage("");
     try {
       const res = await fetch(`/api/stock-report?user_id=${user.id}`, { headers, credentials: "include" });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (res.ok) setStockReportData(data);
-      else setReportMessage(data.error || t("report_error"));
+      else setReportMessage((data && data.error) || t("report_error"));
     } catch { setReportMessage(t("report_error")); } finally { setStockReportLoading(false); }
   }, [user, token, headers, t]);
 
@@ -971,11 +993,11 @@ export default function HomePage() {
         credentials: "include",
         body: JSON.stringify({ user_id: user.id }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (res.ok) {
         setReportMessage(t("report_sent"));
       } else {
-        setReportMessage(data.error || t("report_error"));
+        setReportMessage((data && data.error) || t("report_error"));
       }
     } catch { setReportMessage(t("report_error")); } finally { setReportSending(false); }
   };
@@ -984,7 +1006,9 @@ export default function HomePage() {
     if (user && token) {
       loadMeds(); loadAlerts();
       fetch(`/api/billing/status?family_id=${user.family_id}`, { headers, credentials: "include" })
-        .then(r => r.json()).then(d => setBilling(d)).catch(() => {});
+        .then((r) => parseJsonResponse(r))
+        .then((d) => setBilling(d))
+        .catch(() => {});
       const alertInterval = setInterval(loadAlerts, 5 * 60 * 1000);
 
       // Onboarding: mostrar una vez por usuario
@@ -1012,7 +1036,8 @@ export default function HomePage() {
             const reg = await navigator.serviceWorker.ready;
             if (reg?.pushManager) {
               const vapidRes = await fetch("/api/push/vapid");
-              const { publicKey } = await vapidRes.json();
+              const vapidData = await parseJsonResponse(vapidRes).catch(() => ({}));
+              const { publicKey } = vapidData || {};
               if (publicKey) {
                 const existing = await reg.pushManager.getSubscription();
                 if (existing) await existing.unsubscribe();
@@ -1064,7 +1089,12 @@ export default function HomePage() {
         method: "POST", headers, credentials: "include",
         body: JSON.stringify({ family_id: user.family_id, schedule_id: doseMed.id, new_dosage: doseValue.trim(), effective_date: doseDate.trim() }),
       });
-      const data = await res.json().catch(() => ({}));
+      let data = {};
+      try {
+        data = (await parseJsonResponse(res)) || {};
+      } catch {
+        data = {};
+      }
       setDoseMessage(res.ok ? t("dose_request_sent") : (data.error || t("dose_request_error")));
     } catch { setDoseMessage(t("dose_request_error")); } finally { setDoseSubmitting(false); }
   };
@@ -1101,7 +1131,12 @@ export default function HomePage() {
           return fd;
         })(),
       });
-      const data = await res.json().catch(() => ({}));
+      let data = {};
+      try {
+        data = (await parseJsonResponse(res)) || {};
+      } catch {
+        data = {};
+      }
       if (res.ok) {
         setManualMessage(t("manual_saved"));
         loadMeds();
@@ -1151,7 +1186,12 @@ export default function HomePage() {
           }),
         });
       }
-      const data = await medRes.json().catch(() => ({}));
+      let data = {};
+      try {
+        data = (await parseJsonResponse(medRes)) || {};
+      } catch {
+        data = {};
+      }
       if (medRes.ok) {
         setEditMessage(t("edit_saved"));
         loadMeds();
@@ -1214,7 +1254,12 @@ export default function HomePage() {
             body: form,
             signal: controller.signal,
           });
-          const data = await res.json().catch(() => ({}));
+          let data = {};
+          try {
+            data = (await parseJsonResponse(res)) || {};
+          } catch {
+            data = {};
+          }
           return { res, data };
         } finally { clearTimeout(timeout); }
       };
@@ -1508,7 +1553,12 @@ export default function HomePage() {
               <button onClick={async () => {
                 try {
                   const r = await fetch("/api/push/test", { method: "POST", headers, credentials: "include" });
-                  const data = await r.json();
+                  let data = {};
+                  try {
+                    data = (await parseJsonResponse(r)) || {};
+                  } catch {
+                    data = {};
+                  }
                   if (data.ok) {
                     alert(`Push enviado (${data.sent}/${data.subscriptions} suscripciones). Revisa tu dispositivo.`);
                   } else if (data.error === "no_subscriptions") {

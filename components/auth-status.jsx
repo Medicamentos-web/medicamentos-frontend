@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { parseJsonResponse } from "@/lib/parseJsonSafe";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -21,7 +22,7 @@ export default function AuthStatus() {
         setLoading(false);
         return;
       }
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       setUser(data.user || null);
     } catch {
       setUser(null);

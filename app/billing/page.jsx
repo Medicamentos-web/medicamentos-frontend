@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
+import { parseJsonResponse } from "@/lib/parseJsonSafe";
 import { useSearchParams } from "next/navigation";
 
 const T = {
@@ -228,7 +229,10 @@ function BillingPageContent() {
     fetch(`/api/billing/status?family_id=${user.family_id}`, {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
       credentials: "include",
-    }).then(r => r.json()).then(d => setBilling(d)).catch(() => setError("Error"))
+    })
+      .then((r) => parseJsonResponse(r))
+      .then((d) => setBilling(d))
+      .catch(() => setError("Error"))
       .finally(() => setLoading(false));
   }, [user]);
 
@@ -243,9 +247,9 @@ function BillingPageContent() {
         credentials: "include",
         body: JSON.stringify({ family_id: user.family_id, plan }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (res.ok && data.url) window.location.href = data.url;
-      else setError(data.error || "Error al iniciar pago");
+      else setError((data && data.error) || "Error al iniciar pago");
     } catch { setError("Error de conexión"); }
     finally { setCheckoutLoading(""); }
   };
@@ -261,9 +265,9 @@ function BillingPageContent() {
         credentials: "include",
         body: JSON.stringify({ family_id: user.family_id }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (res.ok && data.url) window.location.href = data.url;
-      else setError(data.error || "Error");
+      else setError((data && data.error) || "Error");
     } catch { setError("Error de conexión"); }
     finally { setPortalLoading(false); }
   };

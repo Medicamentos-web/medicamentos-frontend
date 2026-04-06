@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { parseJsonResponse } from "@/lib/parseJsonSafe";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,12 +30,13 @@ export default function AuthPage() {
 
   const createFamily = async () => {
     setMessage("");
+    try {
     const res = await fetch(`/api/families`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: familyName }),
     });
-    const data = await res.json();
+    const data = await parseJsonResponse(res);
     if (res.ok) {
       setFamilyId(String(data.id));
       setRegisterData((prev) => ({ ...prev, family_id: String(data.id) }));
@@ -43,10 +45,14 @@ export default function AuthPage() {
     } else {
       setMessage(data.error || "No se pudo crear la familia");
     }
+    } catch (e) {
+      setMessage(e.message || "Error de conexión");
+    }
   };
 
   const register = async () => {
     setMessage("");
+    try {
     const res = await fetch(`/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -56,12 +62,16 @@ export default function AuthPage() {
         family_id: Number(registerData.family_id),
       }),
     });
-    const data = await res.json();
+    const data = await parseJsonResponse(res);
     setMessage(res.ok ? "Registro exitoso. Sesión iniciada." : data.error);
+    } catch (e) {
+      setMessage(e.message || "Error de conexión");
+    }
   };
 
   const login = async () => {
     setMessage("");
+    try {
     const res = await fetch(`/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -71,8 +81,11 @@ export default function AuthPage() {
         family_id: Number(loginData.family_id),
       }),
     });
-    const data = await res.json();
+    const data = await parseJsonResponse(res);
     setMessage(res.ok ? "Login exitoso." : data.error);
+    } catch (e) {
+      setMessage(e.message || "Error de conexión");
+    }
   };
 
   return (
