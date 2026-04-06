@@ -2,7 +2,7 @@
 
 Todo el contenido listo para copiar y pegar en Play Console.
 
-**Última revisión de esta ficha:** 1 de abril de 2026 · **Versión app Android de referencia:** 1.1.1 (versionCode 4)
+**Última revisión de esta ficha:** 1 de abril de 2026 · **Versión app Android de referencia:** 1.1.2 (versionCode 5)
 
 ---
 
@@ -190,10 +190,10 @@ c:\docker-projects\medicamentos_v3\public\
 
 ## 12. Notas de la versión (ejemplo)
 
-**v1.1.1 (abril 2026)** — copiar en «Novedades de esta versión» al subir el AAB:
+**v1.1.2 (abril 2026)** — copiar en «Novedades de esta versión» al subir el AAB:
 
 ```
-MediControl 1.1.1
+MediControl 1.1.2
 
 • Política de privacidad ampliada y términos de uso (Google Play)
 • Enlaces de cookies, eliminación de cuenta y legal en la web
