@@ -11,7 +11,7 @@ export default function TermsPage() {
     <main className="min-h-dvh bg-slate-50 px-4 py-10">
       <div className="mx-auto max-w-3xl rounded-2xl bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-extrabold text-slate-900">Términos y condiciones de uso</h1>
-        <p className="mt-2 text-xs text-slate-500">Última actualización: abril de 2026</p>
+        <p className="mt-2 text-xs text-slate-500">Última actualización: 1 de abril de 2026</p>
 
         <section className="mt-6 space-y-4 text-sm text-slate-700">
           <h2 className="text-lg font-bold text-slate-900">1. Naturaleza del servicio</h2>
