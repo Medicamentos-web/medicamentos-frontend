@@ -33,9 +33,14 @@ Set-Location "$projectRoot\android"
 
 $aabPath = "$projectRoot\android\app\build\outputs\bundle\release\app-release.aab"
 if (Test-Path $aabPath) {
+    # Marca de modificacion = hora local actual (Gradle a veces deja un timestamp que no coincide con el reloj del PC)
+    $nowLocal = Get-Date
+    (Get-Item -LiteralPath $aabPath).LastWriteTime = $nowLocal
+
     $size = (Get-Item $aabPath).Length / 1MB
     Write-Host "`nOK AAB generado: $aabPath" -ForegroundColor Green
     Write-Host "  Tamano MB: $([math]::Round($size, 2))" -ForegroundColor Gray
+    Write-Host "  Fecha/hora local (Explorador): $($nowLocal.ToString('dd.MM.yyyy HH:mm:ss'))" -ForegroundColor Gray
     Write-Host "`nSiguiente paso: subir a Play Console (play.google.com/console)" -ForegroundColor Cyan
 } else {
     Write-Host "`nERROR: No se encontró el AAB. Revisa los logs." -ForegroundColor Red
