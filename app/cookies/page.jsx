@@ -37,7 +37,7 @@ export default function CookiesPage() {
           <h2 className="text-lg font-bold text-slate-900">3. Marketing und Google Ads</h2>
           <p>
             Wenn Sie <strong>Marketing</strong> akzeptieren, kann ein Skript von Google geladen werden
-            (z. B. Google Tag / Conversion-Messung, Kennung AW-17971521405). Dadurch können Google und
+            (z. B. Google Tag / Conversion-Messung, Kennung AW-17972132760). Dadurch können Google und
             verbundene Dienste Daten verarbeiten, um die Wirksamkeit von Anzeigen zu messen. Ohne Ihre
             Einwilligung wird dieses Skript nicht geladen.
           </p>

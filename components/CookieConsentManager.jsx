@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Script from "next/script";
 
 const CONSENT_KEY = "cookie_consent_v1";
+const GOOGLE_ADS_MEASUREMENT_ID = "AW-17972132760";
+
+function applyGoogleAdsConsent(marketing) {
+  if (typeof window === "undefined" || typeof window.gtag !== "function") return;
+  const v = marketing ? "granted" : "denied";
+  window.gtag("consent", "update", {
+    ad_storage: v,
+    ad_user_data: v,
+    ad_personalization: v,
+  });
+}
 
 function readStoredConsent() {
   if (typeof window === "undefined") return null;
@@ -56,7 +67,11 @@ export default function CookieConsentManager() {
     setReady(true);
   }, []);
 
-  const adsEnabled = useMemo(() => ready && consent.marketing, [ready, consent.marketing]);
+  useEffect(() => {
+    if (!ready) return;
+    const t = window.setTimeout(() => applyGoogleAdsConsent(consent.marketing), 250);
+    return () => window.clearTimeout(t);
+  }, [ready, consent.marketing]);
 
   const acceptAll = () => {
     const nextConsent = { necessary: true, analytics: true, marketing: true };
@@ -82,22 +97,31 @@ export default function CookieConsentManager() {
 
   return (
     <>
-      {adsEnabled && (
-        <>
-          <Script
-            src="https://www.googletagmanager.com/gtag/js?id=AW-17971521405"
-            strategy="afterInteractive"
-          />
-          <Script id="google-ads-gtag" strategy="afterInteractive">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              window.gtag = function gtag(){window.dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'AW-17971521405');
-            `}
-          </Script>
-        </>
-      )}
+      <Script id="google-consent-default" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          window.gtag = gtag;
+          gtag('consent', 'default', {
+            ad_storage: 'denied',
+            ad_user_data: 'denied',
+            ad_personalization: 'denied',
+            analytics_storage: 'denied',
+            security_storage: 'granted',
+            wait_for_update: 500
+          });
+        `}
+      </Script>
+      <Script
+        src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_MEASUREMENT_ID}`}
+        strategy="afterInteractive"
+      />
+      <Script id="google-ads-gtag-config" strategy="afterInteractive">
+        {`
+          window.gtag('js', new Date());
+          window.gtag('config', '${GOOGLE_ADS_MEASUREMENT_ID}');
+        `}
+      </Script>
 
       {showBanner && (
         <div className="fixed inset-x-0 bottom-0 z-[100] border-t border-slate-200 bg-white/95 backdrop-blur p-4 shadow-2xl">
