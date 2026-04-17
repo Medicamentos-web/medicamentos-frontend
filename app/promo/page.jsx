@@ -182,7 +182,7 @@ export default function PromoPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-lg shrink-0">💊</div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-bold text-slate-800">Spiricort 20mg</div>
+                          <div className="text-[13px] font-bold text-slate-800">Medikament B</div>
                           <div className="text-[10px] text-slate-500">12:00 · 2 Tabletten</div>
                         </div>
                         <div className={`text-[10px] font-bold px-2.5 py-1.5 rounded-full transition-all duration-700 ${demoStep >= 1 ? "bg-emerald-100 text-emerald-700 scale-110" : "bg-amber-100 text-amber-600"}`}>
@@ -196,7 +196,7 @@ export default function PromoPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-lg shrink-0">💊</div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-bold text-slate-800">MetoZerok 50mg</div>
+                          <div className="text-[13px] font-bold text-slate-800">Medikament C</div>
                           <div className="text-[10px] text-slate-500">20:00 · 1 Tablette</div>
                         </div>
                         <div className={`text-[10px] font-bold px-2.5 py-1.5 rounded-full transition-all duration-700 ${demoStep >= 2 ? "bg-emerald-100 text-emerald-700 scale-110" : "bg-slate-100 text-slate-400"}`}>
@@ -211,7 +211,7 @@ export default function PromoPage() {
                         <div className="text-xl">🔔</div>
                         <div>
                           <div className="text-[11px] font-bold text-white">Erinnerung</div>
-                          <div className="text-[10px] text-slate-400">Spiricort 20mg — jetzt einnehmen</div>
+                          <div className="text-[10px] text-slate-400">Medikament B — jetzt einnehmen</div>
                         </div>
                       </div>
                     </div>

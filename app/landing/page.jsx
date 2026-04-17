@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { parseJsonResponse } from "@/lib/parseJsonSafe";
+import { trackLeadSignup, trackTrialSignup } from "@/lib/marketingEvents";
 
 const T = {
   "de-CH": {
@@ -369,7 +370,6 @@ export default function LandingPage() {
   }, []);
 
   const t = (key) => T[lang]?.[key] || T["de-CH"][key] || key;
-  const GOOGLE_ADS_CONVERSION_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL || "";
 
   const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const utmSource = params?.get("utm_source") || "landing";
@@ -410,9 +410,7 @@ export default function LandingPage() {
         setSent(true);
         setFormData({ name: "", email: "", phone: "", message: "" });
         setSurvey({ q1: "", q2: "", q3: "", q4: "", email: "", comment: "" });
-        if (typeof window !== "undefined" && typeof window.gtag === "function" && GOOGLE_ADS_CONVERSION_LABEL) {
-          window.gtag("event", "conversion", { send_to: `AW-17971521405/${GOOGLE_ADS_CONVERSION_LABEL}` });
-        }
+        trackTrialSignup({ source: utmSource, lang });
       } else {
         const leadSource = plan === "monthly" ? "monthly_landing" : plan === "yearly" ? "yearly_landing" : "landing";
         await fetch("/api/leads", {
@@ -437,6 +435,7 @@ export default function LandingPage() {
         }
         setSentType("lead");
         setSent(true);
+        trackLeadSignup({ source: leadSource, lang });
       }
       clearTimeout(timeout);
     } catch (err) {
@@ -529,8 +528,8 @@ export default function LandingPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-lg">💊</div>
                     <div className="flex-1">
-                      <div className="text-sm font-bold text-slate-800">Spiricort 20mg</div>
-                      <div className="text-[11px] text-slate-500">12:00 · 2 Tabletten</div>
+                      <div className="text-sm font-bold text-slate-800">Medikament B</div>
+                      <div className="text-[11px] text-slate-500">12:00 · Geplante Dosis</div>
                     </div>
                     <div className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-1 rounded-full">⏳</div>
                   </div>
@@ -539,8 +538,8 @@ export default function LandingPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-lg">💊</div>
                     <div className="flex-1">
-                      <div className="text-sm font-bold text-slate-800">MetoZerok 50mg</div>
-                      <div className="text-[11px] text-slate-500">20:00 · 1 Tablette</div>
+                      <div className="text-sm font-bold text-slate-800">Medikament C</div>
+                      <div className="text-[11px] text-slate-500">20:00 · Geplante Dosis</div>
                     </div>
                     <div className="bg-slate-100 text-slate-400 text-[10px] font-bold px-2 py-1 rounded-full">—</div>
                   </div>

@@ -2096,7 +2096,7 @@ export default function HomePage() {
               <label className="block text-xs font-bold text-slate-500 uppercase">{t("med_name")} *</label>
               <input className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1"
                 value={manualName} onChange={(e) => setManualName(e.target.value)}
-                placeholder="Ej: Spiricort, Metamizol..." autoFocus />
+                placeholder="Ej: Medicamento A, Medicamento B..." autoFocus />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase">{t("med_dosage")}</label>
