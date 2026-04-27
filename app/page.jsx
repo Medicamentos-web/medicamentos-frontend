@@ -178,6 +178,20 @@ const STRINGS = {
     doctor_pdf_sent: "Enviado al médico",
     doctor_pdf_no_email: "Añade el email del médico en SOS / médico de cabecera.",
     doctor_pdf_error: "No se pudo completar. Revisa la conexión o el correo del médico.",
+    appts_title: "Citas médicas",
+    appts_sub: "Añade consultas; te avisaremos hasta 1 h antes (alerta y notificación).",
+    appts_new: "Nueva cita",
+    appts_title_ph: "Ej: Dr. García, cardiología",
+    appts_when: "Fecha y hora",
+    appts_notes: "Notas (opcional)",
+    appts_save: "Guardar cita",
+    appts_saving: "Guardando...",
+    appts_saved: "Cita guardada",
+    appts_error: "No se pudo guardar",
+    appts_error_past: "La cita debe ser en el futuro",
+    appts_empty: "No hay citas próximas. Añade la primera abajo.",
+    appts_delete: "Eliminar",
+    appts_delete_confirm: "¿Eliminar esta cita?",
   },
   "de-CH": {
     residents: "Bewohner", alerts: "Warnungen", view_alerts: "Anzeigen",
@@ -352,6 +366,20 @@ const STRINGS = {
     doctor_pdf_sent: "An den Arzt gesendet",
     doctor_pdf_no_email: "Bitte Arzt-E-Mail unter SOS / Hausarzt eintragen.",
     doctor_pdf_error: "Fehlgeschlagen. Verbindung oder Arzt-E-Mail prüfen.",
+    appts_title: "Arzttermine",
+    appts_sub: "Eintragen; Erinnerung bis ca. 1 Std. vorher (Hinweis & Push).",
+    appts_new: "Neuer Termin",
+    appts_title_ph: "z. B. Dr. Müller, Kardiologie",
+    appts_when: "Datum und Uhrzeit",
+    appts_notes: "Notizen (optional)",
+    appts_save: "Speichern",
+    appts_saving: "Speichern...",
+    appts_saved: "Gespeichert",
+    appts_error: "Fehlgeschlagen",
+    appts_error_past: "Termin muss in der Zukunft liegen",
+    appts_empty: "Keine bevorstehenden Termine.",
+    appts_delete: "Löschen",
+    appts_delete_confirm: "Diesen Termin löschen?",
   },
   en: {
     residents: "Residents", alerts: "Alerts", view_alerts: "View",
@@ -525,6 +553,20 @@ const STRINGS = {
     doctor_pdf_sent: "Sent to doctor",
     doctor_pdf_no_email: "Add your doctor's email under SOS / primary doctor.",
     doctor_pdf_error: "Could not complete. Check connection or doctor email.",
+    appts_title: "Appointments",
+    appts_sub: "Add visits; we’ll remind you up to ~1 hour before (in-app and push).",
+    appts_new: "New appointment",
+    appts_title_ph: "e.g. Dr. Smith, cardiology",
+    appts_when: "Date and time",
+    appts_notes: "Notes (optional)",
+    appts_save: "Save",
+    appts_saving: "Saving...",
+    appts_saved: "Saved",
+    appts_error: "Could not save",
+    appts_error_past: "The time must be in the future",
+    appts_empty: "No upcoming appointments. Add one below.",
+    appts_delete: "Delete",
+    appts_delete_confirm: "Delete this appointment?",
   },
 };
 
@@ -625,6 +667,15 @@ export default function HomePage() {
   const [showDoctorPdfModal, setShowDoctorPdfModal] = useState(false);
   const [doctorPdfMessage, setDoctorPdfMessage] = useState("");
   const [doctorPdfSending, setDoctorPdfSending] = useState(false);
+  // Citas médicas (acceso directo; sin muro Premium)
+  const [showAppointments, setShowAppointments] = useState(false);
+  const [apptsList, setApptsList] = useState([]);
+  const [apptTitle, setApptTitle] = useState("");
+  const [apptAt, setApptAt] = useState("");
+  const [apptNotes, setApptNotes] = useState("");
+  const [apptLoading, setApptLoading] = useState(false);
+  const [apptSaving, setApptSaving] = useState(false);
+  const [apptMessage, setApptMessage] = useState("");
   const [showMedClinicalModal, setShowMedClinicalModal] = useState(false);
   const [clinicalMed, setClinicalMed] = useState(null);
   const [clinicalIndication, setClinicalIndication] = useState("");
@@ -950,6 +1001,33 @@ export default function HomePage() {
     } catch {} finally { setAlertsLoading(false); }
   }, [user, token, headers]);
 
+  const defaultApptLocal = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(10, 0, 0, 0);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const loadMedicalAppointments = useCallback(async () => {
+    if (!user?.id || !token) return;
+    setApptLoading(true);
+    try {
+      const res = await fetch(`/api/medical-appointments?family_id=${user.family_id}`, { headers, credentials: "include" });
+      let data = [];
+      try {
+        data = await parseJsonResponse(res);
+      } catch {
+        data = [];
+      }
+      if (res.ok) setApptsList(Array.isArray(data) ? data : []);
+    } catch {
+      setApptsList([]);
+    } finally {
+      setApptLoading(false);
+    }
+  }, [user, token, headers]);
+
   const loadDoctor = async () => {
     if (!user?.id || !token) return;
     try {
@@ -1006,6 +1084,64 @@ export default function HomePage() {
       setBpReadings(Array.isArray(data) ? data : []);
     } catch { setBpReadings([]); }
   }, [user, token, headers]);
+
+  const saveMedicalAppointment = async (e) => {
+    e?.preventDefault();
+    const title = apptTitle?.trim();
+    if (!title) {
+      setApptMessage(t("appts_title_ph"));
+      return;
+    }
+    const at = apptAt ? new Date(apptAt) : null;
+    if (!at || Number.isNaN(at.getTime())) {
+      setApptMessage(t("appts_error"));
+      return;
+    }
+    if (at.getTime() <= Date.now()) {
+      setApptMessage(t("appts_error_past"));
+      return;
+    }
+    setApptSaving(true);
+    setApptMessage("");
+    try {
+      const res = await fetch("/api/medical-appointments", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title,
+          notes: apptNotes?.trim() || "",
+          appointment_at: at.toISOString(),
+        }),
+      });
+      const data = await parseJsonResponse(res);
+      if (res.ok) {
+        setApptMessage(t("appts_saved"));
+        setApptTitle("");
+        setApptNotes("");
+        setApptAt(defaultApptLocal());
+        await loadMedicalAppointments();
+      } else {
+        setApptMessage((data && data.error) || t("appts_error"));
+      }
+    } catch {
+      setApptMessage(t("appts_error"));
+    } finally {
+      setApptSaving(false);
+    }
+  };
+
+  const deleteMedicalAppointment = async (id) => {
+    if (!window.confirm(t("appts_delete_confirm"))) return;
+    try {
+      const res = await fetch(`/api/medical-appointments/${id}`, {
+        method: "DELETE",
+        headers,
+        credentials: "include",
+      });
+      if (res.ok) await loadMedicalAppointments();
+    } catch {}
+  };
 
   const saveDoctor = async (e) => {
     e?.preventDefault();
@@ -1984,6 +2120,25 @@ export default function HomePage() {
                 type="button"
                 onClick={() => {
                   setShowMoreDrawer(false);
+                  setApptMessage("");
+                  setApptTitle("");
+                  setApptNotes("");
+                  setApptAt(defaultApptLocal());
+                  setShowAppointments(true);
+                  if (user?.id && token) loadMedicalAppointments();
+                }}
+                className="w-full flex items-center gap-4 p-4 rounded-xl text-left transition-colors bg-emerald-50 hover:bg-emerald-100 border border-emerald-100"
+              >
+                <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-2xl">📅</div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-800">{t("appts_title")}</p>
+                  <p className="text-xs text-slate-500">{t("appts_sub")}</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMoreDrawer(false);
                   setDoctorPdfMessage("");
                   setShowDoctorPdfModal(true);
                 }}
@@ -2624,6 +2779,86 @@ export default function HomePage() {
             className="w-full mt-3 bg-[#111827] text-white text-xs font-bold py-3 rounded-xl">
             {t("close")}
           </button>
+        </Modal>
+      )}
+
+      {showAppointments && user && (
+        <Modal
+          onClose={() => { setShowAppointments(false); setApptMessage(""); }}
+          title={t("appts_title")}>
+          <p className="text-xs text-slate-500 mb-3">{t("appts_sub")}</p>
+          {apptLoading ? (
+            <p className="text-xs text-slate-500 py-2">{t("importing")}</p>
+          ) : apptsList.length === 0 ? (
+            <p className="text-sm text-slate-600 py-2 mb-2">{t("appts_empty")}</p>
+          ) : (
+            <ul className="space-y-2 mb-4 max-h-40 overflow-y-auto">
+              {apptsList.map((row) => {
+                const when = new Date(row.appointment_at);
+                const loc =
+                  lang === "en" ? "en-GB" : lang === "de-CH" ? "de-CH" : "es-ES";
+                const line = Number.isNaN(when.getTime()) ? "—" : when.toLocaleString(loc, { dateStyle: "short", timeStyle: "short" });
+                return (
+                  <li
+                    key={row.id}
+                    className="flex items-start justify-between gap-2 p-2 rounded-lg bg-slate-50 text-xs">
+                    <div>
+                      <p className="font-bold text-slate-800">{row.title}</p>
+                      <p className="text-slate-500">{line}</p>
+                      {row.notes ? <p className="text-slate-600 mt-0.5">{row.notes}</p> : null}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => deleteMedicalAppointment(row.id)}
+                      className="shrink-0 text-red-600 font-bold px-1">
+                      {t("appts_delete")}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <p className="text-[10px] text-emerald-700 font-medium mb-2">{t("scan_appointments_hint")}</p>
+          <p className="text-xs font-bold text-slate-700 mb-1">{t("appts_new")}</p>
+          <input
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm mb-2"
+            value={apptTitle}
+            onChange={(e) => setApptTitle(e.target.value)}
+            placeholder={t("appts_title_ph")}
+          />
+          <label className="text-[10px] text-slate-500 font-bold">{t("appts_when")}</label>
+          <input
+            type="datetime-local"
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm mt-1 mb-2"
+            value={apptAt}
+            onChange={(e) => setApptAt(e.target.value)}
+          />
+          <label className="text-[10px] text-slate-500 font-bold">{t("appts_notes")}</label>
+          <input
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm mt-1 mb-2"
+            value={apptNotes}
+            onChange={(e) => setApptNotes(e.target.value)}
+          />
+          {apptMessage && (
+            <p className={`text-xs mb-2 ${apptMessage === t("appts_saved") ? "text-emerald-600" : "text-red-500"}`}>
+              {apptMessage}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={saveMedicalAppointment}
+              disabled={apptSaving}
+              className="flex-1 bg-emerald-500 text-white text-xs font-bold py-3 rounded-xl disabled:opacity-50">
+              {apptSaving ? t("appts_saving") : t("appts_save")}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowAppointments(false); setApptMessage(""); }}
+              className="flex-1 bg-[#111827] text-white text-xs font-bold py-3 rounded-xl">
+              {t("close")}
+            </button>
+          </div>
         </Modal>
       )}
 
