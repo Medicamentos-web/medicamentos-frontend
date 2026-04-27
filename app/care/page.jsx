@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { parseJsonResponse } from "@/lib/parseJsonSafe";
+import { trackLeadSignup, trackTrialSignup } from "@/lib/marketingEvents";
 
 const T = {
   "de-CH": {
@@ -249,6 +250,7 @@ export default function CarePage() {
         setSent(true);
         setFormData({ name: "", email: "", phone: "", message: "" });
         setSurvey({ q1: "", q2: "", q3: "", q4: "", email: "", comment: "" });
+        trackTrialSignup({ source: utmSource, lang });
       } else {
         const leadSource = plan === "monthly" ? "monthly_care" : plan === "yearly" ? "yearly_care" : "care";
         await fetch("/api/leads", {
@@ -273,6 +275,7 @@ export default function CarePage() {
         }
         setSentType("lead");
         setSent(true);
+        trackLeadSignup({ source: leadSource, lang });
       }
       clearTimeout(timeout);
     } catch (err) {

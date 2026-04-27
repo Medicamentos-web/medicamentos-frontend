@@ -149,6 +149,32 @@ const STRINGS = {
     onboarding_skip: "Omitir",
     onboarding_next: "Siguiente",
     onboarding_done: "¡Empezar!",
+    scan_appointments_title: "Citas médicas (opcional)",
+    scan_appointments_hint: "Se guardarán al importar. Recibirás alerta y notificación hasta 1 h antes.",
+    scan_appointment_title_ph: "Ej: Dr. García, cardiología",
+    scan_appointment_when: "Fecha y hora",
+    scan_add_appointment: "Añadir cita",
+    scan_remove_row: "Quitar",
+    appointments_saved: "Citas guardadas",
+    delete_med: "Eliminar",
+    delete_med_confirm: "¿Eliminar este medicamento y sus horarios? Esta acción no se puede deshacer.",
+    delete_med_error: "No se pudo eliminar el medicamento.",
+    med_clinical_title: "Resumen para el médico",
+    med_clinical_sub:
+      "Indica para qué síntomas o problemas tomas este medicamento. Opcional: efectos secundarios que notes.",
+    med_clinical_indication: "Motivo / síntomas (ej. dolor de cabeza, mareos, falta de energía, ansiedad…)",
+    med_clinical_side_effects: "Efectos secundarios que observas o quieres comentar",
+    med_clinical_save: "Guardar",
+    med_clinical_saved: "Guardado",
+    med_clinical_tap_name: "Toca el nombre para el resumen médico",
+    doctor_pdf_title: "PDF para el médico",
+    doctor_pdf_sub: "Lista actual con horarios, motivos y efectos que anotaste.",
+    doctor_pdf_download: "Descargar PDF",
+    doctor_pdf_send: "Enviar por email al médico",
+    doctor_pdf_sending: "Enviando…",
+    doctor_pdf_sent: "Enviado al médico",
+    doctor_pdf_no_email: "Añade el email del médico en SOS / médico de cabecera.",
+    doctor_pdf_error: "No se pudo completar. Revisa la conexión o el correo del médico.",
   },
   "de-CH": {
     residents: "Bewohner", alerts: "Warnungen", view_alerts: "Anzeigen",
@@ -294,6 +320,32 @@ const STRINGS = {
     onboarding_skip: "Überspringen",
     onboarding_next: "Weiter",
     onboarding_done: "Los geht's!",
+    scan_appointments_title: "Arzttermine (optional)",
+    scan_appointments_hint: "Beim Import gespeichert. Erinnerung bis zu 1 Std. vorher.",
+    scan_appointment_title_ph: "z. B. Dr. Müller, Kardiologie",
+    scan_appointment_when: "Datum und Zeit",
+    scan_add_appointment: "Termin hinzufügen",
+    scan_remove_row: "Entfernen",
+    appointments_saved: "Termine gespeichert",
+    delete_med: "Löschen",
+    delete_med_confirm: "Dieses Medikament und Zeiten löschen? Das kann nicht rückgängig gemacht werden.",
+    delete_med_error: "Medikament konnte nicht gelöscht werden.",
+    med_clinical_title: "Zusammenfassung für den Arzt",
+    med_clinical_sub:
+      "Wofür nehmen Sie dieses Medikament (Symptome)? Optional: Nebenwirkungen.",
+    med_clinical_indication: "Grund / Symptome (z. B. Kopfschmerz, Schwindel, Müdigkeit…)",
+    med_clinical_side_effects: "Beobachtete oder zu besprechende Nebenwirkungen",
+    med_clinical_save: "Speichern",
+    med_clinical_saved: "Gespeichert",
+    med_clinical_tap_name: "Tippen Sie auf den Namen für die ärztliche Zusammenfassung",
+    doctor_pdf_title: "PDF für den Arzt",
+    doctor_pdf_sub: "Aktuelle Liste mit Zeiten, Gründen und Nebenwirkungen.",
+    doctor_pdf_download: "PDF herunterladen",
+    doctor_pdf_send: "Per E-Mail an Arzt senden",
+    doctor_pdf_sending: "Senden…",
+    doctor_pdf_sent: "An den Arzt gesendet",
+    doctor_pdf_no_email: "Bitte Arzt-E-Mail unter SOS / Hausarzt eintragen.",
+    doctor_pdf_error: "Fehlgeschlagen. Verbindung oder Arzt-E-Mail prüfen.",
   },
   en: {
     residents: "Residents", alerts: "Alerts", view_alerts: "View",
@@ -438,6 +490,32 @@ const STRINGS = {
     onboarding_skip: "Skip",
     onboarding_next: "Next",
     onboarding_done: "Get started!",
+    scan_appointments_title: "Medical appointments (optional)",
+    scan_appointments_hint: "Saved when you import. Alert and push up to 1 hour before.",
+    scan_appointment_title_ph: "e.g. Dr. Smith, cardiology",
+    scan_appointment_when: "Date and time",
+    scan_add_appointment: "Add appointment",
+    scan_remove_row: "Remove",
+    appointments_saved: "Appointments saved",
+    delete_med: "Delete",
+    delete_med_confirm: "Delete this medication and its schedules? This cannot be undone.",
+    delete_med_error: "Could not delete the medication.",
+    med_clinical_title: "Summary for your doctor",
+    med_clinical_sub:
+      "What symptoms or reasons is this medication for? Optionally note side effects.",
+    med_clinical_indication: "Reason / symptoms (e.g. headache, dizziness, low energy, anxiety…)",
+    med_clinical_side_effects: "Side effects you notice or want to discuss",
+    med_clinical_save: "Save",
+    med_clinical_saved: "Saved",
+    med_clinical_tap_name: "Tap the name to add notes for your doctor",
+    doctor_pdf_title: "PDF for your doctor",
+    doctor_pdf_sub: "Current list with schedules, reasons and side effects you entered.",
+    doctor_pdf_download: "Download PDF",
+    doctor_pdf_send: "Email to doctor",
+    doctor_pdf_sending: "Sending…",
+    doctor_pdf_sent: "Sent to doctor",
+    doctor_pdf_no_email: "Add your doctor's email under SOS / primary doctor.",
+    doctor_pdf_error: "Could not complete. Check connection or doctor email.",
   },
 };
 
@@ -533,6 +611,15 @@ export default function HomePage() {
   const [interactionsLoading, setInteractionsLoading] = useState(false);
   const [showWellnessAi, setShowWellnessAi] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
+  const [showDoctorPdfModal, setShowDoctorPdfModal] = useState(false);
+  const [doctorPdfMessage, setDoctorPdfMessage] = useState("");
+  const [doctorPdfSending, setDoctorPdfSending] = useState(false);
+  const [showMedClinicalModal, setShowMedClinicalModal] = useState(false);
+  const [clinicalMed, setClinicalMed] = useState(null);
+  const [clinicalIndication, setClinicalIndication] = useState("");
+  const [clinicalSideFx, setClinicalSideFx] = useState("");
+  const [clinicalSaving, setClinicalSaving] = useState(false);
+  const [clinicalMessage, setClinicalMessage] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [oauthAppleMsg, setOauthAppleMsg] = useState("");
@@ -1106,6 +1193,8 @@ export default function HomePage() {
   };
 
   const [scanDetectedText, setScanDetectedText] = useState("");
+  /** Filas opcionales de citas al escanear: se envían en appointments_json */
+  const [scanAppointments, setScanAppointments] = useState([]);
 
   const openManualEntry = () => {
     setManualName(""); setManualDosage(""); setManualQty(""); setManualExpiry("");
@@ -1208,6 +1297,105 @@ export default function HomePage() {
     } catch { setEditMessage(t("edit_error")); } finally { setEditSaving(false); }
   };
 
+  const deleteMedication = async (med) => {
+    if (!med?.medicine_id || !user?.id) return;
+    if (typeof window !== "undefined" && !window.confirm(t("delete_med_confirm"))) return;
+    try {
+      const res = await fetch(
+        `/api/medicines/${med.medicine_id}?family_id=${encodeURIComponent(String(user.family_id))}&user_id=${encodeURIComponent(String(user.id))}`,
+        { method: "DELETE", headers, credentials: "include" }
+      );
+      if (res.ok) {
+        loadMeds();
+        loadAlerts();
+      } else {
+        let data = {};
+        try {
+          data = (await parseJsonResponse(res)) || {};
+        } catch {
+          data = {};
+        }
+        alert(data.error || t("delete_med_error"));
+      }
+    } catch {
+      alert(t("delete_med_error"));
+    }
+  };
+
+  const openMedClinical = (med) => {
+    if (!med?.medicine_id) return;
+    setClinicalMed(med);
+    setClinicalIndication(String(med.indication_notes || "").trim());
+    setClinicalSideFx(String(med.side_effects_notes || "").trim());
+    setClinicalMessage("");
+    setShowMedClinicalModal(true);
+  };
+
+  const saveMedClinical = async () => {
+    if (!clinicalMed?.medicine_id || !user?.id) return;
+    setClinicalSaving(true);
+    setClinicalMessage("");
+    try {
+      const res = await fetch(`/api/medicines/${clinicalMed.medicine_id}/clinical-notes`, {
+        method: "PATCH",
+        headers: { ...headers, "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          family_id: user.family_id,
+          user_id: user.id,
+          indication_notes: clinicalIndication,
+          side_effects_notes: clinicalSideFx,
+        }),
+      });
+      let data = {};
+      try {
+        data = (await parseJsonResponse(res)) || {};
+      } catch {
+        data = {};
+      }
+      if (res.ok) {
+        setClinicalMessage(t("med_clinical_saved"));
+        loadMeds();
+        setTimeout(() => setShowMedClinicalModal(false), 800);
+      } else {
+        setClinicalMessage(data.error || t("edit_error"));
+      }
+    } catch {
+      setClinicalMessage(t("edit_error"));
+    } finally {
+      setClinicalSaving(false);
+    }
+  };
+
+  const sendDoctorSummaryEmail = async () => {
+    if (!user?.id) return;
+    setDoctorPdfSending(true);
+    setDoctorPdfMessage("");
+    try {
+      const res = await fetch("/api/doctor-summary/send", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ family_id: user.family_id, user_id: user.id }),
+      });
+      let data = {};
+      try {
+        data = (await parseJsonResponse(res)) || {};
+      } catch {
+        data = {};
+      }
+      if (res.ok) {
+        setDoctorPdfMessage(t("doctor_pdf_sent"));
+      } else {
+        setDoctorPdfMessage(data.error || t("doctor_pdf_error"));
+      }
+    } catch {
+      setDoctorPdfMessage(t("doctor_pdf_error"));
+    } finally {
+      setDoctorPdfSending(false);
+    }
+  };
+
   // Comprimir imagen con canvas (como Expo Go: resize 1000px, quality 0.6)
   const compressImage = useCallback((file) => {
     return new Promise((resolve) => {
@@ -1232,7 +1420,7 @@ export default function HomePage() {
     if (!file) return;
     setScanFile(file); setScanPreview(URL.createObjectURL(file));
     setScanResult(null); setScanError(""); setScanBirthDate("");
-    setScanDetectedText(""); setShowScan(true);
+    setScanDetectedText(""); setScanAppointments([]); setShowScan(true);
   };
 
   const uploadScan = async () => {
@@ -1247,6 +1435,15 @@ export default function HomePage() {
       form.append("fast_ocr", "1");
       if (scanBirthDate.trim()) {
         form.append("birth_date", scanBirthDate.trim());
+      }
+      const apPayload = scanAppointments
+        .filter((row) => row.title?.trim() && row.datetime?.trim())
+        .map((row) => ({
+          title: row.title.trim(),
+          appointment_at: new Date(row.datetime).toISOString(),
+        }));
+      if (apPayload.length) {
+        form.append("appointments_json", JSON.stringify(apPayload));
       }
       form.append("file", compressed, "scan.jpg");
 
@@ -1692,7 +1889,7 @@ export default function HomePage() {
         <div className="mx-4 mt-4 space-y-3">
           <p className="text-sm font-bold text-slate-800">{blockSummary[activeBlock].name} · {blockSummary[activeBlock].items.length} {t("day_doses")}</p>
           {blockSummary[activeBlock].items.map((med) => (
-            <MedCard key={med.id} med={med} t={t} onToggle={toggleMed} onDose={openDoseModal} onEdit={openEditModal} dayCompleted={dayCompleted} />
+            <MedCard key={med.id} med={med} t={t} onToggle={toggleMed} onDose={openDoseModal} onEdit={openEditModal} onDelete={deleteMedication} onClinical={openMedClinical} dayCompleted={dayCompleted} />
           ))}
         </div>
       )}
@@ -1712,7 +1909,7 @@ export default function HomePage() {
               <p className="text-xs font-bold text-slate-500 uppercase mb-2">{block.name} · {block.items.length} {t("day_doses")}</p>
               <div className="space-y-3">
                 {block.items.map((med) => (
-                  <MedCard key={med.id} med={med} t={t} onToggle={toggleMed} onDose={openDoseModal} onEdit={openEditModal} dayCompleted={dayCompleted} />
+                  <MedCard key={med.id} med={med} t={t} onToggle={toggleMed} onDose={openDoseModal} onEdit={openEditModal} onDelete={deleteMedication} onClinical={openMedClinical} dayCompleted={dayCompleted} />
                 ))}
               </div>
             </div>
@@ -1763,6 +1960,20 @@ export default function HomePage() {
               </div>
             )}
             <div className="p-4 space-y-2 overflow-y-auto max-h-[55vh]">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMoreDrawer(false);
+                  setDoctorPdfMessage("");
+                  setShowDoctorPdfModal(true);
+                }}
+                className="w-full flex items-center gap-4 p-4 rounded-xl text-left transition-colors bg-blue-50 hover:bg-blue-100">
+                <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-2xl">📄</div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-800">{t("doctor_pdf_title")}</p>
+                  <p className="text-xs text-slate-500">{t("doctor_pdf_sub")}</p>
+                </div>
+              </button>
               <button onClick={async () => { setShowMoreDrawer(false); if (billing?.active) { await loadDoctor(); setShowSos(true); } else window.location.href = "/billing"; }}
                 className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-colors ${billing?.active ? "bg-amber-50 hover:bg-amber-100" : "bg-slate-50 opacity-75"}`}>
                 <div className="w-12 h-12 bg-amber-400 rounded-xl flex items-center justify-center text-2xl">🏥</div>
@@ -2008,7 +2219,7 @@ export default function HomePage() {
       )}
 
       {showScan && (
-        <Modal onClose={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); setScanBirthDate(""); setScanDetectedText(""); }} title={t("scan_med")}>
+        <Modal onClose={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); setScanBirthDate(""); setScanDetectedText(""); setScanAppointments([]); }} title={t("scan_med")}>
           {scanPreview && <img src={scanPreview} alt="scan" className="w-full h-48 object-cover rounded-xl" />}
           {!scanPreview && !scanResult && (
             <div className="mt-2 text-center">
@@ -2064,6 +2275,64 @@ export default function HomePage() {
               <p className="text-xs text-slate-600 mt-1">{scanResult.extracted?.name} · {scanResult.extracted?.dosage}</p>
               {scanResult.extracted?.qty > 0 && <p className="text-xs text-slate-500">Cantidad: {scanResult.extracted.qty} unidades</p>}
               {scanResult.validated_by_birth_date && <p className="text-[10px] text-blue-500 mt-1">Validado por fecha de nacimiento</p>}
+              {Number(scanResult.appointments_saved) > 0 && (
+                <p className="text-xs text-emerald-800 font-medium mt-2">
+                  ✓ {t("appointments_saved")}: {scanResult.appointments_saved}
+                </p>
+              )}
+            </div>
+          )}
+          {scanPreview && !scanResult && (
+            <div className="mt-3 border border-slate-200 rounded-xl p-3 bg-slate-50/80">
+              <p className="text-xs font-bold text-slate-600">{t("scan_appointments_title")}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5 mb-2">{t("scan_appointments_hint")}</p>
+              {scanAppointments.map((row, idx) => (
+                <div key={row.id || idx} className="flex flex-col gap-1.5 mb-2 last:mb-0">
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1 min-w-0">
+                      <label className="text-[10px] text-slate-500 font-medium">{t("med_name")}</label>
+                      <input
+                        className="w-full border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white"
+                        value={row.title}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setScanAppointments((prev) => prev.map((r, i) => (i === idx ? { ...r, title: v } : r)));
+                        }}
+                        placeholder={t("scan_appointment_title_ph")}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="mt-5 text-[10px] text-red-600 font-bold shrink-0 px-2"
+                      onClick={() => setScanAppointments((prev) => prev.filter((_, i) => i !== idx))}>
+                      {t("scan_remove_row")}
+                    </button>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-medium">{t("scan_appointment_when")}</label>
+                    <input
+                      type="datetime-local"
+                      className="w-full border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white [color-scheme:light]"
+                      value={row.datetime}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setScanAppointments((prev) => prev.map((r, i) => (i === idx ? { ...r, datetime: v } : r)));
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setScanAppointments((prev) => [
+                    ...prev,
+                    { id: `ap-${Date.now()}-${prev.length}`, title: "", datetime: "" },
+                  ])
+                }
+                className="mt-2 w-full py-2 rounded-lg border border-dashed border-slate-300 text-xs font-bold text-slate-600 bg-white">
+                + {t("scan_add_appointment")}
+              </button>
             </div>
           )}
           {scanPreview && (
@@ -2080,7 +2349,7 @@ export default function HomePage() {
                   {scanUploading ? t("importing") : scanError ? "Reintentar" : t("upload")}
                 </button>
               )}
-              <button type="button" onClick={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); setScanBirthDate(""); setScanDetectedText(""); }}
+              <button type="button" onClick={() => { setShowScan(false); setScanFile(null); setScanPreview(null); setScanResult(null); setScanError(""); setScanBirthDate(""); setScanDetectedText(""); setScanAppointments([]); }}
                 className={`${scanResult ? "w-full" : "flex-1"} bg-[#111827] text-white text-xs font-bold py-3 rounded-xl`}>{t("close")}</button>
               </div>
             </div>
@@ -2275,6 +2544,80 @@ export default function HomePage() {
           ) : null}
         </Modal>
       )}
+
+      {showDoctorPdfModal && user && (
+        <Modal onClose={() => { setShowDoctorPdfModal(false); setDoctorPdfMessage(""); }} title={t("doctor_pdf_title")}>
+          <p className="text-xs text-slate-500 mb-3">{t("doctor_pdf_sub")}</p>
+          <a
+            href={`/api/doctor-summary/pdf?family_id=${encodeURIComponent(String(user.family_id))}&user_id=${encodeURIComponent(String(user.id))}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full text-center bg-slate-800 text-white text-xs font-bold py-3 rounded-xl mb-2">
+            {t("doctor_pdf_download")}
+          </a>
+          <button
+            type="button"
+            onClick={sendDoctorSummaryEmail}
+            disabled={doctorPdfSending}
+            className="w-full bg-blue-500 text-white text-xs font-bold py-3 rounded-xl disabled:opacity-50 mb-2">
+            {doctorPdfSending ? t("doctor_pdf_sending") : t("doctor_pdf_send")}
+          </button>
+          <p className="text-[10px] text-slate-500">{t("doctor_pdf_no_email")}</p>
+          {doctorPdfMessage && (
+            <p
+              className={`text-xs mt-2 font-medium ${doctorPdfMessage === t("doctor_pdf_sent") ? "text-emerald-600" : "text-red-500"}`}>
+              {doctorPdfMessage}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => { setShowDoctorPdfModal(false); setDoctorPdfMessage(""); }}
+            className="w-full mt-3 bg-[#111827] text-white text-xs font-bold py-3 rounded-xl">
+            {t("close")}
+          </button>
+        </Modal>
+      )}
+
+      {showMedClinicalModal && clinicalMed && (
+        <Modal onClose={() => setShowMedClinicalModal(false)} title={t("med_clinical_title")}>
+          <p className="text-xs font-semibold text-slate-800 mb-1">{clinicalMed.nombre}</p>
+          <p className="text-[10px] text-slate-500 mb-3">{t("med_clinical_sub")}</p>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase">{t("med_clinical_indication")}</label>
+          <textarea
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm mt-1 min-h-[72px]"
+            value={clinicalIndication}
+            onChange={(e) => setClinicalIndication(e.target.value)}
+            placeholder=""
+          />
+          <label className="block text-[10px] font-bold text-slate-500 uppercase mt-3">{t("med_clinical_side_effects")}</label>
+          <textarea
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm mt-1 min-h-[72px]"
+            value={clinicalSideFx}
+            onChange={(e) => setClinicalSideFx(e.target.value)}
+            placeholder=""
+          />
+          {clinicalMessage && (
+            <p className={`text-xs mt-2 ${clinicalMessage === t("med_clinical_saved") ? "text-emerald-600" : "text-red-500"}`}>
+              {clinicalMessage}
+            </p>
+          )}
+          <div className="flex gap-2 mt-3">
+            <button
+              type="button"
+              onClick={saveMedClinical}
+              disabled={clinicalSaving}
+              className="flex-1 bg-emerald-500 text-white text-xs font-bold py-3 rounded-xl disabled:opacity-50">
+              {clinicalSaving ? t("manual_saving") : t("med_clinical_save")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowMedClinicalModal(false)}
+              className="flex-1 bg-[#111827] text-white text-xs font-bold py-3 rounded-xl">
+              {t("close")}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -2293,8 +2636,12 @@ function Modal({ onClose, title, children }) {
   );
 }
 
-function MedCard({ med, t, onToggle, onDose, onEdit, dayCompleted }) {
+function MedCard({ med, t, onToggle, onDose, onEdit, onDelete, onClinical, dayCompleted }) {
   const freq = med.frecuencia && med.frecuencia !== "1" ? med.frecuencia : "1";
+  const hasClinicalHint = Boolean(
+    (med.indication_notes && String(med.indication_notes).trim()) ||
+      (med.side_effects_notes && String(med.side_effects_notes).trim())
+  );
   return (
     <div className={`bg-white rounded-2xl p-4 shadow-sm transition-all ${med.completado ? "border-2 border-emerald-400 bg-emerald-50/50" : "border border-slate-100"}`}>
       <div className="flex items-start gap-3">
@@ -2302,7 +2649,16 @@ function MedCard({ med, t, onToggle, onDose, onEdit, dayCompleted }) {
           {med.completado ? "✓" : "💊"}
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-bold ${med.completado ? "text-emerald-700" : "text-slate-800"}`}>{med.nombre}</p>
+          <button
+            type="button"
+            onClick={() => onClinical?.(med)}
+            className={`text-left w-full rounded-lg -mx-1 px-1 py-0.5 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-300 ${med.completado ? "text-emerald-700" : "text-slate-800"}`}>
+            <span className="text-sm font-bold">{med.nombre}</span>
+            <span className="block text-[9px] font-medium text-blue-600 mt-0.5">{t("med_clinical_tap_name")}</span>
+            {hasClinicalHint && (
+              <span className="inline-block mt-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">✓ PDF</span>
+            )}
+          </button>
           <div className="flex items-center gap-1 mt-1 flex-wrap">
             <span className="inline-flex items-center bg-blue-50 text-blue-700 text-[11px] font-bold px-2 py-0.5 rounded-lg">{freq} {t("dose_unit")}</span>
             <span className="text-xs text-slate-400">·</span>
@@ -2318,13 +2674,19 @@ function MedCard({ med, t, onToggle, onDose, onEdit, dayCompleted }) {
           )}
         </div>
       </div>
-      <div className="flex gap-2 mt-3">
+      <div className="flex flex-wrap gap-2 mt-3">
         <button onClick={() => onToggle(med)} disabled={dayCompleted || med.completado}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold active:scale-95 transition-transform ${med.completado ? "bg-emerald-500 text-white" : "bg-[#007AFF] text-white"} ${dayCompleted ? "opacity-50" : ""}`}>
+          className={`flex-1 min-w-[100px] py-2.5 rounded-xl text-xs font-bold active:scale-95 transition-transform ${med.completado ? "bg-emerald-500 text-white" : "bg-[#007AFF] text-white"} ${dayCompleted ? "opacity-50" : ""}`}>
           {med.completado ? t("taken") : t("confirm")}
         </button>
         <button onClick={() => onEdit(med)}
           className="bg-amber-50 text-amber-700 border border-amber-200 text-xs font-medium py-2.5 px-3 rounded-xl active:scale-95 transition-transform">✏️ {t("edit_med")}</button>
+        {typeof onDelete === "function" && (
+          <button type="button" onClick={() => onDelete(med)}
+            className="bg-red-50 text-red-700 border border-red-200 text-xs font-medium py-2.5 px-3 rounded-xl active:scale-95 transition-transform">
+            {t("delete_med")}
+          </button>
+        )}
         {!med.completado && (
           <button onClick={() => onDose(med)}
             className="bg-slate-100 text-slate-600 text-xs font-medium py-2.5 px-3 rounded-xl active:scale-95 transition-transform">{t("update_dose")}</button>

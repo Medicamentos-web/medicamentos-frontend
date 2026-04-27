@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { parseJsonResponse } from "@/lib/parseJsonSafe";
 import { useSearchParams } from "next/navigation";
+import { trackSubscribeSuccess } from "@/lib/marketingEvents";
 
 const T = {
   es: {
@@ -285,8 +286,17 @@ function BillingPageContent() {
 
   const success = searchParams.get("success") === "1";
   const cancelled = searchParams.get("cancelled") === "1";
+  const successPlan = searchParams.get("plan") || "unknown";
   const locale = lang === "de-CH" ? "de-CH" : lang === "en" ? "en-US" : "es-ES";
   const paidFeatures = [t("plan_f1"), t("plan_f2"), t("plan_f3"), t("plan_f4"), t("plan_f5"), t("plan_f6"), t("plan_f7")];
+
+  useEffect(() => {
+    if (!success) return;
+    const eventKey = `billing_success_tracked_${searchParams.toString() || "success_1"}`;
+    if (typeof window !== "undefined" && sessionStorage.getItem(eventKey)) return;
+    trackSubscribeSuccess({ plan: successPlan, lang });
+    if (typeof window !== "undefined") sessionStorage.setItem(eventKey, "1");
+  }, [success, successPlan, lang, searchParams]);
 
   return (
     <div className="min-h-dvh bg-[#F2F4F8]">
