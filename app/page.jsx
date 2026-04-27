@@ -75,6 +75,9 @@ const STRINGS = {
     edit_saving: "Guardando...",
     edit_saved: "Cambios guardados.",
     edit_error: "No se pudieron guardar los cambios.",
+    edit_time_block: "¿Cuándo se toma?",
+    edit_time_block_hint: "Franja del día (como mañana / tarde en la lista). Puedes afinar la hora debajo.",
+    edit_time_precise: "Hora exacta",
     detected_text_title: "Texto detectado por OCR",
     expiry_label: "Caducidad",
     dose_unit: "comp.",
@@ -246,6 +249,9 @@ const STRINGS = {
     edit_saving: "Speichern...",
     edit_saved: "Änderungen gespeichert.",
     edit_error: "Änderungen konnten nicht gespeichert werden.",
+    edit_time_block: "Einnahmezeit",
+    edit_time_block_hint: "Tageszeit wie in der Übersicht (Morgen, Mittag, …). Unten die Uhrzeit anpassen.",
+    edit_time_precise: "Genaue Uhrzeit",
     detected_text_title: "Erkannter OCR-Text",
     expiry_label: "Verfallsdatum",
     dose_unit: "Tbl.",
@@ -415,6 +421,9 @@ const STRINGS = {
     edit_saving: "Saving...",
     edit_saved: "Changes saved.",
     edit_error: "Could not save changes.",
+    edit_time_block: "When to take it",
+    edit_time_block_hint: "Time block like morning / evening in your list. Fine-tune the clock below.",
+    edit_time_precise: "Exact time",
     detected_text_title: "OCR detected text",
     expiry_label: "Expiry",
     dose_unit: "tab.",
@@ -566,6 +575,8 @@ export default function HomePage() {
   const [editStock, setEditStock] = useState("");
   const [editExpiry, setEditExpiry] = useState("");
   const [editFreq, setEditFreq] = useState("1");
+  /** HH:mm para PUT /api/schedules; alinea con bloques mañana/mediodía/tarde/noche */
+  const [editDoseTime, setEditDoseTime] = useState("08:00");
   const [editSaving, setEditSaving] = useState(false);
   const [editMessage, setEditMessage] = useState("");
   const [showDoseModal, setShowDoseModal] = useState(false);
@@ -1249,6 +1260,9 @@ export default function HomePage() {
     setEditStock(String(med.stock ?? ""));
     setEditExpiry(med.caducidad ? med.caducidad.slice(0, 10) : "");
     setEditFreq(med.frecuencia || "1");
+    const raw = String(med.hora || "08:00").trim();
+    const hm = raw.length >= 5 ? raw.slice(0, 5) : raw.padStart(5, "0");
+    setEditDoseTime(/^\d{2}:\d{2}$/.test(hm) ? hm : "08:00");
     setEditMessage("");
     setEditSaving(false);
     setShowEditModal(true);
@@ -1270,13 +1284,19 @@ export default function HomePage() {
         }),
       });
       if (editMed.id && editFreq.trim()) {
+        const tm = String(editDoseTime || "").trim().match(/^(\d{1,2}):(\d{2})$/);
+        let doseTime = "08:00";
+        if (tm) {
+          const h = Math.min(23, Math.max(0, parseInt(tm[1], 10)));
+          doseTime = `${String(h).padStart(2, "0")}:${tm[2]}`;
+        }
         await fetch(`/api/schedules/${editMed.id}`, {
           method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, credentials: "include",
           body: JSON.stringify({
             family_id: user.family_id,
             medicine_id: editMed.medicine_id,
             user_id: user.id,
-            dose_time: editMed.hora || "08:00",
+            dose_time: doseTime,
             frequency: editFreq.trim(),
           }),
         });
@@ -2445,6 +2465,35 @@ export default function HomePage() {
               <input className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm mt-2"
                 value={editFreq} onChange={(e) => setEditFreq(e.target.value)}
                 placeholder="Ej: 1, 1/2, 2..." />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase">{t("edit_time_block")}</label>
+              <p className="text-[10px] text-slate-500 mt-0.5 mb-1">{t("edit_time_block_hint")}</p>
+              <div className="grid grid-cols-2 gap-2 mt-1 sm:grid-cols-4">
+                {[
+                  { key: "morning", time: "08:00" },
+                  { key: "midday", time: "12:00" },
+                  { key: "afternoon", time: "16:00" },
+                  { key: "night", time: "20:00" },
+                ].map(({ key, time }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setEditDoseTime(time)}
+                    className={`py-2.5 rounded-xl text-[11px] font-bold transition-all ${
+                      editDoseTime === time ? "bg-indigo-500 text-white shadow-md" : "bg-slate-100 text-slate-600"
+                    }`}>
+                    {t(`block_${key}`)}
+                  </button>
+                ))}
+              </div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mt-2">{t("edit_time_precise")}</label>
+              <input
+                type="time"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm mt-1 [color-scheme:light]"
+                value={editDoseTime.length >= 5 ? editDoseTime.slice(0, 5) : "08:00"}
+                onChange={(e) => setEditDoseTime(e.target.value || "08:00")}
+              />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
