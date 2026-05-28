@@ -1,0 +1,67 @@
+[
+  {
+    "id": "svp",
+    "partyName": "SVP / UDC",
+    "description": "Partido Popular Suizo — derecha conservadora, defiende la independencia nacional y la democracia directa.",
+    "personality": "formal",
+    "primaryColor": "#006633",
+    "avatarUrl": "",
+    "avatarAsset": "assets/images/characters/svp.svg",
+    "initials": "SVP",
+    "languages": ["de", "fr", "it"],
+    "promptFile": "assets/prompts/svp.json",
+    "elevenLabsVoiceId": "2EiwWnXFnvU5JabPnv8n"
+  },
+  {
+    "id": "sp",
+    "partyName": "SP / PS",
+    "description": "Partido Socialista Suizo — izquierda, defiende la justicia social y la protección del clima.",
+    "personality": "cercano",
+    "primaryColor": "#CC0000",
+    "avatarUrl": "",
+    "avatarAsset": "assets/images/characters/sp.svg",
+    "initials": "SP",
+    "languages": ["de", "fr", "it"],
+    "promptFile": "assets/prompts/sp.json",
+    "elevenLabsVoiceId": "EXAVITQu4vr4xnSDxMaL"
+  },
+  {
+    "id": "fdp",
+    "partyName": "FDP / PLR",
+    "description": "Partido Liberal Radical — centro-derecha liberal, defiende la economía de mercado y la innovación.",
+    "personality": "tecnico",
+    "primaryColor": "#0066CC",
+    "avatarUrl": "",
+    "avatarAsset": "assets/images/characters/fdp.svg",
+    "initials": "FDP",
+    "languages": ["de", "fr", "it"],
+    "promptFile": "assets/prompts/fdp.json",
+    "elevenLabsVoiceId": "5Q0t7uMcjvnagumLfvZi"
+  },
+  {
+    "id": "cvp",
+    "partyName": "Mitte / Le Centre",
+    "description": "El Centro — demócrata-cristiano, defiende la cohesión social y el federalismo.",
+    "personality": "cercano",
+    "primaryColor": "#FF9900",
+    "avatarUrl": "",
+    "avatarAsset": "assets/images/characters/cvp.svg",
+    "initials": "Mitte",
+    "languages": ["de", "fr", "it"],
+    "promptFile": "assets/prompts/cvp.json",
+    "elevenLabsVoiceId": "29vD33N1CtxCmqQRPOHJ"
+  },
+  {
+    "id": "gps",
+    "partyName": "GPS / Les Verts",
+    "description": "Partido Verde Suizo — ecologista, defiende la sostenibilidad y la transición energética.",
+    "personality": "cercano",
+    "primaryColor": "#66CC00",
+    "avatarUrl": "",
+    "avatarAsset": "assets/images/characters/gps.svg",
+    "initials": "GPS",
+    "languages": ["de", "fr", "it"],
+    "promptFile": "assets/prompts/gps.json",
+    "elevenLabsVoiceId": "21m00Tcm4TlvDq8ikWAM"
+  }
+]

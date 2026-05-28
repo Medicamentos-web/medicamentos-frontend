@@ -1,0 +1,55 @@
+name: vota_suiza
+description: App didáctica para interpretar propuestas de partidos políticos suizos.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Estado
+  flutter_riverpod: ^2.6.1
+
+  # Firebase
+  firebase_core: ^3.8.1
+  firebase_auth: ^5.3.4
+  cloud_firestore: ^5.6.0
+  firebase_storage: ^12.3.7
+
+  # APIs externas
+  flutter_dotenv: ^5.2.1
+  http: ^1.2.2
+
+  # Audio
+  audioplayers: ^6.1.0
+  path_provider: ^2.1.5
+  crypto: ^3.0.6
+  shared_preferences: ^2.3.4
+  flutter_svg: ^2.0.17
+
+  # UI
+  fl_chart: ^0.69.2
+  confetti_widget: ^0.7.0
+  flutter_local_notifications: ^18.0.1
+  google_fonts: ^6.2.1
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+    - assets/data/
+    - assets/prompts/
+    - assets/images/
+    - assets/images/characters/

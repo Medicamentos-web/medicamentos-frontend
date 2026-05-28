@@ -1,0 +1,99 @@
+[
+  {
+    "partyId": "svp",
+    "events": [
+      {
+        "year": 1971,
+        "title": "Fundación del SVP",
+        "description": "El Partido Popular Suizo se consolida como fuerza política nacional tras la fusión de agrupaciones cantonales.",
+        "relatedProposal": "Defensa de la soberanía nacional y control de la inmigración como eje central de las votaciones populares actuales."
+      },
+      {
+        "year": 2014,
+        "title": "Iniciativa contra la inmigración masiva",
+        "description": "Aprobada por el pueblo suizo, impulsó un debate sobre la relación con la UE y la libre circulación de personas.",
+        "relatedProposal": "Postura actual: reforzar los controles fronterizos y limitar los acuerdos bilaterales con Bruselas."
+      },
+      {
+        "year": 2020,
+        "title": "Posición sobre la ley CO₂",
+        "description": "El SVP rechazó la revisión de la ley CO₂ por considerarla perjudicial para la economía suiza.",
+        "relatedProposal": "Propuesta vigente: soluciones tecnológicas de mercado en lugar de regulaciones estrictas."
+      }
+    ]
+  },
+  {
+    "partyId": "sp",
+    "events": [
+      {
+        "year": 1888,
+        "title": "Fundación del Partido Socialista",
+        "description": "Nace como movimiento obrero suizo, impulsando derechos laborales y seguridad social.",
+        "relatedProposal": "Propuesta actual: fortalecer el sistema de pensiones (AHV/AVS) y ampliar la protección social."
+      },
+      {
+        "year": 2012,
+        "title": "Iniciativa sobre las 6 semanas de vacaciones",
+        "description": "Propuesta rechazada que buscaba aumentar el mínimo legal de vacaciones pagadas.",
+        "relatedProposal": "El SP sigue defendiendo mejores condiciones laborales y equilibrio vida-trabajo."
+      },
+      {
+        "year": 2022,
+        "title": "Apoyo a la iniciativa climática",
+        "description": "El SP impulsó medidas concretas para alcanzar cero emisiones netas para 2050.",
+        "relatedProposal": "Propuesta vigente: inversión pública en energías renovables y aislamiento de edificios."
+      }
+    ]
+  },
+  {
+    "partyId": "fdp",
+    "events": [
+      {
+        "year": 1894,
+        "title": "Fundación del Partido Liberal",
+        "description": "Agrupa tradiciones liberales de diversos cantones suizos bajo un programa pro-mercado.",
+        "relatedProposal": "Propuesta actual: reducción de impuestos para empresas y simplificación administrativa."
+      },
+      {
+        "year": 2016,
+        "title": "Reforma fiscal empresarial",
+        "description": "El FDP apoyó la armonización fiscal internacional para mantener la competitividad suiza.",
+        "relatedProposal": "Defensa de un marco fiscal atractivo para startups y pymes innovadoras."
+      }
+    ]
+  },
+  {
+    "partyId": "cvp",
+    "events": [
+      {
+        "year": 1912,
+        "title": "Fundación del Partido Demócrata-Cristiano",
+        "description": "Representa valores cristianos-demócratas y el federalismo suizo.",
+        "relatedProposal": "Propuesta actual: políticas familiares equilibradas y apoyo a las regiones rurales."
+      },
+      {
+        "year": 2021,
+        "title": "Fusión en «Die Mitte / Le Centre»",
+        "description": "Unificación de PDC y BDP en un partido centrista renovado.",
+        "relatedProposal": "Enfoque en soluciones de consenso entre economía y solidaridad."
+      }
+    ]
+  },
+  {
+    "partyId": "gps",
+    "events": [
+      {
+        "year": 1983,
+        "title": "Fundación del Partido Verde",
+        "description": "Surge del movimiento ecologista suizo, impulsando la protección del medio ambiente.",
+        "relatedProposal": "Propuesta actual: salida del nuclear y aceleración de las energías renovables."
+      },
+      {
+        "year": 2019,
+        "title": "Elecciones récord",
+        "description": "Los Verdes alcanzan su mejor resultado histórico en elecciones federales.",
+        "relatedProposal": "Agenda climática como prioridad: transporte público, eficiencia energética y biodiversidad."
+      }
+    ]
+  }
+]

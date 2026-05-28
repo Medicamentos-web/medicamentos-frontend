@@ -1,0 +1,23 @@
+[
+  {
+    "id": "q_2024_clima",
+    "title": "Ley sobre el clima y la innovación (CO₂)",
+    "description": "¿Está usted de acuerdo con la ley federal sobre metas climáticas, innovación y fortalecimiento de la seguridad energética?",
+    "date": "2024-06-09",
+    "source": "OpenParlData.ch (ejemplo local)"
+  },
+  {
+    "id": "q_2023_pensiones",
+    "title": "Reforma de las pensiones (AHV 21)",
+    "description": "¿Aprueba usted la reforma de la seguridad de la vejez que eleva la edad de jubilación de las mujeres a 65 años?",
+    "date": "2023-09-24",
+    "source": "OpenParlData.ch (ejemplo local)"
+  },
+  {
+    "id": "q_2022_ue",
+    "title": "Acuerdo marco con la Unión Europea",
+    "description": "¿Está usted de acuerdo con el acuerdo institucional con la UE que incluye mecanismos de resolución de disputas?",
+    "date": "2022-03-07",
+    "source": "OpenParlData.ch (ejemplo local)"
+  }
+]

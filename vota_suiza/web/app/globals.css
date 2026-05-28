@@ -1,0 +1,40 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+:root {
+  --swiss-red: #dc0018;
+  --swiss-dark: #1a1a2e;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+}
+
+.gradient-hero {
+  background: linear-gradient(135deg, #dc0018 0%, #8b0000 100%);
+}
+
+.chat-bubble-user {
+  @apply bg-blue-100 text-gray-900 rounded-2xl rounded-br-sm;
+}
+
+.chat-bubble-bot {
+  @apply bg-white border border-gray-200 text-gray-900 rounded-2xl rounded-bl-sm shadow-sm;
+}
+
+.party-card {
+  @apply bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer;
+}
+
+.urna-target {
+  @apply w-28 h-36 bg-amber-700 rounded-lg border-4 flex flex-col items-center justify-center transition-all;
+}
+
+.urna-hover {
+  @apply border-amber-300 scale-105 shadow-xl;
+}
+
+.ballot {
+  @apply w-24 h-14 bg-white border-2 border-gray-300 rounded shadow-lg flex items-center justify-center font-bold text-sm cursor-grab active:cursor-grabbing;
+}
