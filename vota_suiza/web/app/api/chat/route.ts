@@ -1,21 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFileSync } from "fs";
-import { join } from "path";
+
+import svp from "@/data/prompts/svp.json";
+import sp from "@/data/prompts/sp.json";
+import fdp from "@/data/prompts/fdp.json";
+import cvp from "@/data/prompts/cvp.json";
+import gps from "@/data/prompts/gps.json";
+
+const PROMPTS: Record<string, { systemPrompt: string }> = {
+  svp,
+  sp,
+  fdp,
+  cvp,
+  gps,
+};
 
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
 
+interface ChatHistoryItem {
+  role: string;
+  text: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { partyId, message, language, history } = await req.json();
+    const { partyId, message, language, history } = (await req.json()) as {
+      partyId: string;
+      message: string;
+      language: string;
+      history?: ChatHistoryItem[];
+    };
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "GEMINI_API_KEY no configurada" }, { status: 500 });
+      return NextResponse.json(
+        { error: "GEMINI_API_KEY no configurada en .env.local" },
+        { status: 500 }
+      );
     }
 
-    const promptPath = join(process.cwd(), "data", "prompts", `${partyId}.json`);
-    const promptData = JSON.parse(readFileSync(promptPath, "utf-8"));
-    const systemPrompt = promptData.systemPrompt as string;
+    const promptData = PROMPTS[partyId];
+    if (!promptData) {
+      return NextResponse.json(
+        { error: `Prompt no encontrado para partyId=${partyId}` },
+        { status: 404 }
+      );
+    }
+
+    const systemPrompt = promptData.systemPrompt;
 
     const contents: { role: string; parts: { text: string }[] }[] = [];
     if (history?.length) {
@@ -43,7 +75,10 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       const err = await res.text();
-      return NextResponse.json({ error: err }, { status: res.status });
+      return NextResponse.json(
+        { error: `Gemini API error ${res.status}: ${err}` },
+        { status: res.status }
+      );
     }
 
     const data = await res.json();

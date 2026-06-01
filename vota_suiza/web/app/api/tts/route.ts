@@ -2,13 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, voiceId } = await req.json();
+    const { text, voiceId } = (await req.json()) as {
+      text: string;
+      voiceId?: string;
+    };
+
     const apiKey = process.env.ELEVENLABS_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "ELEVENLABS_API_KEY no configurada" }, { status: 500 });
+      return NextResponse.json(
+        { error: "ELEVENLABS_API_KEY no configurada" },
+        { status: 500 }
+      );
     }
 
-    const vid = voiceId || process.env.ELEVENLABS_DEFAULT_VOICE_ID || "21m00Tcm4TlvDq8ikWAM";
+    const vid =
+      voiceId ||
+      process.env.ELEVENLABS_DEFAULT_VOICE_ID ||
+      "21m00Tcm4TlvDq8ikWAM";
 
     const res = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${vid}`,
@@ -28,12 +38,19 @@ export async function POST(req: NextRequest) {
     );
 
     if (!res.ok) {
-      return NextResponse.json({ error: await res.text() }, { status: res.status });
+      const errText = await res.text();
+      return NextResponse.json(
+        { error: `ElevenLabs error ${res.status}: ${errText}` },
+        { status: res.status }
+      );
     }
 
     const audioBuffer = await res.arrayBuffer();
-    return new NextResponse(audioBuffer, {
-      headers: { "Content-Type": "audio/mpeg" },
+    return new NextResponse(audioBuffer as ArrayBuffer, {
+      headers: {
+        "Content-Type": "audio/mpeg",
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
     });
   } catch (e) {
     return NextResponse.json(

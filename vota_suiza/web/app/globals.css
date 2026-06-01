@@ -1,6 +1,6 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --swiss-red: #dc0018;
@@ -9,6 +9,8 @@
 
 body {
   @apply bg-gray-50 text-gray-900 antialiased;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
 }
 
 .gradient-hero {
@@ -24,7 +26,12 @@ body {
 }
 
 .party-card {
-  @apply bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer;
+  @apply bg-white rounded-2xl border border-gray-100 p-5 transition-all duration-200 cursor-pointer block;
+}
+
+.party-card:hover {
+  @apply shadow-lg;
+  transform: translateY(-2px);
 }
 
 .urna-target {
@@ -32,9 +39,14 @@ body {
 }
 
 .urna-hover {
-  @apply border-amber-300 scale-105 shadow-xl;
+  @apply border-amber-300 shadow-xl;
+  transform: scale(1.05);
 }
 
 .ballot {
-  @apply w-24 h-14 bg-white border-2 border-gray-300 rounded shadow-lg flex items-center justify-center font-bold text-sm cursor-grab active:cursor-grabbing;
+  @apply w-24 h-14 bg-white border-2 border-gray-300 rounded shadow-lg flex items-center justify-center font-bold text-sm cursor-grab;
+}
+
+.ballot:active {
+  cursor: grabbing;
 }
