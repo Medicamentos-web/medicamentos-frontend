@@ -1,8 +1,9 @@
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import {
   getAuth,
   signInAnonymously,
   onAuthStateChanged,
+  Auth,
 } from "firebase/auth";
 import {
   getFirestore,
@@ -16,26 +17,45 @@ import {
   setDoc,
   getDocs,
   arrayUnion,
+  Firestore,
 } from "firebase/firestore";
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-function getApp() {
-  return getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+function isFirebaseConfigured(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  );
 }
 
-export function getFirebaseAuth() {
+let _app: FirebaseApp | null = null;
+
+function getApp(): FirebaseApp {
+  if (!isFirebaseConfigured()) {
+    throw new Error(
+      "Firebase no está configurado. Define las variables NEXT_PUBLIC_FIREBASE_* en .env.local"
+    );
+  }
+  if (_app) return _app;
+  if (getApps().length) {
+    _app = getApps()[0];
+    return _app;
+  }
+  _app = initializeApp({
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  });
+  return _app;
+}
+
+export function getFirebaseAuth(): Auth {
   return getAuth(getApp());
 }
 
-export function getDb() {
+export function getDb(): Firestore {
   return getFirestore(getApp());
 }
 
@@ -46,15 +66,24 @@ export async function ensureAuth() {
   return cred.user;
 }
 
-export function onAuthReady(cb: (uid: string) => void) {
-  const auth = getFirebaseAuth();
-  return onAuthStateChanged(auth, async (user) => {
-    if (user) cb(user.uid);
-    else {
-      const u = await signInAnonymously(auth);
-      cb(u.user.uid);
-    }
-  });
+export function onAuthReady(cb: (uid: string) => void): () => void {
+  if (!isFirebaseConfigured()) {
+    console.warn("[VotaSuiza] Firebase no configurado — auth deshabilitada");
+    return () => {};
+  }
+  try {
+    const auth = getFirebaseAuth();
+    return onAuthStateChanged(auth, async (user) => {
+      if (user) cb(user.uid);
+      else {
+        const u = await signInAnonymously(auth);
+        cb(u.user.uid);
+      }
+    });
+  } catch (e) {
+    console.warn("[VotaSuiza] Error inicializando auth:", e);
+    return () => {};
+  }
 }
 
 export async function submitVote(data: {
@@ -64,6 +93,9 @@ export async function submitVote(data: {
   voteOption: string;
   questionId?: string;
 }) {
+  if (!isFirebaseConfigured()) {
+    throw new Error("Firebase no configurado. Configura .env.local primero.");
+  }
   await ensureAuth();
   await addDoc(collection(getDb(), "votes"), {
     ...data,
@@ -74,17 +106,29 @@ export async function submitVote(data: {
 export function watchVotes(
   canton: string,
   cb: (votes: Record<string, unknown>[]) => void
-) {
-  let q = query(collection(getDb(), "votes"));
-  if (canton !== "ALL") {
-    q = query(collection(getDb(), "votes"), where("canton", "==", canton));
+): () => void {
+  if (!isFirebaseConfigured()) {
+    console.warn("[VotaSuiza] watchVotes — Firebase no configurado");
+    cb([]);
+    return () => {};
   }
-  return onSnapshot(q, (snap) => {
-    cb(snap.docs.map((d) => d.data()));
-  });
+  try {
+    let q = query(collection(getDb(), "votes"));
+    if (canton !== "ALL") {
+      q = query(collection(getDb(), "votes"), where("canton", "==", canton));
+    }
+    return onSnapshot(q, (snap) => {
+      cb(snap.docs.map((d) => d.data()));
+    });
+  } catch (e) {
+    console.warn("[VotaSuiza] Error watchVotes:", e);
+    cb([]);
+    return () => {};
+  }
 }
 
 export async function trackDialogue(uid: string, partyId: string) {
+  if (!isFirebaseConfigured()) return;
   await setDoc(
     doc(getDb(), "users", uid),
     { dialoguedParties: arrayUnion(partyId) },
@@ -97,7 +141,8 @@ export async function unlockAchievement(
   type: string,
   title: string,
   description: string
-) {
+): Promise<boolean> {
+  if (!isFirebaseConfigured()) return false;
   const existing = await getDocs(
     query(
       collection(getDb(), "users", uid, "achievements"),
@@ -136,10 +181,15 @@ export function calcStats(votes: Record<string, unknown>[]): VoteStats[] {
     const total = group.length;
     return {
       ageRange: label,
-      yes: total ? (group.filter((v) => v.voteOption === "yes").length / total) * 100 : 0,
-      no: total ? (group.filter((v) => v.voteOption === "no").length / total) * 100 : 0,
+      yes: total
+        ? (group.filter((v) => v.voteOption === "yes").length / total) * 100
+        : 0,
+      no: total
+        ? (group.filter((v) => v.voteOption === "no").length / total) * 100
+        : 0,
       abstention: total
-        ? (group.filter((v) => v.voteOption === "abstention").length / total) * 100
+        ? (group.filter((v) => v.voteOption === "abstention").length / total) *
+          100
         : 0,
       total,
     };
