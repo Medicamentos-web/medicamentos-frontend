@@ -1,0 +1,4 @@
+Services	Medikamenten-Erinnerungen
+Services	Bestandskontrolle
+Services	Ablaufdaten-Warnungen
+Services	Familienverwaltung

@@ -1,0 +1,15 @@
+---
+description: Backend admin y deploy - usar repo medicamentos-backend
+alwaysApply: true
+---
+
+# Backend y deploy en Render
+
+**Render despliega desde `medicamentos-backend`**, NO desde medicamentos_v3.
+
+- **Repo correcto para backend:** `c:\docker-projects\medicamentos-backend-sync\` (clon de medicamentos-backend)
+- **Archivo principal:** `medicamentos-backend-sync/src/index.js`
+
+Al editar páginas de admin (usuarios, medicamentos, alertas, etc.), los cambios deben hacerse en **medicamentos-backend-sync/src/index.js**.
+
+Tras editar, hacer commit y push en medicamentos-backend-sync para que Render despliegue.

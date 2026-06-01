@@ -1,0 +1,12 @@
+Type,Campaign,Ad group,Keyword,Criterion type
+Keyword,MC_DE_Search_Conversions,AG_Medikamenten_App,"medikamenten app",Phrase
+Keyword,MC_DE_Search_Conversions,AG_Medikamenten_App,"medikamente verwalten app",Phrase
+Keyword,MC_DE_Search_Conversions,AG_Medikamenten_App,[medikamenten app],Exact
+Keyword,MC_DE_Search_Conversions,AG_Medikamenten_App,[medikamente verwalten app],Exact
+Keyword,MC_DE_Search_Conversions,AG_Erinnerung,"medikamenten erinnerung app",Phrase
+Keyword,MC_DE_Search_Conversions,AG_Erinnerung,"tabletten erinnerung",Phrase
+Keyword,MC_DE_Search_Conversions,AG_Erinnerung,[medikamenten erinnerung],Exact
+Keyword,MC_DE_Search_Conversions,AG_Erinnerung,[tabletten erinnerung app],Exact
+Keyword,MC_DE_Search_Conversions,AG_Familienpflege,"medikamentenplan app",Phrase
+Keyword,MC_DE_Search_Conversions,AG_Familienpflege,"medikamente familie verwalten",Phrase
+Keyword,MC_DE_Search_Conversions,AG_Familienpflege,"pflege medikamenten app",Phrase

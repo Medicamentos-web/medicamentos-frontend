@@ -1,4 +1,5 @@
-import Image from "next/image";
+"use client";
+
 import type { Party } from "@/lib/types";
 
 interface Props {
@@ -11,7 +12,7 @@ export default function CharacterAvatar({ party, size = 64 }: Props) {
 
   return (
     <div
-      className="rounded-full overflow-hidden flex-shrink-0"
+      className="rounded-full overflow-hidden flex-shrink-0 bg-gray-100"
       style={{
         width: size,
         height: size,
@@ -20,15 +21,20 @@ export default function CharacterAvatar({ party, size = 64 }: Props) {
         borderStyle: "solid",
       }}
     >
-      <Image
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={src}
         alt={party.partyName}
         width={size}
         height={size}
-        className="object-cover"
+        className="w-full h-full object-cover"
         onError={(e) => {
-          const el = e.target as HTMLImageElement;
+          const el = e.currentTarget;
           el.style.display = "none";
+          if (el.parentElement) {
+            el.parentElement.style.backgroundColor = party.primaryColor;
+            el.parentElement.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:white;font-weight:bold;font-size:${size * 0.3}px">${party.initials}</div>`;
+          }
         }}
       />
     </div>

@@ -1,0 +1,25 @@
+Account,Action,Entity,Campaign,Campaign type,Campaign status,Budget,Budget type,Networks,Languages,Location,Ad group,Ad group status,Keyword,Match type,Negative keyword,Final URL,Path 1,Path 2,Headline 1,Headline 2,Headline 3,Description 1,Description 2
+MediControl,Add,Campaign,MC_DE_Search_Conversions,Search,Enabled,30,Daily,Google Search,Deutsch,Switzerland,,,,,,,,,,,,,
+MediControl,Add,Campaign,MC_DE_PMax_Prospecting,Performance Max,Enabled,20,Daily,,Deutsch,Switzerland,,,,,,,,,,,,,
+MediControl,Add,Campaign,MC_DE_Remarketing,Display,Enabled,8,Daily,Display Network,Deutsch,Switzerland,,,,,,,,,,,,,
+MediControl,Add,Ad group,MC_DE_Search_Conversions,,,,,,,,AG_Medikamenten_App,Enabled,,,,,,,,,,,
+MediControl,Add,Ad group,MC_DE_Search_Conversions,,,,,,,,AG_Erinnerung,Enabled,,,,,,,,,,,
+MediControl,Add,Ad group,MC_DE_Search_Conversions,,,,,,,,AG_Familienpflege,Enabled,,,,,,,,,,,
+MediControl,Add,Keyword,MC_DE_Search_Conversions,,,,,,,,AG_Medikamenten_App,,medikamenten app,Phrase,,,,,,,,,
+MediControl,Add,Keyword,MC_DE_Search_Conversions,,,,,,,,AG_Medikamenten_App,,medikamente verwalten app,Phrase,,,,,,,,,
+MediControl,Add,Keyword,MC_DE_Search_Conversions,,,,,,,,AG_Medikamenten_App,,[medikamenten app],Exact,,,,,,,,,
+MediControl,Add,Keyword,MC_DE_Search_Conversions,,,,,,,,AG_Erinnerung,,medikamenten erinnerung app,Phrase,,,,,,,,,
+MediControl,Add,Keyword,MC_DE_Search_Conversions,,,,,,,,AG_Erinnerung,,tabletten erinnerung,Phrase,,,,,,,,,
+MediControl,Add,Keyword,MC_DE_Search_Conversions,,,,,,,,AG_Erinnerung,,[medikamenten erinnerung],Exact,,,,,,,,,
+MediControl,Add,Keyword,MC_DE_Search_Conversions,,,,,,,,AG_Familienpflege,,medikamentenplan app,Phrase,,,,,,,,,
+MediControl,Add,Keyword,MC_DE_Search_Conversions,,,,,,,,AG_Familienpflege,,medikamente familie verwalten,Phrase,,,,,,,,,
+MediControl,Add,Keyword,MC_DE_Search_Conversions,,,,,,,,AG_Familienpflege,,pflege medikamenten app,Phrase,,,,,,,,,
+MediControl,Add,Responsive search ad,MC_DE_Search_Conversions,,,,,,,,AG_Medikamenten_App,,,,https://medicamentos-frontend.vercel.app/,medikamente,app,Medikamente sicher verwalten,MediControl fur Ihre Familie,Jetzt kostenlos testen,Verwalten Sie Medikamente fur die ganze Familie. Einfach und sicher.,Erinnerungen und Ablaufdaten in einer App.
+MediControl,Add,Responsive search ad,MC_DE_Search_Conversions,,,,,,,,AG_Erinnerung,,,,https://medicamentos-frontend.vercel.app/,erinnerung,familie,Nie wieder Einnahme vergessen,Medikamenten-Erinnerungen App,Fur iPhone und Android,Ideal fur Angehorige und Senioren.,Medikamente scannen oder manuell erfassen.
+MediControl,Add,Responsive search ad,MC_DE_Search_Conversions,,,,,,,,AG_Familienpflege,,,,https://medicamentos-frontend.vercel.app/,pflege,plan,Weniger Stress im Pflegealltag,Familien-Medikamentenplan digital,Mehr Sicherheit fur Angehorige,Verwalten Sie Medikamente zentral fur die Familie.,Jetzt MediControl kostenlos testen.
+MediControl,Add,Campaign negative keyword,MC_DE_Search_Conversions,,,,,,,,,,,,,kostenlos apk hack,,,,,,,,
+MediControl,Add,Campaign negative keyword,MC_DE_Search_Conversions,,,,,,,,,,,,,stellenangebote,,,,,,,,
+MediControl,Add,Campaign negative keyword,MC_DE_Search_Conversions,,,,,,,,,,,,,ausbildung,,,,,,,,
+MediControl,Add,Campaign negative keyword,MC_DE_Search_Conversions,,,,,,,,,,,,,vorlage,,,,,,,,
+MediControl,Add,Campaign negative keyword,MC_DE_Search_Conversions,,,,,,,,,,,,,wikipedia,,,,,,,,
+MediControl,Add,Campaign negative keyword,MC_DE_Search_Conversions,,,,,,,,,,,,,pdf formular,,,,,,,,

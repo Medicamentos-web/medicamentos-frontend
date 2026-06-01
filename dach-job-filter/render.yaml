@@ -1,0 +1,14 @@
+# Blueprint Render.com: despliega solo la API (FastAPI).
+# Después crea el frontend en Vercel con NEXT_PUBLIC_API_URL apuntando a esta URL.
+#
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: dach-job-filter-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: CORS_ORIGINS
+        sync: false

@@ -1,0 +1,12 @@
+Action,Campaign,Asset type,Link text,Description line 1,Description line 2,Final URL,Callout text,Structured snippet header,Structured snippet values
+Add,MC_DE_Search_Conversions,Sitelink,Funktionen,Alle Kernfunktionen im Uberblick,Erinnerungen Scan Bestand,https://medicamentos-frontend.vercel.app/,,,
+Add,MC_DE_Search_Conversions,Sitelink,Preise,Flexible Plane fur Familien,Monatlich kundbar,https://medicamentos-frontend.vercel.app/pricing,,,,
+Add,MC_DE_Search_Conversions,Sitelink,Demo Video,So funktioniert MediControl,In unter 2 Minuten erklart,https://medicamentos-frontend.vercel.app/landing,,,,
+Add,MC_DE_Search_Conversions,Sitelink,Kontakt und Support,Schnelle Hilfe bei Fragen,Direkt im Browser,https://medicamentos-backend.onrender.com/feedback,,,,
+Add,MC_DE_Search_Conversions,Callout,,,,,Kostenlos testen,,
+Add,MC_DE_Search_Conversions,Callout,,,,,Start in 2 Minuten,,
+Add,MC_DE_Search_Conversions,Callout,,,,,iOS und Android,,
+Add,MC_DE_Search_Conversions,Callout,,,,,Fur Familien geeignet,,
+Add,MC_DE_Search_Conversions,Callout,,,,,Datenschutzorientiert,,
+Add,MC_DE_Search_Conversions,Structured snippet,,,,,,,Service catalog,Medikamenten-Erinnerungen;Ablaufdaten;Bestandskontrolle;Familienverwaltung
+Add,MC_DE_Search_Conversions,Structured snippet,,,,,,,Types,Scan per Foto;Manuelle Eingabe;Echtzeit-Erinnerungen

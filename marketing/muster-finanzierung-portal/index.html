@@ -1,0 +1,2137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Muster · Portal de financiación | Hipotecas y comparativa</title>
+  <meta name="description" content="Plantilla de landing para comparador/consultora de hipotecas (referencia tipo portal suizo)." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;700&family=Instrument+Sans:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f6f8f7;
+      --surface: #ffffff;
+      --ink: #0f1f1d;
+      --muted: #4a615c;
+      --line: rgba(15, 31, 29, 0.10);
+      --accent: #0d6b61;
+      --accent-soft: rgba(13, 107, 97, 0.12);
+      --accent-strong: #0a524a;
+      --radius: 14px;
+      --shadow: 0 18px 50px rgba(13, 40, 35, 0.10);
+      --max: 1120px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Instrument Sans", system-ui, sans-serif;
+      font-size: 17px;
+      line-height: 1.55;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    .skip {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      background: var(--accent);
+      color: #fff;
+      padding: 8px 12px;
+      z-index: 100;
+    }
+    .skip:focus { left: 12px; top: 12px; outline: none; border-radius: 8px; }
+
+    a { color: var(--accent-strong); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { opacity: 0.88; }
+
+    .wrap {
+      width: min(100% - 40px, var(--max));
+      margin-inline: auto;
+    }
+
+    /* ----- Top bar ----- */
+    .topinfo {
+      background: linear-gradient(90deg, #0f3f38 0%, #134e46 42%, #0d6b61 100%);
+      color: #e8faf6;
+      font-size: 14px;
+    }
+    .topinfo-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 10px 0;
+      opacity: 0.96;
+    }
+    .topinfo a { color: #fff; text-decoration: none; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.35); }
+
+    header.site {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+      background: rgba(246, 248, 247, 0.88);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 16px 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, #3dd4c4, var(--accent));
+      box-shadow: 0 8px 20px rgba(13,107,97,0.35);
+    }
+    .brand span { font-size: 17px; }
+    nav ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-items: center;
+    }
+    nav a {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    nav a:hover { color: var(--accent-strong); }
+    .cta-nav {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff !important;
+      font-weight: 600;
+      font-size: 15px;
+      text-decoration: none;
+      border: none;
+      box-shadow: 0 12px 30px rgba(13,107,97,0.28);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .cta-nav:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 36px rgba(13,107,97,0.35);
+      opacity: 1;
+      color: #fff !important;
+    }
+
+    @media (max-width: 840px) {
+      .desktop-only { display: none !important; }
+      .nav-mobile { width: 100%; justify-content: space-between; }
+    }
+
+    h1, h2, h3 {
+      font-family: "Fraunces", Georgia, serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin: 0 0 12px;
+    }
+    h1 { font-size: clamp(2rem, 4vw, 2.85rem); }
+    h2 { font-size: clamp(1.55rem, 2.6vw, 2.1rem); }
+    h3 { font-size: 1.2rem; }
+
+    .hero {
+      padding: 56px 0 40px;
+      background:
+        radial-gradient(1200px 500px at 80% -10%, rgba(13,107,97,0.14), transparent 55%),
+        radial-gradient(600px 400px at 10% 20%, rgba(61, 212, 196, 0.12), transparent 50%),
+        var(--bg);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 40px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; }
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      margin-bottom: 16px;
+    }
+    .pill-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(13,107,97,0.18);
+    }
+    .lead {
+      font-size: 1.12rem;
+      color: var(--muted);
+      max-width: 46ch;
+      margin: 0 0 26px;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+    .btn-primary {
+      display: inline-flex;
+      padding: 14px 22px;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      box-shadow: var(--shadow);
+    }
+    .btn-ghost {
+      display: inline-flex;
+      padding: 14px 18px;
+      border-radius: 12px;
+      background: var(--surface);
+      color: var(--ink);
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid var(--line);
+    }
+    .micro {
+      font-size: 13px;
+      color: var(--muted);
+      max-width: 44ch;
+    }
+
+    .rate-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 22px 22px 18px;
+    }
+    .rate-card h3 { margin-bottom: 4px; font-size: 1.05rem; }
+    .rate-sub { margin: 0 0 16px; font-size: 14px; color: var(--muted); }
+    .rate-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .rate-tile {
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+    }
+    .rate-tile span { display: block; font-size: 12px; color: var(--muted); }
+    .rate-tile strong { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+    .rate-foot {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ----- Tool teaser ----- */
+    .tool {
+      padding: 36px 0 28px;
+    }
+    .tool-card {
+      background: linear-gradient(135deg, #0f3f38 0%, #146b60 52%, #0d6b61 100%);
+      color: #e8faf6;
+      border-radius: 20px;
+      padding: clamp(26px, 4vw, 36px);
+      box-shadow: 0 30px 60px rgba(15,63,56,0.35);
+      position: relative;
+      overflow: hidden;
+    }
+    .tool-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -120px -120px auto;
+      width: 340px;
+      height: 340px;
+      background: radial-gradient(circle, rgba(255,255,255,0.16), transparent 70%);
+      pointer-events: none;
+    }
+    .tool-inner {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 28px;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+    @media (max-width: 820px) { .tool-inner { grid-template-columns: 1fr; } }
+
+    .steps {
+      counter-reset: s;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+    .steps li {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: start;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .steps li::before {
+      counter-increment: s;
+      content: counter(s);
+      font-weight: 700;
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.18);
+      font-size: 14px;
+      margin-top: 2px;
+    }
+    .steps strong { font-size: 15px; display: block; margin-bottom: 2px; }
+    .steps span { font-size: 13px; opacity: 0.92; line-height: 1.45; }
+
+    .tool-actions h2 {
+      font-family: "Fraunces", Georgia, serif;
+      margin: 0 0 8px;
+      color: #fff;
+    }
+    .tool-actions .tool-lead { margin: 0 0 18px; opacity: 0.95; font-size: 16px; }
+    .tool-actions .btn-primary {
+      background: #fff;
+      color: var(--accent-strong);
+      box-shadow: none;
+      border-radius: 999px;
+    }
+
+    /* ----- Simple triple ----- */
+    .triple {
+      padding: 50px 0 20px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 860px) { .grid-3 { grid-template-columns: 1fr; } }
+    .feature {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(15,40,35,0.05);
+    }
+    .icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: var(--accent-soft);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+    .feature p { margin: 0; color: var(--muted); font-size: 15px; }
+
+    /* ----- Benefits ----- */
+    .benefits {
+      padding: 40px 0 20px;
+    }
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 720px) { .benefits-grid { grid-template-columns: 1fr; } }
+    .ben {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      padding: 20px 20px 18px;
+    }
+    .ben h3 { margin-bottom: 8px; }
+    .ben p { margin: 0; color: var(--muted); font-size: 15px; }
+
+    /* ----- 4 steps horizontal ----- */
+    .flow {
+      padding: 44px 0 30px;
+    }
+    .flow-track {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-top: 22px;
+    }
+    @media (max-width: 900px) {
+      .flow-track { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 520px) {
+      .flow-track { grid-template-columns: 1fr; }
+    }
+    .flow-step {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      position: relative;
+    }
+    .flow-num {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .flow-step p { margin: 8px 0 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+
+    /* ----- Voices ----- */
+    .voices {
+      padding: 40px 0 30px;
+    }
+    .quote-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+    @media (max-width: 780px) { .quote-grid { grid-template-columns: 1fr; } }
+    blockquote.card {
+      margin: 0;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      padding: 22px;
+      box-shadow: 0 12px 32px rgba(15,40,35,0.06);
+    }
+    blockquote.card p {
+      margin: 0 0 14px;
+      font-size: 16px;
+      font-style: italic;
+      color: #2c3b37;
+    }
+    blockquote.card footer {
+      font-size: 14px;
+      color: var(--muted);
+      font-style: normal;
+    }
+    .stars { letter-spacing: 2px; color: #f5b942; font-size: 14px; margin-bottom: 8px; }
+
+    /* ----- Partners ----- */
+    .partners {
+      padding: 24px 0 40px;
+    }
+    .logo-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 18px;
+    }
+    .logo-ph {
+      min-width: 120px;
+      height: 48px;
+      border-radius: 10px;
+      border: 1px dashed rgba(74,97,92,0.35);
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      background: rgba(255,255,255,0.55);
+      padding: 0 14px;
+    }
+
+    /* ----- FAQ ----- */
+    .faq {
+      padding: 30px 0 50px;
+    }
+    details {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0 18px;
+      margin-bottom: 10px;
+    }
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+      padding: 16px 0;
+      list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+    details p { margin: 0 0 16px; color: var(--muted); font-size: 15px; }
+
+    /* ----- Footer ----- */
+    footer.site {
+      background: #0b1b19;
+      color: #c8d8d4;
+      padding: 44px 0 28px;
+      font-size: 14px;
+    }
+    .foot-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 28px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 760px) { .foot-grid { grid-template-columns: 1fr; } }
+    .foot-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .foot-brand strong { color: #fff; font-size: 16px; }
+    footer.site a { color: #bfe8df; text-decoration: none; }
+    footer.site a:hover { text-decoration: underline; }
+    .foot-links {
+      display: grid;
+      gap: 8px;
+    }
+    .foot-meta {
+      border-top: 1px solid rgba(255,255,255,0.12);
+      padding-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #9eb5af;
+    }
+
+    /* ----- Calculadoras CH + modal · tema “pro” 3D (amarillo / navy / lima) ----- */
+    .calc-wrap {
+      /* Paleta contenida: grises neutros + pizarra + verde azulado apagado */
+      --pro-yellow: #f7f9fb;
+      --pro-yellow-deep: #eef2f7;
+      --pro-navy: #334155;
+      --pro-navy-mid: #3f5069;
+      --pro-lime: #4a9690;
+      --pro-lime-dim: #3a7f7a;
+      --pro-font: "Montserrat", "Instrument Sans", system-ui, sans-serif;
+      padding: 32px 0 52px;
+      background: linear-gradient(168deg, #fafbfc 0%, var(--pro-yellow-deep) 48%, #e8edf3 100%);
+      font-family: var(--pro-font);
+    }
+    .calc-wrap h2 {
+      font-family: var(--pro-font);
+      color: var(--pro-navy);
+      text-shadow: 0 1px 0 rgba(255,255,255,0.9);
+      letter-spacing: -0.02em;
+    }
+    .calc-intro {
+      background: rgba(255,255,255,0.78);
+      border: 1px solid rgba(51,65,85,0.18);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 18px;
+      font-size: 14px;
+      color: var(--pro-navy);
+      box-shadow: 0 8px 28px rgba(51,65,85,0.07);
+    }
+    .calc-intro strong { color: var(--pro-navy); }
+    .calc-intro a { color: #3d6280; font-weight: 600; }
+
+    .reg-status {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(51,65,85,0.2);
+      background: rgba(255,255,255,0.72);
+      box-shadow: 0 10px 32px rgba(51,65,85,0.08);
+    }
+    .reg-status.registered {
+      border-color: rgba(74,150,144,0.45);
+      background: rgba(255,255,255,0.92);
+      box-shadow: 0 12px 36px rgba(51,65,85,0.1), inset 0 1px 0 rgba(255,255,255,1);
+    }
+    .reg-status #regBarText { font-family: var(--pro-font); color: var(--pro-navy); }
+    .reg-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .btn-small {
+      font-family: var(--pro-font);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(51,65,85,0.35);
+      background: #fff;
+      color: var(--pro-navy);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-small:hover { transform: translateY(-1px);       box-shadow: 0 4px 14px rgba(51,65,85,0.1); }
+    .btn-small.primary {
+      background: var(--pro-navy);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 6px 18px rgba(51,65,85,0.18);
+    }
+
+    .calc-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .calc-tabs button {
+      font-family: var(--pro-font);
+      cursor: pointer;
+      border-radius: 999px;
+      border: 1px solid rgba(51,65,85,0.22);
+      background: rgba(255,255,255,0.55);
+      padding: 11px 18px;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--pro-navy);
+      transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .calc-tabs button:hover { transform: translateY(-1px); background: rgba(255,255,255,0.75); }
+    .calc-tabs button[aria-selected="true"] {
+      background: var(--pro-navy);
+      color: #fff;
+      border-color: var(--pro-navy);
+      box-shadow: 0 10px 28px rgba(51,65,85,0.15), inset 0 1px 0 rgba(255,255,255,0.75);
+    }
+
+    .calc-panel {
+      display: none;
+      border-radius: 22px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+    }
+    .calc-panel.active { display: block; }
+
+    /* Layout principal · Tragbarkeit */
+    .calc-pro-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+      gap: clamp(24px, 4vw, 40px);
+      align-items: start;
+    }
+    @media (max-width: 900px) { .calc-pro-grid { grid-template-columns: 1fr; } }
+
+    .calc-pro-inputs-panel {
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(51,65,85,0.15);
+      border-radius: 20px;
+      padding: 24px clamp(18px, 3vw, 28px);
+      box-shadow:
+        0 16px 44px rgba(51,65,85,0.08),
+        0 0 0 1px rgba(255,255,255,0.7) inset;
+      backdrop-filter: blur(8px);
+    }
+
+    .calc-slide {
+      margin-bottom: 22px;
+    }
+    .calc-slide-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-family: var(--pro-font);
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--pro-navy);
+    }
+    .calc-info {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--pro-navy);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+      cursor: help;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .calc-pro-input {
+      width: 100%;
+      font-family: var(--pro-font);
+      font-weight: 700;
+      font-size: 1.05rem;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(51,65,85,0.35);
+      background: #fff;
+      color: var(--pro-navy);
+      box-shadow: 0 2px 0 rgba(51,65,85,0.06);
+      transition: box-shadow 0.15s ease, transform 0.1s ease;
+    }
+    .calc-pro-input:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(74,150,144,0.22);
+      border-color: rgba(74,150,144,0.55);
+      transform: translateY(-1px);
+    }
+
+    input[type="range"].calc-slider {
+      width: 100%;
+      height: 14px;
+      margin-top: 10px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"].calc-slider::-webkit-slider-runnable-track {
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #94a3b8, #64748b);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+    input[type="range"].calc-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #fff, #f1f5f9);
+      border: 2px solid #475569;
+      margin-top: -8px;
+      box-shadow: 0 4px 12px rgba(51,65,85,0.25);
+    }
+    input[type="range"].calc-slider::-moz-range-track {
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #94a3b8, #64748b);
+    }
+    input[type="range"].calc-slider::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #475569;
+      box-shadow: 0 3px 10px rgba(51,65,85,0.22);
+    }
+
+    .calc-pro-advanced {
+      margin-top: 8px;
+      padding: 12px 0 0;
+      border-top: 1px dashed rgba(51,65,85,0.2);
+      font-family: var(--pro-font);
+    }
+    .calc-pro-advanced summary {
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--pro-navy);
+      margin-bottom: 12px;
+    }
+    .calc-pro-advanced .adv-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 520px) { .calc-pro-advanced .adv-grid { grid-template-columns: 1fr; } }
+    .calc-pro-advanced label.mini {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--pro-navy);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .calc-pro-advanced .mini input { font-size: 15px; font-weight: 600; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(51,65,85,0.28); }
+
+    .btn-calc-pro {
+      font-family: var(--pro-font);
+      margin-top: 20px;
+      width: 100%;
+      padding: 16px 22px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(145deg, #3d4f61 0%, #334155 100%);
+      color: #fff;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      box-shadow: 0 12px 32px rgba(51,65,85,0.22), inset 0 1px 0 rgba(255,255,255,0.12);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-calc-pro:hover { transform: translateY(-2px); box-shadow: 0 16px 38px rgba(51,65,85,0.26); }
+
+    /* Columna resultados · tarjetas 3D */
+    .calc-pro-results {
+      font-family: var(--pro-font);
+      border-radius: 22px;
+      position: relative;
+      min-height: 320px;
+    }
+    .calc-pro-cards { display: flex; flex-direction: column; gap: 18px; }
+
+    .calc-pro-card-base {
+      background: linear-gradient(152deg, #3d4d5e 0%, #334155 48%, #2c3644 100%);
+      border-radius: 22px;
+      padding: clamp(22px, 4vw, 28px);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow:
+        0 24px 56px rgba(38,48,60,0.28),
+        0 10px 22px rgba(38,48,60,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.07);
+      position: relative;
+    }
+
+    .calc-pro-gauges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: clamp(24px, 6vw, 48px);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .gauge-unit {
+      text-align: center;
+    }
+    .gauge-ring {
+      width: 132px;
+      height: 132px;
+      border-radius: 50%;
+      margin: 0 auto 12px;
+      background: conic-gradient(
+        from -90deg,
+        var(--pro-lime) 0deg,
+        var(--pro-lime) var(--pdeg, 0deg),
+        rgba(255,255,255,0.07) var(--pdeg, 0deg)
+      );
+      display: grid;
+      place-items: center;
+      box-shadow:
+        0 0 0 6px rgba(0,0,0,0.15) inset,
+        0 8px 28px rgba(0,0,0,0.35);
+      filter: drop-shadow(0 14px 20px rgba(0,0,0,0.4));
+    }
+    .gauge-disk {
+      width: 74%;
+      height: 74%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 36% 30%, #ffffff 0%, #f3f6ff 72%, #e4e9f9 100%);
+      display: grid;
+      place-items: center;
+      box-shadow:
+        inset 0 -3px 10px rgba(51,65,85,0.1),
+        0 2px 6px rgba(51,65,85,0.12);
+      border: 1px solid rgba(255,255,255,0.9);
+    }
+    .gauge-val {
+      font-size: clamp(1.35rem, 3.5vw, 1.6rem);
+      font-weight: 800;
+      color: #2d6b64;
+      line-height: 1;
+      text-shadow: none;
+    }
+    .gauge-label {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.9;
+      color: rgba(255,255,255,0.86);
+    }
+
+    .calc-pro-monthly {
+      transform: perspective(1000px) rotateX(6deg);
+      transform-style: preserve-3d;
+      transform-origin: 50% 0;
+    }
+    .calc-pro-monthly::before {
+      content: "";
+      position: absolute;
+      inset: auto 8% -18px;
+      height: 24px;
+      background: radial-gradient(ellipse, rgba(0,0,0,0.45) 0%, transparent 72%);
+      filter: blur(10px);
+      opacity: 0.85;
+      pointer-events: none;
+    }
+
+    .pro-month-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      opacity: 0.92;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .pro-month-big {
+      font-size: clamp(2rem, 5vw, 2.65rem);
+      font-weight: 800;
+      margin: 0 0 12px;
+      letter-spacing: -0.03em;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.35);
+      line-height: 1.1;
+    }
+    .pro-month-sub {
+      font-size: 13px;
+      line-height: 1.55;
+      opacity: 0.82;
+      margin: 4px 0;
+      font-weight: 500;
+      max-width: 38ch;
+    }
+
+    .calc-pro-results .calc-pro-detail-table {
+      width: 100%;
+      margin-top: 14px;
+      font-size: 12px;
+      border-collapse: collapse;
+      opacity: 0.9;
+      color: rgba(255,255,255,0.88);
+    }
+    .calc-pro-results .calc-pro-detail-table td { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+    /* Bloqueo registro: columna resultados “pro” */
+    .calc-pro-results.result-box {
+      margin-top: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      min-height: 400px;
+    }
+    .calc-pro-results.result-box.visible { background: transparent; border: none; }
+    .calc-pro-results.result-box.locked::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 22px;
+      backdrop-filter: blur(12px);
+      background: rgba(247,249,252,0.72);
+      z-index: 1;
+    }
+    .calc-pro-results.result-box.locked .calc-pro-cards {
+      opacity: 0.4;
+      filter: blur(10px);
+      pointer-events: none;
+    }
+    .calc-pro-results .result-cta { z-index: 2; }
+    .result-cta.result-cta-dark p { color: var(--pro-navy); font-weight: 700; font-family: var(--pro-font); }
+    .result-cta.result-cta-dark .btn-primary {
+      font-family: var(--pro-font);
+      font-weight: 800;
+      background: #334155;
+      border-radius: 12px;
+      box-shadow: 0 10px 24px rgba(51,65,85,0.22);
+    }
+
+    /* Paneles secundarios (misma paleta reducida) */
+    .calc-panel-alt-shell {
+      background: rgba(255,255,255,0.75);
+      border: 1px solid rgba(51,65,85,0.14);
+      border-radius: 20px;
+      padding: 22px clamp(18px, 3vw, 26px);
+      box-shadow: 0 14px 40px rgba(51,65,85,0.07);
+    }
+    .calc-panel-alt-shell > h3 { font-family: var(--pro-font); color: var(--pro-navy); margin-top: 0; letter-spacing: -0.02em; }
+    .calc-panel-alt-shell label.field { color: var(--pro-navy); font-family: var(--pro-font); }
+    .calc-panel-alt-shell .field input { border: 1px solid rgba(51,65,85,0.22); font-family: var(--pro-font); border-radius: 10px; }
+
+    #calculadoras .calc-actions .btn-primary {
+      font-family: var(--pro-font);
+      border-radius: 12px;
+      font-weight: 800;
+      background: linear-gradient(145deg, #3d4f61 0%, #334155 100%);
+      border: none;
+      box-shadow: 0 8px 22px rgba(51,65,85,0.18);
+      padding: 12px 20px;
+    }
+    #calculadoras .calc-actions .btn-primary:hover {
+      opacity: 0.96;
+      transform: translateY(-1px);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px 18px;
+    }
+    @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+
+    label.field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    label.field span.hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+    .field input, .field select {
+      font-family: inherit;
+      font-size: 16px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .field input:focus, .field select:focus {
+      outline: 2px solid rgba(13,107,97,0.35);
+      outline-offset: 1px;
+    }
+    .calc-actions { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+    .result-box:not(.calc-pro-results) {
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 16px;
+      border: 1px dashed rgba(51,65,85,0.22);
+      background: rgba(255,255,255,0.85);
+      position: relative;
+      min-height: 120px;
+    }
+    .result-box:not(.calc-pro-results).visible { border-style: solid; border-color: var(--pro-navy); background: rgba(255,255,255,0.95); }
+    .result-box:not(.calc-pro-results).locked::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      backdrop-filter: blur(8px);
+      background: rgba(241,245,249,0.6);
+      z-index: 1;
+    }
+    .result-box:not(.calc-pro-results).locked .result-inner { filter: blur(4px); user-select: none; pointer-events: none; opacity: 0.5; }
+    .result-cta {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 2;
+      padding: 16px;
+      text-align: center;
+    }
+    .result-cta p { margin: 0 0 10px; font-weight: 600; max-width: 34ch; }
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .kpi {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .kpi span { display: block; font-size: 12px; color: var(--muted); }
+    .kpi strong { font-size: 1.25rem; letter-spacing: -0.02em; }
+    .result-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
+    .result-table th, .result-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+    .result-table th { color: var(--muted); font-weight: 600; }
+
+    .modal-root[hidden] { display: none !important; }
+    .modal-root {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(11, 27, 25, 0.55);
+    }
+    .modal-card {
+      width: min(100%, 420px);
+      background: var(--surface);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.25);
+      border: 1px solid var(--line);
+    }
+    .modal-card h2 { margin: 0 0 8px; font-size: 1.35rem; }
+    .modal-card .sub { margin: 0 0 16px; font-size: 14px; color: var(--muted); }
+    .modal-error { color: #b42318; font-size: 13px; margin: 0 0 10px; min-height: 1.2em; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+    .modal-actions button { font-family: inherit; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Saltar al contenido</a>
+
+  <div class="topinfo">
+    <div class="wrap topinfo-inner">
+      <span>Horario orientativo para consultas: Lun–Vie 8:30–18:30</span>
+      <a href="tel:+413300000000">+41 33 000 00 00</a>
+    </div>
+  </div>
+
+  <header class="site">
+    <div class="wrap nav nav-mobile">
+      <a class="brand" href="#">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>FinanzaPortal <small style="font-weight:600;opacity:.65">AG</small></span>
+      </a>
+      <nav class="desktop-only" aria-label="Principal">
+        <ul>
+          <li><a href="#tool">Comparativa</a></li>
+          <li><a href="#calculadoras">Calculadoras</a></li>
+          <li><a href="#proceso">Proceso</a></li>
+          <li><a href="#socios">Socios</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </nav>
+      <div style="display:flex;align-items:center;gap:10px">
+        <a class="cta-nav desktop-only" href="#contacto">Consulta gratuita</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="pill"><span class="pill-dot"></span>Muster editable · referencia tipo My Hypotheca</div>
+          <h1 id="hero-title">El poder de comparar bien</h1>
+          <p class="lead">
+            Acceso consolidado a múltiples socios financieros con una sola interlocución orientada al cliente:
+            objetividad en la estrategia, menos fricciones y mejor visibilidad de costes antes de comprometerse.
+          </p>
+          <div class="hero-actions">
+            <a class="btn-primary" href="#calculadoras">Ver calculadoras CH 2026</a>
+            <a class="btn-ghost" href="#contacto">Hablar con un asesor</a>
+          </div>
+          <p class="micro">
+            Cifras de ejemplo sólo como diseño. Sustituir por tus fuentes autorizadas, disclaimer legal y marca corporativa antes de producción CH/UE.
+          </p>
+        </div>
+        <aside class="rate-card" aria-label="Ejemplo tasas destacadas">
+          <h3>Indicadores de mercado · ejemplo visual</h3>
+          <p class="rate-sub">Varían según perfil LTV/DTI y garantías.</p>
+          <div class="rate-row">
+            <div class="rate-tile">
+              <span>Sobre índice (ej. SARON+margen)</span>
+              <strong>desde 0,72&nbsp;%</strong>
+            </div>
+            <div class="rate-tile">
+              <span>Fija 5 años (ejemplo)</span>
+              <strong>desde 1,12&nbsp;%</strong>
+            </div>
+            <div class="rate-tile">
+              <span>Fija 10 años (ejemplo)</span>
+              <strong>desde 1,48&nbsp;%</strong>
+            </div>
+            <div class="rate-tile">
+              <span>Ampliación opciones</span>
+              <strong>+ de 50</strong>
+            </div>
+          </div>
+          <p class="rate-foot">No constituye oferta vinculante. Reemplazar con textos de cumplimiento suizos revisados por abogado.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="tool" class="tool" aria-labelledby="tool-title">
+      <div class="wrap">
+        <div class="tool-card">
+          <div class="tool-inner">
+            <ol class="steps" aria-label="Pasos del comparador">
+              <li>
+                <div>
+                  <strong>Datos mínimos</strong>
+                  <span>Importe, valor del inmueble, ingresos y plazo deseado para un primer filtrado responsable.</span>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <strong>Propuestas comparables</strong>
+                  <span>Vista unificada de condiciones clave: tipo, comisiones, amortización, productos vinculados.</span>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <strong>Siguiente paso con humano</strong>
+                  <span>Validación de escenarios, negociación y documentación hasta la firma con el prestamista.</span>
+                </div>
+              </li>
+            </ol>
+            <div class="tool-actions">
+              <h2 id="tool-title">Comparativa en tres pasos</h2>
+              <p class="tool-lead">
+                Bloque hero secundario al estilo de portales suizos: contraste oscuro, pasos numerados y CTA claro.
+              </p>
+              <a class="btn-primary" href="#calculadoras">Abrir calculadoras</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="calculadoras" class="calc-wrap" aria-labelledby="calc-title">
+      <div class="wrap">
+        <h2 id="calc-title">Herramientas de cálculo · práctica hipotecaria suiza (orientativo 2026)</h2>
+        <div class="calc-intro">
+          <strong>Referencias usadas:</strong> muchos bancos prueban <em>tragabilidad</em> con tipo <strong>stress ~4,5–5%</strong>
+          (no el tipo pactado), gastos subyacentes típicos <strong>0,75–1%</strong> del valor al año,
+          amortización obligatoria de la <strong>2.ª hipoteca</strong> (tramo sobre ~67–80&nbsp;% LTV)
+          repartida en <strong>15 años</strong> (v. guías públicas tipo
+          <a href="https://www.comparis.ch/hypotheken/hypothekenrechner" rel="noopener">Comparis</a>,
+          <a href="https://wieviel.ch/hypothek/" rel="noopener">wieviel.ch</a>).
+          Este muster usa por defecto: stress <strong>5&nbsp;%</strong> en 1.ª parte y <strong>6&nbsp;%</strong> en 2.ª,
+          límite LTV <strong>80&nbsp;%</strong>, tope habitual cargas <strong>33&nbsp;%</strong> del bruto hogar —
+          puede variar por banco y régimen Basel III; <strong>no es oferta vinculante</strong>.
+        </div>
+
+        <div id="regBar" class="reg-status">
+          <p style="margin:0;font-weight:600" id="regBarText">Los resultados numéricos se desbloquean tras un registro rápido (demo en el navegador).</p>
+          <div class="reg-actions">
+            <button type="button" class="btn-small primary" id="openRegFromBar">Registrarse</button>
+            <button type="button" class="btn-small" id="regLogout" hidden>Cerrar sesión (demo)</button>
+          </div>
+        </div>
+
+        <div class="calc-tabs" role="tablist" aria-label="Calculadoras">
+          <button type="button" id="tabT" role="tab" aria-controls="panelT" aria-selected="true">Tragbarkeit (carga anual)</button>
+          <button type="button" id="tabMax" role="tab" aria-controls="panelMax" aria-selected="false">Precio máximo de compra</button>
+          <button type="button" id="tabVR" role="tab" aria-controls="panelVR" aria-selected="false">Comprar vs alquilar</button>
+          <button type="button" id="tabPen" role="tab" aria-controls="panelPen" aria-selected="false">Tragbarkeit con pensión</button>
+        </div>
+
+        <div id="panelT" class="calc-panel active" role="tabpanel" aria-labelledby="tabT">
+          <div class="calc-pro-grid">
+            <div class="calc-pro-inputs-panel">
+              <div class="calc-slide">
+                <div class="calc-slide-head"><span class="calc-info" title="Precio de compra acordado / valor orientativo">i</span> Precio de compra (CHF)</div>
+                <input type="text" class="calc-pro-input" id="t_price_disp" inputmode="numeric" autocomplete="off" aria-describedby="hint-price" value="1.600.000" />
+                <input type="hidden" id="t_price" value="1600000" />
+                <input type="range" class="calc-slider" id="t_price_range" min="300000" max="5000000" step="25000" value="1600000" />
+              </div>
+              <div class="calc-slide">
+                <div class="calc-slide-head"><span class="calc-info" title="Mín. ~20% del precio en la práctica CH">i</span> Capital propio (CHF)</div>
+                <input type="text" class="calc-pro-input" id="t_equity_disp" inputmode="numeric" value="320.000" />
+                <input type="hidden" id="t_equity" value="320000" />
+                <input type="range" class="calc-slider" id="t_equity_range" min="0" max="4000000" step="5000" value="320000" />
+              </div>
+              <div class="calc-slide">
+                <div class="calc-slide-head"><span class="calc-info" title="Ingresos brutos anuales del hogar (referencia bancaria)">i</span> Ingresos brutos / año (CHF)</div>
+                <input type="text" class="calc-pro-input" id="t_income_disp" inputmode="numeric" value="200.000" />
+                <input type="hidden" id="t_income" value="200000" />
+                <input type="range" class="calc-slider" id="t_income_range" min="40000" max="600000" step="2000" value="200000" />
+              </div>
+              <details class="calc-pro-advanced">
+                <summary>Opciones avanzadas (tipo mercado, límites)</summary>
+                <div class="adv-grid">
+                  <label class="mini">Tipo mercado (anu.)<input type="number" id="t_market" step="0.001" value="0.018" /></label>
+                  <label class="mini">Nebenkosten %/año<input type="number" id="t_neben" step="0.005" value="0.01" /></label>
+                  <label class="mini">Límite Tragbarkeit<input type="number" id="t_tragLim" step="0.01" value="0.33" /></label>
+                  <label class="mini" style="flex-direction:row;align-items:center;gap:10px;text-transform:none;letter-spacing:0">
+                    <input type="checkbox" id="t_split" checked style="width:20px;height:20px" /> Stress 5%/6% dos tramos
+                  </label>
+                </div>
+              </details>
+              <button type="button" class="btn-calc-pro" id="btnT">Actualizar resultados</button>
+            </div>
+
+            <div id="resT" class="calc-pro-results result-box locked" aria-live="polite">
+              <div class="result-cta result-cta-dark">
+                <div>
+                  <p>Regístrese para ver Tragbarkeit, Belehnung y costes mensuales calculados.</p>
+                  <button type="button" class="btn-primary" data-open-reg="">Registrarse gratis</button>
+                </div>
+              </div>
+              <div class="calc-pro-cards">
+                <div class="calc-pro-card-base calc-pro-gauges">
+                  <div class="gauge-unit">
+                    <div class="gauge-ring" id="gauge_trag_ring" style="--pdeg:0deg">
+                      <div class="gauge-disk"><span class="gauge-val" id="gauge_trag_txt">—</span></div>
+                    </div>
+                    <div class="gauge-label">Tragbarkeit</div>
+                  </div>
+                  <div class="gauge-unit">
+                    <div class="gauge-ring" id="gauge_ltv_ring" style="--pdeg:0deg">
+                      <div class="gauge-disk"><span class="gauge-val" id="gauge_ltv_txt">—</span></div>
+                    </div>
+                    <div class="gauge-label">Belehnung</div>
+                  </div>
+                </div>
+                <div class="calc-pro-card-base calc-pro-monthly">
+                  <p class="pro-month-title">Coste mensual orientativo</p>
+                  <p class="pro-month-big" id="pro_monthly_big">— CHF</p>
+                  <p class="pro-month-sub" id="pro_monthly_sub1">Intereses al tipo de mercado indicado · mantenimiento incluido · amortización obligatoria si aplica.</p>
+                  <p class="pro-month-sub" id="pro_monthly_sub2">&nbsp;</p>
+                  <div class="result-inner" id="resT_inner"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="panelMax" class="calc-panel" role="tabpanel" aria-labelledby="tabMax">
+          <div class="calc-panel-alt-shell">
+          <h3 style="margin-top:0">Precio máximo compatible (LTV ≤80&nbsp;%, Tragbarkeit ≤ límite)</h3>
+          <div class="form-grid">
+            <label class="field">Capital propio disponible (CHF)<input type="number" id="m_equity" inputmode="decimal" step="5000" value="200000" /></label>
+            <label class="field">Ingresos brutos hogar (CHF/año)<input type="number" id="m_income" inputmode="decimal" step="1000" value="150000" /></label>
+            <label class="field">Mantenimiento %/año<input type="number" id="m_neben" inputmode="decimal" step="0.005" value="0.01" /></label>
+            <label class="field">Límite Tragbarkeit<input type="number" id="m_tragLim" inputmode="decimal" step="0.01" value="0.33" /></label>
+            <label class="field">Tipo mercado (solo cuota efectiva declarada)<input type="number" id="m_market" step="0.001" value="0.018" /></label>
+            <label class="field">Stress dos tramos<input type="checkbox" id="m_split" checked style="width:auto;margin-top:8px;height:22px;" /></label>
+          </div>
+          <div class="calc-actions">
+            <button type="button" class="btn-primary" id="btnMax">Calcular</button>
+          </div>
+          <div id="resMax" class="result-box locked" aria-live="polite">
+            <div class="result-cta"><p>Regístrese para ver precio objetivo y cargas anuales.</p><button type="button" class="btn-primary" data-open-reg="">Registrarse</button></div>
+            <div class="result-inner" id="resMax_inner"></div>
+          </div>
+          </div>
+        </div>
+
+        <div id="panelVR" class="calc-panel" role="tabpanel" aria-labelledby="tabVR">
+          <div class="calc-panel-alt-shell">
+          <h3 style="margin-top:0">Comparativa simplificada de flujos de caja (varios años)</h3>
+          <p style="margin:0 0 12px;color:var(--muted);font-size:15px;">Compara la carga anual efectiva hipoteca (tipo de mercado, no stress), más mantenimiento y amortización obligatoria frente al coste anual del alquiler. Sin plusvalías ni fiscalidad detallada.</p>
+          <div class="form-grid">
+            <label class="field">Precio compra (CHF)<input type="number" id="v_price" value="900000" step="5000" /></label>
+            <label class="field">Capital propio (CHF)<input type="number" id="v_equity" value="200000" step="5000" /></label>
+            <label class="field">Tipo hipoteca mercado (anu.)<input type="number" id="v_market" value="0.018" step="0.001" /></label>
+            <label class="field">Horizonte (años)<input type="number" id="v_years" value="10" step="1" min="1" /></label>
+            <label class="field">Alquiler mensual (CHF)<input type="number" id="v_rentM" value="2400" step="100" /></label>
+            <label class="field">Rentabilidad alternativa del capital (anu.)<span class="hint">Coste de oportunidad del desembolso inicial</span><input type="number" id="v_alt" value="0.02" step="0.005" /></label>
+            <label class="field">Stress dos tramos (Tragbarkeit)<input type="checkbox" id="v_split" checked style="width:auto;margin-top:8px;height:22px;" /></label>
+            <label class="field">Ingresos brutos (para Tragbarkeit stress)<input type="number" id="v_income" value="160000" step="1000" /></label>
+          </div>
+          <div class="calc-actions">
+            <button type="button" class="btn-primary" id="btnV">Calcular</button>
+          </div>
+          <div id="resV" class="result-box locked" aria-live="polite">
+            <div class="result-cta"><p>Vista del balance acumulado tras crear la cuenta demo.</p><button type="button" class="btn-primary" data-open-reg="">Registrarse</button></div>
+            <div class="result-inner" id="resV_inner"></div>
+          </div>
+          </div>
+        </div>
+
+        <div id="panelPen" class="calc-panel" role="tabpanel" aria-labelledby="tabPen">
+          <div class="calc-panel-alt-shell">
+          <h3 style="margin-top:0">Tragbarkeit con ingresos de jubilación (mismo stress bancario)</h3>
+          <p style="margin:0 0 12px;color:var(--muted);font-size:15px;">Misma finca y préstamo: contraste bruto en activo frente a bruto en pensión para ver si se sigue cumpliendo el tope habitual (~33&nbsp;%).</p>
+          <div class="form-grid">
+            <label class="field">Precio compra (CHF)<input type="number" id="p_price" value="1000000" step="5000" /></label>
+            <label class="field">Capital propio (CHF)<input type="number" id="p_equity" value="200000" step="5000" /></label>
+            <label class="field">Ingresos brutos trayectoria laboral<input type="number" id="p_incWork" value="190000" step="1000" /></label>
+            <label class="field">Ingresos brutos pensión esperados<input type="number" id="p_incPen" value="72000" step="1000" /></label>
+            <label class="field">Mantenimiento %/año<input type="number" id="p_neben" value="0.01" step="0.005" /></label>
+            <label class="field">Stress dos tramos<input type="checkbox" id="p_split" checked style="width:auto;margin-top:8px;height:22px;" /></label>
+          </div>
+          <div class="calc-actions">
+            <button type="button" class="btn-primary" id="btnP">Calcular</button>
+          </div>
+          <div id="resP" class="result-box locked" aria-live="polite">
+            <div class="result-cta"><p>Regístrese para comparar ocupación durante la vida laboral vs. en pensión.</p><button type="button" class="btn-primary" data-open-reg="">Registrarse</button></div>
+            <div class="result-inner" id="resP_inner"></div>
+          </div>
+          </div>
+        </div>
+
+        <p style="font-size:13px;color:#475569;margin:24px 0 0;text-align:center;opacity:0.92;font-family:var(--pro-font,inherit);font-weight:500">Registro demo con <code>localStorage</code>: la contraseña no se envía a ningún servidor. Conectar luego con su API, autenticación real y RGPD/FADP.</p>
+      </div>
+    </section>
+
+    <section class="triple" aria-labelledby="simple-title">
+      <div class="wrap">
+        <h2 id="simple-title" style="text-align:center;margin-bottom:8px">Por qué un portal con asesoría</h2>
+        <p style="text-align:center;margin:0 auto 26px;max-width:56ch;color:var(--muted)">
+          Tres promesas que el referente comunica con claridad; adapta copy a tu cumplimiento y pruebas A/B.
+        </p>
+        <div class="grid-3">
+          <article class="feature">
+            <div class="icon" aria-hidden="true">◎</div>
+            <h3>Más opciones comparadas</h3>
+            <p>Panorama de ofertas y criterios de admisión conocidos sin que el cliente tenga que repartirse en docenas de filiales.</p>
+          </article>
+          <article class="feature">
+            <div class="icon" aria-hidden="true">⏱</div>
+            <h3>Tiempo y foco</h3>
+            <p>Menos idas y vueltas cuando la negociación y el puente técnico hacia el socio financiero están orquestados.</p>
+          </article>
+          <article class="feature">
+            <div class="icon" aria-hidden="true">✓</div>
+            <h3>Criterios explícitos</h3>
+            <p>Estructura de costes legible antes de decisión — coherente con expectativas de transparencia en el mercado DACH.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="benefits" aria-labelledby="ben-title">
+      <div class="wrap">
+        <h2 id="ben-title">Ventajas (texto muster)</h2>
+        <p style="color:var(--muted);margin:0 0 20px;max-width:65ch">
+          Lista tipo “FAQ de valor” combinada con beneficios: reemplazar por tus datos reales sobre volumen negociado, tiempos de respuesta media y garantías del servicio.
+        </p>
+        <div class="benefits-grid">
+          <article class="ben">
+            <h3>Condiciones volumen · ejemplo</h3>
+            <p>Hipótesis de mejora frente al “precio público estándar” cuando el proceso agrega demanda cualificada a la red.</p>
+          </article>
+          <article class="ben">
+            <h3>Un interlocutor en el viaje</h3>
+            <p>Desde la definición de estrategia (fija/variable, tramos, amortización) hasta el cierre y revisiones posteriores.</p>
+          </article>
+          <article class="ben">
+            <h3>Independencia frente a una sola marca</h3>
+            <p>El mensaje de “no atados a un solo producto” es central en el referente; matizar según tu modelo legal real.</p>
+          </article>
+          <article class="ben">
+            <h3>Transparencia de honorarios</h3>
+            <p>Definir si el servicio lo paga el cliente, el prestamista o un mix — y reflejarlo visiblemente en la plantilla.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="proceso" class="flow" aria-labelledby="flow-title">
+      <div class="wrap">
+        <h2 id="flow-title">Cuatro fases (espejo del sitio de referencia)</h2>
+        <p style="color:var(--muted);margin:0 0 6px;max-width:70ch">
+          Secuencia lineal fácil de escanear: analítica → estrategia → negociación → decisión.
+        </p>
+        <div class="flow-track">
+          <article class="flow-step">
+            <div class="flow-num">01</div>
+            <h3>Situación y restricciones</h3>
+            <p>Recogida estructurada de ingresos, patrimonio, compromisos y horizonte temporal del proyecto.</p>
+          </article>
+          <article class="flow-step">
+            <div class="flow-num">02</div>
+            <h3>Estrategia de financiación</h3>
+            <p>Escenarios sensibles al riesgo de tipos y a la vida útil financiera del crédito.</p>
+          </article>
+          <article class="flow-step">
+            <div class="flow-num">03</div>
+            <h3>Ofertas y negociación</h3>
+            <p>Coordinación con socios: plazos, garantías, seguros vinculados si aplica.</p>
+          </article>
+          <article class="flow-step">
+            <div class="flow-num">04</div>
+            <h3>Cierre y seguimiento</h3>
+            <p>Elección documentada y canales posteriores (revisión, refinanciación).</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="voices" aria-labelledby="voices-title">
+      <div class="wrap">
+        <h2 id="voices-title" style="text-align:center">Voces · bloque tipo testimonio</h2>
+        <p style="text-align:center;color:var(--muted);margin:8px auto 22px;max-width:52ch">
+          Sustituir por reseñas verificables y permisos de imagen.
+        </p>
+        <div class="quote-grid">
+          <blockquote class="card">
+            <div class="stars" aria-hidden="true">★★★★★</div>
+            <p>“Proceso ordenado: entendimos trade-offs entre fijo y SARON antes de comprometernos con el notario.”</p>
+            <footer>— Familia L., ejemplo · Lucerna</footer>
+          </blockquote>
+          <blockquote class="card">
+            <div class="stars" aria-hidden="true">★★★★★</div>
+            <p>“Como profesional inmobiliario valoro respuestas rápidas y documentación lista para la oferta.”</p>
+            <footer>— Agente RE/MAX ficticio · Zúrich</footer>
+          </blockquote>
+        </div>
+      </div>
+    </section>
+
+    <section id="socios" class="partners" aria-labelledby="part-title">
+      <div class="wrap">
+        <h2 id="part-title" style="text-align:center">Red de socios (placeholders)</h2>
+        <p style="text-align:center;color:var(--muted);margin:8px auto 0;max-width:55ch">
+          Sustituir por logotipos reales con acuerdos de uso. El sitio referencia bancos cantonales, aseguradoras y redes inmobiliarias.
+        </p>
+        <div class="logo-strip" role="list">
+          <span class="logo-ph" role="listitem">Banco A</span>
+          <span class="logo-ph" role="listitem">Banco B</span>
+          <span class="logo-ph" role="listitem">Seguros</span>
+          <span class="logo-ph" role="listitem">Pensión</span>
+          <span class="logo-ph" role="listitem">Private</span>
+          <span class="logo-ph" role="listitem">Inmobiliaria</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="faq" aria-labelledby="faq-title">
+      <div class="wrap" style="max-width:760px;margin-inline:auto">
+        <h2 id="faq-title" style="text-align:center">Preguntas habituales (muster)</h2>
+        <p style="text-align:center;color:var(--muted);margin:8px 0 22px">
+          Replica la estructura de “¿Qué nos diferencia del banco?” del referente, con contenido legal propio.
+        </p>
+        <details open>
+          <summary>¿En qué se diferencia un portal asesor de la “Hausbank”?</summary>
+          <p>Tu texto: propuesta sin atar a una sola entidad vs. portfolio propio del banco. Ajustar a realidad supervisoria.</p>
+        </details>
+        <details>
+          <summary>¿Quién es la contraparte contractual del crédito?</summary>
+          <p>Tu texto: aclarar que el préstamo lo otorga el banco/socio, no la plataforma (salvo modelo distinto homologado).</p>
+        </details>
+        <details>
+          <summary>¿Cómo se financian vuestras comisiones?</summary>
+          <p>Tu texto: fee al cliente / comisión del prestamista / mix. Transparencia explícita en la web.</p>
+        </details>
+        <details>
+          <summary>¿Los tipos mostrados son vinculantes?</summary>
+          <p>Tu texto: “indicativo hasta estudio completo” etc., con referencia a LTV, política interna del prestamista y score.</p>
+        </details>
+      </div>
+    </section>
+
+    <section id="contacto" class="triple" style="padding-top:10px;padding-bottom:56px">
+      <div class="wrap" style="text-align:center">
+        <h2>Siguiente paso</h2>
+        <p style="color:var(--muted);max-width:48ch;margin:8px auto 18px">
+          CTA final + formulario o enlace a Calendly. Teléfono suizo con prefijo +41.
+        </p>
+        <a class="btn-primary" href="#" style="border-radius:999px">Reservar llamada (placeholder)</a>
+      </div>
+    </section>
+  </main>
+
+  <div id="regModal" class="modal-root" hidden role="dialog" aria-modal="true" aria-labelledby="regTitle">
+    <div class="modal-card">
+      <h2 id="regTitle">Crear cuenta (demo)</h2>
+      <p class="sub">Tras validar, podrá ver todos los desgloses numéricos. Los datos no salen de su navegador.</p>
+      <p class="modal-error" id="regErr" aria-live="assertive"></p>
+      <label class="field">Nombre<input type="text" id="regName" autocomplete="name" required /></label>
+      <label class="field" style="margin-top:10px">Correo<input type="email" id="regEmail" autocomplete="email" required /></label>
+      <label class="field" style="margin-top:10px">Contraseña (mín. 8)<input type="password" id="regPass" autocomplete="new-password" required minlength="8" /></label>
+      <label class="field" style="margin-top:12px;flex-direction:row;align-items:flex-start;gap:10px;font-weight:500">
+        <input type="checkbox" id="regTerms" required style="width:20px;height:20px;margin-top:2px" />
+        <span>Acepto el tratamiento de datos según la política (texto legal pendiente).</span>
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn-small" id="regCancel">Cancelar</button>
+        <button type="button" class="btn-small primary" id="regSubmit">Registrarse y ver resultados</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site">
+    <div class="wrap">
+      <div class="foot-grid">
+        <div>
+          <div class="foot-brand">
+            <span class="brand-mark" style="width:32px;height:32px"></span>
+            <strong>FinanzaPortal AG</strong>
+          </div>
+          <p style="margin:0 0 12px;max-width:46ch;color:#9eb5af">
+            Muster de maquetación. No asociado a My Hypotheca. Sustituir por domicilio social, UID, registro y textos legales CH.
+          </p>
+          <p style="margin:0">
+            <a href="mailto:info@ejemplo.ch">info@ejemplo.ch</a>
+          </p>
+        </div>
+        <div class="foot-links">
+          <a href="#">Impressum / Aviso legal</a>
+          <a href="#">Privacidad</a>
+          <a href="#">Medios y descargas</a>
+          <a href="#">Partner / envío de lead (B2B)</a>
+        </div>
+      </div>
+      <div class="foot-meta">
+        <span>© <span id="y"></span> FinanzaPortal AG · Muster</span>
+        <span><a href="https://www.my-hypotheca.ch/" rel="noopener">Referencia de estructura</a> (sitio externo)</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+(function () {
+  const LS_KEY = "finportal_reg_v2026";
+  const CH = { maxLtv: 0.8, firstRank: 0.67, amortYears: 15, stressFirst: 0.05, stressSecond: 0.06, stressUnified: 0.05 };
+
+  const fmt = (x) => new Intl.NumberFormat("de-CH", { style: "currency", currency: "CHF", maximumFractionDigits: 0 }).format(x || 0);
+  const pct = (x, d) => ((x * 100).toFixed(d)).replace(".", ",") + "\u00a0%";
+
+  function loadReg() {
+    try {
+      const j = localStorage.getItem(LS_KEY);
+      return j ? JSON.parse(j) : null;
+    } catch { return null; }
+  }
+  function saveReg(o) {
+    localStorage.setItem(LS_KEY, JSON.stringify(o));
+  }
+
+  let pendingCalc = null;
+
+  function splitMortgage(price, loan) {
+    const cap1 = CH.firstRank * price;
+    const M1 = Math.min(loan, cap1);
+    const M2 = Math.max(0, loan - cap1);
+    return { M1, M2 };
+  }
+
+  function computeMortgageCosts(price, equity, income, opts) {
+    const nebenPct = +opts.nebenPct || 0;
+    const marketRate = +opts.marketRate || 0;
+    const tragLim = +opts.tragLim || 0.33;
+    const splitStress = !!opts.splitStress;
+
+    if (price <= 0 || equity < 0 || income <= 0) return { error: "Indique precio, capital e ingresos positivos." };
+    const minEc = price * 0.2;
+    if (equity + 1e-6 < minEc) {
+      return { error: "Capital propio insuficiente: se suele exigir ≥\u202f20\u202f% del precio (" + fmt(minEc) + "). Usted tiene " + fmt(equity) + "." };
+    }
+    const loan = price - equity;
+    if (loan < -1e-6) return { error: "El capital aportado supera el precio de compra." };
+    const ltv = loan > 0 ? loan / price : 0;
+    if (loan > 0 && ltv > CH.maxLtv + 1e-9) {
+      return { error: "Belehnung " + pct(ltv, 2) + " supera el máximo habitual " + pct(CH.maxLtv, 0) + "." };
+    }
+    const { M1, M2 } = splitMortgage(price, Math.max(0, loan));
+    const stressInterest = splitStress ? CH.stressFirst * M1 + CH.stressSecond * M2 : CH.stressUnified * Math.max(0, loan);
+    const amortAnnual = M2 > 0 ? M2 / CH.amortYears : 0;
+    const neben = nebenPct * price;
+    const stressAnnual = stressInterest + amortAnnual + neben;
+    const tragbarPct = income > 0 ? stressAnnual / income : NaN;
+    const interestActual = Math.max(0, loan) * marketRate;
+    const actualAnnual = interestActual + amortAnnual + neben;
+    return {
+      price,
+      equity,
+      loan,
+      ltv,
+      M1,
+      M2,
+      stressInterest,
+      amortAnnual,
+      neben,
+      stressAnnual,
+      tragbarPct,
+      okTragbar: tragbarPct <= tragLim + 1e-9,
+      tragLim,
+      monthlyStress: stressAnnual / 12,
+      monthlyActual: actualAnnual / 12,
+      actualAnnual,
+    };
+  }
+
+  function isAffordable(price, equity, income, opts) {
+    const r = computeMortgageCosts(price, equity, income, opts);
+    return !r.error && r.okTragbar;
+  }
+
+  function findMaxPurchasePrice(E, grossIncome, opts) {
+    if (E <= 0 || grossIncome <= 0) return { error: "Capital e ingreso deben ser positivos." };
+    const hiBound = E / 0.2 - 1;
+    let loStart = Math.max(100000, E);
+    if (hiBound <= loStart + 5000) return { error: "Capital propio demasiado bajo para modelo 80\u202f%/20\u202f%." };
+    if (!isAffordable(hiBound, E, grossIncome, opts)) {
+      return { error: "Con estos ingresos no se alcanza la Tragbarkeit habitual al máximo préstamo permitido por el capital (LTV\u202f80\u202f%)." };
+    }
+    let lo = loStart;
+    if (!isAffordable(lo, E, grossIncome, opts)) {
+      let s = lo;
+      while (s < hiBound - 5000 && !isAffordable(s, E, grossIncome, opts)) s += 25000;
+      if (!isAffordable(s, E, grossIncome, opts)) {
+        return { error: "Incluso con el mínimo precio habitual no cumple la Tragbarkeit con este capital." };
+      }
+      lo = s;
+    }
+    let hi = hiBound;
+    for (let i = 0; i < 55; i++) {
+      const mid = (lo + hi) / 2;
+      if (isAffordable(mid, E, grossIncome, opts)) lo = mid;
+      else hi = mid;
+    }
+    const bestP = lo;
+    const detail = computeMortgageCosts(bestP, E, grossIncome, opts);
+    return { maxPrice: bestP, detail };
+  }
+
+  function formatCH(n) {
+    if (typeof n !== "number" || !isFinite(n)) return "";
+    return Math.round(n).toLocaleString("de-CH");
+  }
+  function parseCH(s) {
+    const d = String(s || "").replace(/[^\d]/g, "");
+    return d ? parseInt(d, 10) : 0;
+  }
+  function clampNum(n, lo, hi) {
+    return Math.min(hi, Math.max(lo, n));
+  }
+
+  function resetProHero() {
+    const gt = document.getElementById("gauge_trag_ring");
+    const gl = document.getElementById("gauge_ltv_ring");
+    if (gt) gt.style.setProperty("--pdeg", "0deg");
+    if (gl) gl.style.setProperty("--pdeg", "0deg");
+    const t1 = document.getElementById("gauge_trag_txt");
+    const t2 = document.getElementById("gauge_ltv_txt");
+    if (t1) t1.textContent = "—";
+    if (t2) t2.textContent = "—";
+    const pm = document.getElementById("pro_monthly_big");
+    const s1 = document.getElementById("pro_monthly_sub1");
+    const s2 = document.getElementById("pro_monthly_sub2");
+    if (pm) pm.textContent = "— CHF";
+    if (s1) {
+      s1.textContent =
+        "Intereses al tipo de mercado indicado · mantenimiento (Nebenkosten) incluido · amortización obligatoria si hay 2.ª hipoteca.";
+    }
+    if (s2) s2.textContent = "\u00a0";
+  }
+
+  function unlockBox(el) {
+    if (!el) return;
+    el.classList.remove("locked");
+    el.classList.add("visible");
+    const cta = el.querySelector(".result-cta");
+    if (cta) cta.style.display = "none";
+  }
+
+  function lockBox(el) {
+    if (!el) return;
+    el.classList.add("locked");
+    el.classList.remove("visible");
+    const cta = el.querySelector(".result-cta");
+    if (cta) cta.style.display = "";
+    if (el.id === "resT") resetProHero();
+    const inner = el.querySelector(".result-inner");
+    if (inner) inner.innerHTML = "";
+  }
+
+  function wireProCalculator() {
+    const priceH = document.getElementById("t_price");
+    const priceDisp = document.getElementById("t_price_disp");
+    const priceR = document.getElementById("t_price_range");
+    const eqH = document.getElementById("t_equity");
+    const eqDisp = document.getElementById("t_equity_disp");
+    const eqR = document.getElementById("t_equity_range");
+    const inH = document.getElementById("t_income");
+    const inDisp = document.getElementById("t_income_disp");
+    const inR = document.getElementById("t_income_range");
+    if (!priceH || !priceDisp || !priceR || !eqH || !eqDisp || !eqR || !inH || !inDisp || !inR) return;
+
+    function readPrice() {
+      return clampNum(+priceH.value || 0, +priceR.min, +priceR.max);
+    }
+
+    function setEquityMaxFromPrice() {
+      const p = readPrice();
+      const cap = Math.max(50000, Math.floor(p * 0.92));
+      eqR.max = String(cap);
+      let e = +eqH.value || 0;
+      e = clampNum(e, 0, cap);
+      eqH.value = String(e);
+      eqR.value = String(e);
+      eqDisp.value = formatCH(e);
+    }
+
+    priceR.addEventListener("input", () => {
+      const v = +priceR.value;
+      priceH.value = String(v);
+      priceDisp.value = formatCH(v);
+      setEquityMaxFromPrice();
+    });
+    priceDisp.addEventListener("blur", () => {
+      let v = parseCH(priceDisp.value);
+      v = clampNum(v, +priceR.min, +priceR.max);
+      priceH.value = String(v);
+      priceR.value = String(v);
+      priceDisp.value = formatCH(v);
+      setEquityMaxFromPrice();
+    });
+
+    eqR.addEventListener("input", () => {
+      const v = +eqR.value;
+      eqH.value = String(v);
+      eqDisp.value = formatCH(v);
+    });
+    eqDisp.addEventListener("blur", () => {
+      let v = parseCH(eqDisp.value);
+      v = clampNum(v, 0, +eqR.max);
+      eqH.value = String(v);
+      eqR.value = String(v);
+      eqDisp.value = formatCH(v);
+    });
+
+    inR.addEventListener("input", () => {
+      const v = +inR.value;
+      inH.value = String(v);
+      inDisp.value = formatCH(v);
+    });
+    inDisp.addEventListener("blur", () => {
+      let v = parseCH(inDisp.value);
+      v = clampNum(v, +inR.min, +inR.max);
+      inH.value = String(v);
+      inR.value = String(v);
+      inDisp.value = formatCH(v);
+    });
+
+    priceDisp.value = formatCH(+priceH.value);
+    priceR.value = priceH.value;
+    setEquityMaxFromPrice();
+    inDisp.value = formatCH(+inH.value);
+    inR.value = inH.value;
+  }
+
+  function renderTragbarkeit() {
+    const price = +document.getElementById("t_price").value;
+    const equity = +document.getElementById("t_equity").value;
+    const income = +document.getElementById("t_income").value;
+    const marketRate = +document.getElementById("t_market").value;
+    const opts = {
+      nebenPct: +document.getElementById("t_neben").value,
+      marketRate,
+      tragLim: +document.getElementById("t_tragLim").value,
+      splitStress: document.getElementById("t_split").checked,
+    };
+    const r = computeMortgageCosts(price, equity, income, opts);
+    const box = document.getElementById("resT");
+    const inner = document.getElementById("resT_inner");
+    if (!inner) return;
+
+    if (r.error) {
+      resetProHero();
+      inner.innerHTML =
+        "<p style=\"color:#ffb4b4;font-weight:700;margin:10px 0 0;line-height:1.45;font-size:13px\">" + r.error + "</p>";
+      unlockBox(box);
+      return;
+    }
+
+    const tragDeg = clampNum(r.tragbarPct, 0, 1) * 360;
+    const ltvDeg = clampNum(r.ltv, 0, 1) * 360;
+    document.getElementById("gauge_trag_ring").style.setProperty("--pdeg", tragDeg.toFixed(2) + "deg");
+    document.getElementById("gauge_trag_txt").textContent =
+      (r.tragbarPct * 100).toFixed(1).replace(".", ",") + "%";
+    document.getElementById("gauge_ltv_ring").style.setProperty("--pdeg", ltvDeg.toFixed(2) + "deg");
+    document.getElementById("gauge_ltv_txt").textContent = (r.ltv * 100).toFixed(1).replace(".", ",") + "%";
+
+    const monthlyPlain =
+      new Intl.NumberFormat("de-CH", { maximumFractionDigits: 0 }).format(Math.round(r.monthlyActual)) + " CHF";
+    document.getElementById("pro_monthly_big").textContent = monthlyPlain;
+
+    const nebenPct = +document.getElementById("t_neben").value;
+    document.getElementById("pro_monthly_sub1").textContent =
+      "Zinskosten " +
+      (marketRate * 100).toFixed(2).replace(".", ",") +
+      "% p.a. (tipo mercado) · Nebenkosten ca. " +
+      (nebenPct * 100).toFixed(1).replace(".", ",") +
+      "% del valor anual.";
+    document.getElementById("pro_monthly_sub2").textContent =
+      "Referencia stress banco: ~" +
+      new Intl.NumberFormat("de-CH", { maximumFractionDigits: 0 }).format(Math.round(r.monthlyStress)) +
+      " CHF/mes · Límite " +
+      pct(r.tragLim, 0).trim() +
+      " · " +
+      (r.okTragbar ? "dentro del tope habitual" : "por encima del tope habitual (orientativo)");
+
+    inner.innerHTML =
+      "<table class=\"calc-pro-detail-table\"><tbody>" +
+      "<tr><td>Total cargas año (stress 5%/6%)</td><td>" +
+      fmt(r.stressAnnual) +
+      "</td></tr>" +
+      "<tr><td>Cuota mensual stress (referencia banco)</td><td>" +
+      fmt(r.monthlyStress) +
+      "</td></tr>" +
+      "<tr><td>Total año con tipo mercado</td><td>" +
+      fmt(r.actualAnnual) +
+      "</td></tr>" +
+      "</tbody></table>";
+    unlockBox(box);
+  }
+
+  function updateRegUI() {
+    const u = loadReg();
+    const bar = document.getElementById("regBar");
+    const txt = document.getElementById("regBarText");
+    const out = document.getElementById("regLogout");
+    if (u) {
+      bar.classList.add("registered");
+      txt.textContent = "Conectado como " + (u.name || "") + " · resultados desbloqueados.";
+      out.hidden = false;
+    } else {
+      bar.classList.remove("registered");
+      txt.textContent = "Los resultados numéricos se desbloquean tras un registro rápido (demo en el navegador).";
+      out.hidden = true;
+    }
+  }
+
+  function openModal() {
+    const m = document.getElementById("regModal");
+    m.hidden = false;
+    document.getElementById("regErr").textContent = "";
+    document.getElementById("regName").focus();
+  }
+  function closeModal() {
+    document.getElementById("regModal").hidden = true;
+    pendingCalc = null;
+  }
+  function dismissModalKeepPending() {
+    document.getElementById("regModal").hidden = true;
+  }
+
+  function requestCalc(fn) {
+    if (loadReg()) {
+      fn();
+      return;
+    }
+    pendingCalc = fn;
+    openModal();
+  }
+
+  function renderTragbarkeit() {
+    const price = +document.getElementById("t_price").value;
+    const equity = +document.getElementById("t_equity").value;
+    const income = +document.getElementById("t_income").value;
+    const opts = {
+      nebenPct: +document.getElementById("t_neben").value,
+      marketRate: +document.getElementById("t_market").value,
+      tragLim: +document.getElementById("t_tragLim").value,
+      splitStress: document.getElementById("t_split").checked,
+    };
+    const r = computeMortgageCosts(price, equity, income, opts);
+    const box = document.getElementById("resT");
+    const inner = document.getElementById("resT_inner");
+    if (r.error) {
+      inner.innerHTML = "<p style=\"color:#b42318;font-weight:600\">" + r.error + "</p>";
+      unlockBox(box);
+      return;
+    }
+    inner.innerHTML =
+      "<div class=\"kpi-row\">" +
+      "<div class=\"kpi\"><span>Tragbarkeit (stress / bruto)</span><strong>" + pct(r.tragbarPct, 2) + "</strong></div>" +
+      "<div class=\"kpi\"><span>Límite usado</span><strong>" + pct(r.tragLim, 0) + "</strong></div>" +
+      "<div class=\"kpi\"><span>Cumple (orientativo)</span><strong>" + (r.okTragbar ? "Sí" : "No") + "</strong></div>" +
+      "<div class=\"kpi\"><span>Belehnung</span><strong>" + pct(r.ltv, 2) + "</strong></div>" +
+      "</div>" +
+      "<table class=\"result-table\"><tbody>" +
+      "<tr><th>Concepto anual (stress)</th><th>Importe</th></tr>" +
+      "<tr><td>Intereses stress (1.\u202f/ 2.\u202fhipoteca)</td><td>" + fmt(r.stressInterest) + "</td></tr>" +
+      "<tr><td>Amortización 2.\u202fhipoteca (/" + CH.amortYears + " a)</td><td>" + fmt(r.amortAnnual) + "</td></tr>" +
+      "<tr><td>Mantenimiento (Nebenkosten)</td><td>" + fmt(r.neben) + "</td></tr>" +
+      "<tr><td><strong>Total stress / año</strong></td><td><strong>" + fmt(r.stressAnnual) + "</strong></td></tr>" +
+      "<tr><td>Cuota mensual stress</td><td>" + fmt(r.monthlyStress) + "</td></tr>" +
+      "<tr><td>Cuota mensual tipo mercado</td><td>" + fmt(r.monthlyActual) + "</td></tr>" +
+      "</tbody></table>" +
+      "<p style=\"font-size:13px;color:var(--muted);margin-top:12px\">1.\u202fhipoteca hasta ~" + pct(CH.firstRank, 0) + " del valor; 2.\u202ftramo con amortización obligatoria en " + CH.amortYears + " años (práctica habitual CH).</p>";
+    unlockBox(box);
+  }
+
+  function renderMaxPrice() {
+    const E = +document.getElementById("m_equity").value;
+    const I = +document.getElementById("m_income").value;
+    const opts = {
+      nebenPct: +document.getElementById("m_neben").value,
+      marketRate: +document.getElementById("m_market").value,
+      tragLim: +document.getElementById("m_tragLim").value,
+      splitStress: document.getElementById("m_split").checked,
+    };
+    const res = findMaxPurchasePrice(E, I, opts);
+    const box = document.getElementById("resMax");
+    const inner = document.getElementById("resMax_inner");
+    if (res.error) {
+      inner.innerHTML = "<p style=\"color:#b42318;font-weight:600\">" + res.error + "</p>";
+      unlockBox(box);
+      return;
+    }
+    const r = res.detail;
+    inner.innerHTML =
+      "<div class=\"kpi-row\">" +
+      "<div class=\"kpi\"><span>Precio máx. orientativo</span><strong>" + fmt(res.maxPrice) + "</strong></div>" +
+      "<div class=\"kpi\"><span>Préstamo resultante</span><strong>" + fmt(r.loan) + "</strong></div>" +
+      "<div class=\"kpi\"><span>Tragbarkeit stress</span><strong>" + pct(r.tragbarPct, 2) + "</strong></div>" +
+      "<div class=\"kpi\"><span>Cuota mensual mercado</span><strong>" + fmt(r.monthlyActual) + "</strong></div>" +
+      "</div>" +
+      "<table class=\"result-table\"><tbody>" +
+      "<tr><th>Desglose anual (stress)</th><th></th></tr>" +
+      "<tr><td>Intereses stress</td><td>" + fmt(r.stressInterest) + "</td></tr>" +
+      "<tr><td>Amortización</td><td>" + fmt(r.amortAnnual) + "</td></tr>" +
+      "<tr><td>Mantenimiento</td><td>" + fmt(r.neben) + "</td></tr>" +
+      "<tr><td>Total</td><td>" + fmt(r.stressAnnual) + "</td></tr>" +
+      "</tbody></table>";
+    unlockBox(box);
+  }
+
+  function renderBuyRent() {
+    const price = +document.getElementById("v_price").value;
+    const equity = +document.getElementById("v_equity").value;
+    const income = +document.getElementById("v_income").value;
+    const years = Math.max(1, +document.getElementById("v_years").value | 0);
+    const rentM = +document.getElementById("v_rentM").value;
+    const alt = +document.getElementById("v_alt").value;
+    const opts = {
+      nebenPct: 0.01,
+      marketRate: +document.getElementById("v_market").value,
+      tragLim: 0.33,
+      splitStress: document.getElementById("v_split").checked,
+    };
+    const r2 = computeMortgageCosts(price, equity, income, opts);
+    const box = document.getElementById("resV");
+    const inner = document.getElementById("resV_inner");
+    if (r2.error) {
+      inner.innerHTML = "<p style=\"color:#b42318;font-weight:600\">" + r2.error + "</p>";
+      unlockBox(box);
+      return;
+    }
+    const annualOwn = r2.actualAnnual;
+    const annualRent = rentM * 12;
+    const cumOwn = annualOwn * years;
+    const cumRent = annualRent * years;
+    const opp = equity * alt * years;
+
+    inner.innerHTML =
+      "<div class=\"kpi-row\">" +
+      "<div class=\"kpi\"><span>Tragbarkeit stress</span><strong>" + pct(r2.tragbarPct, 2) + " " + (r2.okTragbar ? "(ok)" : "(riesgo)") + "</strong></div>" +
+      "<div class=\"kpi\"><span>Carga anual compra (mercado)</span><strong>" + fmt(annualOwn) + "</strong></div>" +
+      "<div class=\"kpi\"><span>Carga anual alquiler</span><strong>" + fmt(annualRent) + "</strong></div>" +
+      "<div class=\"kpi\"><span>Diferencia anual (compra − alquiler)</span><strong>" + fmt(annualOwn - annualRent) + "</strong></div>" +
+      "</div>" +
+      "<table class=\"result-table\"><tbody>" +
+      "<tr><th>Horizonte " + years + " años (liquidez)</th><th>Compra</th><th>Alquiler</th></tr>" +
+      "<tr><td>Acumulado pagos</td><td>" + fmt(cumOwn) + "</td><td>" + fmt(cumRent) + "</td></tr>" +
+      "<tr><td>+ coste oportunidad capital (" + pct(alt, 2) + " anual)</td><td>" + fmt(opp) + "</td><td>—</td></tr>" +
+      "<tr><td><strong>Total ajustado (aprox.)</strong></td><td><strong>" + fmt(cumOwn + opp) + "</strong></td><td><strong>" + fmt(cumRent) + "</strong></td></tr>" +
+      "</tbody></table>" +
+      "<p style=\"font-size:13px;color:var(--muted);margin-top:10px\">La amortización no es “gasto” puro: aumenta su patrimonio líquido en el inmueble. Los impuestos y la revalorización no están modelados.</p>";
+    unlockBox(box);
+  }
+
+  function renderPension() {
+    const price = +document.getElementById("p_price").value;
+    const equity = +document.getElementById("p_equity").value;
+    const incW = +document.getElementById("p_incWork").value;
+    const incP = +document.getElementById("p_incPen").value;
+    const opts = {
+      nebenPct: +document.getElementById("p_neben").value,
+      marketRate: 0.018,
+      tragLim: 0.33,
+      splitStress: document.getElementById("p_split").checked,
+    };
+    const w = computeMortgageCosts(price, equity, incW, opts);
+    const p = computeMortgageCosts(price, equity, incP, opts);
+    const box = document.getElementById("resP");
+    const inner = document.getElementById("resP_inner");
+    if (w.error || p.error) {
+      inner.innerHTML = "<p style=\"color:#b42318;font-weight:600\">" + (w.error || p.error) + "</p>";
+      unlockBox(box);
+      return;
+    }
+    inner.innerHTML =
+      "<div class=\"kpi-row\">" +
+      "<div class=\"kpi\"><span>Tragbarkeit activo</span><strong>" + pct(w.tragbarPct, 2) + "</strong></div>" +
+      "<div class=\"kpi\"><span>Tragbarkeit pensión</span><strong>" + pct(p.tragbarPct, 2) + "</strong></div>" +
+      "<div class=\"kpi\"><span>OK activo</span><strong>" + (w.okTragbar ? "Sí" : "No") + "</strong></div>" +
+      "<div class=\"kpi\"><span>OK pensión</span><strong>" + (p.okTragbar ? "Sí" : "No") + "</strong></div>" +
+      "</div>" +
+      "<table class=\"result-table\"><tbody>" +
+      "<tr><th></th><th>Con ingreso laboral</th><th>Con pensión</th></tr>" +
+      "<tr><td>Coste anual stress</td><td>" + fmt(w.stressAnnual) + "</td><td>" + fmt(p.stressAnnual) + "</td></tr>" +
+      "<tr><td>% bruto</td><td>" + pct(w.tragbarPct, 2) + "</td><td>" + pct(p.tragbarPct, 2) + "</td></tr>" +
+      "</tbody></table>" +
+      "<p style=\"font-size:13px;color:var(--muted);margin-top:10px\">Los bancos revisan la capacidad también en el momento del retiro; conviene planificar amortización o reducción de deuda.</p>";
+    unlockBox(box);
+  }
+
+  document.getElementById("btnT").addEventListener("click", () => requestCalc(renderTragbarkeit));
+  document.getElementById("btnMax").addEventListener("click", () => requestCalc(renderMaxPrice));
+  document.getElementById("btnV").addEventListener("click", () => requestCalc(renderBuyRent));
+  document.getElementById("btnP").addEventListener("click", () => requestCalc(renderPension));
+
+  document.querySelectorAll("[data-open-reg]").forEach((b) => b.addEventListener("click", () => { pendingCalc = null; openModal(); }));
+
+  document.getElementById("openRegFromBar").addEventListener("click", openModal);
+  document.getElementById("regCancel").addEventListener("click", closeModal);
+  document.getElementById("regModal").addEventListener("click", (e) => { if (e.target.id === "regModal") closeModal(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !document.getElementById("regModal").hidden) closeModal();
+  });
+
+  document.getElementById("regSubmit").addEventListener("click", () => {
+    const err = document.getElementById("regErr");
+    err.textContent = "";
+    const name = document.getElementById("regName").value.trim();
+    const email = document.getElementById("regEmail").value.trim();
+    const pass = document.getElementById("regPass").value;
+    const terms = document.getElementById("regTerms").checked;
+    if (name.length < 2) { err.textContent = "Indique un nombre válido."; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = "Correo no válido."; return; }
+    if (pass.length < 8) { err.textContent = "La contraseña debe tener al menos 8 caracteres."; return; }
+    if (!terms) { err.textContent = "Debe aceptar la política para continuar."; return; }
+    const fn = pendingCalc;
+    pendingCalc = null;
+    saveReg({ name, email, at: Date.now() });
+    updateRegUI();
+    dismissModalKeepPending();
+    if (typeof fn === "function") fn();
+  });
+
+  document.getElementById("regLogout").addEventListener("click", () => {
+    localStorage.removeItem(LS_KEY);
+    updateRegUI();
+    ["resT", "resMax", "resV", "resP"].forEach((id) => {
+      const el = document.getElementById(id);
+      lockBox(el);
+    });
+  });
+
+  const tabs = [
+    ["tabT", "panelT"],
+    ["tabMax", "panelMax"],
+    ["tabVR", "panelVR"],
+    ["tabPen", "panelPen"],
+  ];
+  tabs.forEach(([tid, pid], i) => {
+    document.getElementById(tid).addEventListener("click", () => {
+      tabs.forEach(([t, p], j) => {
+        const tb = document.getElementById(t);
+        const pan = document.getElementById(p);
+        const on = j === i;
+        tb.setAttribute("aria-selected", on ? "true" : "false");
+        pan.classList.toggle("active", on);
+      });
+    });
+  });
+
+  document.getElementById("y").textContent = new Date().getFullYear();
+  wireProCalculator();
+  updateRegUI();
+})();
+  </script>
+</body>
+</html>
