@@ -11,7 +11,12 @@ mobile/
 docker-compose*.yml
 .env.*.example
 database/
+database_storage/
 docs/
+
+# Imágenes Docker exportadas (no deben estar en el repo, exceden 100 MB de GitHub)
+*.tar
+*.tar.gz
 
 # Claves Apple / App Store Connect (nunca en el repo)
 *.p8
