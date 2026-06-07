@@ -209,12 +209,22 @@ export default function LoginUI({ setUser, oauthAppleMessage = "" }) {
           </a>
         </div>
 
+        <a
+          href="/landing"
+          className="block w-full rounded-xl border border-emerald-500/40 bg-emerald-500/10 py-3 text-center text-sm font-bold text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+        >
+          Konto erstellen / Crear cuenta
+        </a>
+        <p className="text-center text-[11px] text-slate-500 -mt-2">
+          Neu hier? 30 Tage kostenlos testen.
+        </p>
+
         <button
           type="button"
           onClick={() => setShowReset((prev) => !prev)}
           className="w-full py-2 text-xs font-medium text-slate-500 hover:text-slate-300 transition-colors"
         >
-          Olvidé mi contraseña
+          Olvidé mi contraseña / Passwort vergessen
         </button>
 
         {showReset ? (
